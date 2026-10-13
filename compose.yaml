@@ -1,0 +1,91 @@
+# Local development stack.  Usage:  cp .env.example .env && docker compose up -d --build
+# Ports are bound to 127.0.0.1 only: nothing here is meant to be reachable from the network.
+# Host ports default to an uncommon range (1xxxx) to avoid clashing with other local stacks;
+# override them with MIZAN_HOST_PORT_* in .env. Inside the compose network the standard
+# ports are used.
+
+name: mizan
+
+x-healthcheck: &healthcheck
+  interval: 5s
+  timeout: 3s
+  retries: 20
+  start_period: 5s
+
+services:
+  postgres:
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_USER: ${MIZAN_POSTGRES__USER:-mizan}
+      POSTGRES_PASSWORD: ${MIZAN_POSTGRES__PASSWORD:-mizan-dev-password}
+      POSTGRES_DB: ${MIZAN_POSTGRES__DATABASE:-mizan}
+    ports:
+      - "127.0.0.1:${MIZAN_HOST_PORT_POSTGRES:-15432}:5432"
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${MIZAN_HOST_PORT_REDIS:-16379}:6379"
+    volumes: [redis-data:/data]
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD", "redis-cli", "ping"]
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.5
+    ports:
+      - "127.0.0.1:${MIZAN_HOST_PORT_QDRANT:-16333}:6333"
+      - "127.0.0.1:${MIZAN_HOST_PORT_QDRANT_GRPC:-16334}:6334"
+    volumes: [qdrant-data:/qdrant/storage]
+    healthcheck:
+      <<: *healthcheck
+      # The image ships without curl/wget; probe the port with bash's /dev/tcp.
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+
+  neo4j:
+    image: neo4j:5.26-community
+    environment:
+      NEO4J_AUTH: neo4j/${MIZAN_NEO4J__PASSWORD:-mizan-dev-password}
+      NEO4J_server_memory_heap_max__size: 1G
+    ports:
+      - "127.0.0.1:${MIZAN_HOST_PORT_NEO4J_HTTP:-17474}:7474"
+      - "127.0.0.1:${MIZAN_HOST_PORT_NEO4J_BOLT:-17687}:7687"
+    volumes: [neo4j-data:/data]
+    healthcheck:
+      <<: *healthcheck
+      start_period: 30s
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p \"$${NEO4J_AUTH#neo4j/}\" 'RETURN 1' || exit 1"]
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Containers log JSON (production parity); host-run code uses the .env setting.
+      MIZAN_LOG__JSON_FORMAT: "true"
+      MIZAN_POSTGRES__HOST: postgres
+      MIZAN_POSTGRES__PORT: "5432"
+      MIZAN_REDIS__URL: redis://redis:6379/0
+      MIZAN_QDRANT__URL: http://qdrant:6333
+      MIZAN_NEO4J__URI: bolt://neo4j:7687
+    ports:
+      - "127.0.0.1:${MIZAN_HOST_PORT_API:-18000}:8000"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      qdrant: { condition: service_healthy }
+      neo4j: { condition: service_healthy }
+
+volumes:
+  postgres-data:
+  redis-data:
+  qdrant-data:
+  neo4j-data:

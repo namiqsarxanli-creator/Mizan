@@ -1,0 +1,71 @@
+"""Application factory.
+
+Run with: ``uvicorn mizan_api.main:create_app --factory``
+"""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator, Sequence
+from contextlib import AsyncExitStack, asynccontextmanager
+
+from fastapi import FastAPI
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
+from mizan_api import __version__
+from mizan_api.dependencies import build_dependency_checks
+from mizan_api.middleware import TraceIdHeaderMiddleware
+from mizan_api.routes import health
+from mizan_core.config import Settings, get_settings
+from mizan_core.health import DependencyCheck
+from mizan_core.logging import configure_logging, get_logger
+from mizan_core.tracing import configure_tracing
+
+log = get_logger(__name__)
+
+
+def create_app(
+    settings: Settings | None = None,
+    *,
+    checks: Sequence[DependencyCheck] | None = None,
+) -> FastAPI:
+    """Build the API.
+
+    ``checks`` overrides the real dependency checks; tests use it to run without any
+    backing services.
+    """
+    settings = settings or get_settings()
+    configure_logging(
+        settings.log.level,
+        json_format=settings.log.json_format,
+        quiet_paths=["/health/live"],
+    )
+    tracer_provider = configure_tracing(
+        service_name=settings.service_name,
+        service_version=__version__,
+        environment=settings.environment,
+        otlp_endpoint=settings.telemetry.otlp_endpoint,
+        sample_ratio=settings.telemetry.sample_ratio,
+    )
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        async with AsyncExitStack() as stack:
+            app.state.checks = (
+                list(checks)
+                if checks is not None
+                else await build_dependency_checks(settings, stack)
+            )
+            log.info("startup", environment=settings.environment, version=__version__)
+            yield
+            log.info("shutdown")
+        tracer_provider.force_flush()
+
+    app = FastAPI(title="Mizan API", version=__version__, lifespan=lifespan)
+    app.state.settings = settings
+    app.add_middleware(TraceIdHeaderMiddleware)
+    app.include_router(health.router)
+
+    # Wraps the whole middleware stack, so every request (including TraceIdHeaderMiddleware)
+    # runs inside a server span.
+    FastAPIInstrumentor.instrument_app(app, tracer_provider=tracer_provider)
+    return app

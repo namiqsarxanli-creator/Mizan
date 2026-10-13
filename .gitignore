@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+build/
+dist/
+
+# Tooling caches
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Secrets & local config
+.env
+.env.*
+!.env.example
+
+# Data & model artifacts (tracked elsewhere, e.g. DVC / HF Hub)
+data/raw/
+data/processed/
+models/
+wandb/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

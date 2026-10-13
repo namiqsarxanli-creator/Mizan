@@ -1,0 +1,93 @@
+[project]
+name = "mizan"
+version = "0.1.0"
+description = "Agentic, measurable legal research platform for Azerbaijani law."
+requires-python = ">=3.12"
+dependencies = ["mizan-core", "mizan-api"]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/*", "apps/*"]
+
+[tool.uv.sources]
+mizan-core = { workspace = true }
+mizan-api = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "coverage[toml]>=7.6",
+    "mypy>=1.13",
+    "pre-commit>=4.0",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "ruff>=0.8",
+]
+
+# ---------------------------------------------------------------- ruff
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["packages/*/src", "apps/*/src"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F",  # pycodestyle, pyflakes
+    "I",            # isort
+    "B",            # bugbear
+    "UP",           # pyupgrade
+    "N",            # naming
+    "S",            # bandit (security)
+    "ASYNC",        # async pitfalls
+    "BLE",          # blind except
+    "C4",           # comprehensions
+    "DTZ",          # naive datetimes
+    "PT",           # pytest style
+    "RET", "SIM",   # simplifications
+    "TID",          # tidy imports
+    "RUF",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "S105", "S106"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mizan_core", "mizan_api"]
+
+# ---------------------------------------------------------------- mypy
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+mypy_path = ["packages/mizan-core/src", "apps/api/src"]
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["asyncpg", "asyncpg.*"]
+ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+# ---------------------------------------------------------------- pytest
+[tool.pytest.ini_options]
+testpaths = ["packages", "apps"]
+addopts = ["--import-mode=importlib", "--strict-markers", "-ra"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = ["integration: needs the docker compose stack (MIZAN_INTEGRATION=1)"]
+filterwarnings = ["error::DeprecationWarning:mizan_.*"]
+
+[tool.coverage.run]
+branch = true
+source = ["mizan_core", "mizan_api"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
