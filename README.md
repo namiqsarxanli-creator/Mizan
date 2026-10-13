@@ -6,7 +6,8 @@ Mizan answers legal questions with citations to the exact article of the law in 
 given date, verifies every claim against its source, and measures its own quality
 continuously. See [docs/ROADMAP.md](docs/ROADMAP.md) for the full 24-week plan.
 
-> **Status:** Phase F0 (foundation). No legal functionality yet.
+> **Status:** F1 done: the Labour Code's full version history (1999 to today) is ingested,
+> structured and queryable by date. Next: F2, retrieval.
 
 ## Architecture (target)
 
@@ -22,14 +23,17 @@ continuously. See [docs/ROADMAP.md](docs/ROADMAP.md) for the full 24-week plan.
 ```
 apps/
   api/                 FastAPI gateway (deployable)
+  worker/              Arq worker: scheduled ingestion (deployable; also runs migrations)
 packages/
   mizan-core/          settings, structured logging, tracing, health primitives
+  mizan-ingestion/     e-qanun client, Word-HTML parser, temporal storage, chunking
+    migrations/        Alembic migrations
 docs/
   adr/                 architecture decision records
   ROADMAP.md
 evals/                 golden datasets and eval runners (from F3)
 infra/                 deployment manifests (from F9)
-compose.yaml           local stack: Postgres, Redis, Qdrant, Neo4j, API
+compose.yaml           local stack: Postgres, Redis, Qdrant, Neo4j, migrate, worker, API
 ```
 
 ## Quick start
@@ -54,6 +58,33 @@ Host ports default to the 1xxxx range (Postgres `15432`, Redis `16379`, Qdrant `
 Neo4j `17687`, API `18000`) so the stack can run next to other local projects. Override them with
 `MIZAN_HOST_PORT_*` in `.env`.
 
+## Legal data (F1)
+
+Source: [e-qanun.az](https://e-qanun.az), the official legal database of the Ministry of
+Justice. Every consolidated version of a document is stored with its validity interval, so
+any question can be answered *as of* a date ([ADR-0003](docs/adr/0003-temporal-versioning.md)).
+
+```bash
+uv run alembic upgrade head                                  # schema
+uv run mizan-ingest sync 46943                               # Labour Code, all versions
+uv run mizan-ingest as-of 46943 2021-06-01 --key art:69      # Article 69 as it stood then
+uv run mizan-ingest inspect path/to/file.html                # parser statistics for one file
+```
+
+What the parser handles, all found in the real data:
+
+- mixed encodings: files declare windows-1251 but some are windows-1254; detected per file;
+- structure from layout: sections, chapters (Azerbaijani ordinals: "Qırx səkkizinci fəsil"),
+  articles (`Maddə 7-1.`), parts, points, items, annexes with model forms;
+- 25 years of format drift: `<h3>` vs bold headings, small-caps casing artefacts, endnote
+  wording variants;
+- amendment history: 625 endnotes, each linked to the amending act and its date.
+
+Being polite to a public-service site is built in: an honest User-Agent, one request at a time,
+at most one every 1.5 s, and historical versions are downloaded once and then served from disk.
+The worker re-syncs tracked documents nightly; a re-run downloads only the current text and
+writes nothing if it has not changed.
+
 ## Quality gates
 
 | Command | What it checks |
@@ -62,7 +93,7 @@ Neo4j `17687`, API `18000`) so the stack can run next to other local projects. O
 | `uv run ruff format --check .` | formatting |
 | `uv run mypy packages apps` | strict typing |
 | `uv run pytest --cov` | unit tests + coverage |
-| `MIZAN_INTEGRATION=1 uv run pytest -m integration` | real dependency checks against the compose stack |
+| `MIZAN_INTEGRATION=1 uv run pytest -m integration` | real Postgres: migrations + `alembic check`, ingestion pipeline end to end, dependency checks |
 
 All of the above run in CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)), followed by a
 Docker image build. Install the git hooks once with `uv run pre-commit install`.
@@ -85,6 +116,7 @@ Docker image build. Install the git hooks once with `uv run pre-commit install`.
 |---|---|
 | [0001](docs/adr/0001-monorepo-and-stack.md) | uv workspace monorepo; FastAPI, Pydantic, structlog, OpenTelemetry |
 | [0002](docs/adr/0002-vector-database.md) | Qdrant for retrieval, Postgres as source of truth |
+| [0003](docs/adr/0003-temporal-versioning.md) | Versioned snapshots with derived validity intervals; content-addressed text |
 
 ## Disclaimer
 

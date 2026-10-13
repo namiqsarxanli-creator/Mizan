@@ -12,8 +12,11 @@ WORKDIR /app
 
 # 1) Third-party dependencies only: this layer is cached until uv.lock changes.
 COPY pyproject.toml uv.lock ./
+# Every workspace member's manifest must exist for uv to resolve the workspace.
 COPY packages/mizan-core/pyproject.toml packages/mizan-core/
+COPY packages/mizan-ingestion/pyproject.toml packages/mizan-ingestion/
 COPY apps/api/pyproject.toml apps/api/
+COPY apps/worker/pyproject.toml apps/worker/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-install-workspace --package mizan-api
 

@@ -56,6 +56,10 @@ class PostgresSettings(BaseModel):
         password = quote(self.password.get_secret_value(), safe="")
         return f"postgresql://{user}:{password}@{self.host}:{self.port}/{self.database}"
 
+    @property
+    def sqlalchemy_url(self) -> str:
+        return self.dsn.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 
 class RedisSettings(BaseModel):
     url: str = "redis://localhost:16379/0"
@@ -74,6 +78,19 @@ class Neo4jSettings(BaseModel):
 
 class HealthSettings(BaseModel):
     check_timeout_s: float = Field(default=2.0, gt=0)
+
+
+class IngestionSettings(BaseModel):
+    raw_dir: str = "data/raw"
+    eqanun_api_url: str = "https://api.e-qanun.az/"
+    eqanun_site_url: str = "https://e-qanun.az/"
+    # Identify ourselves honestly; e-qanun only requires a same-site Referer (hotlink guard).
+    user_agent: str = "Mizan-research/0.1 (+https://github.com/namiqsarxanli-creator/Mizan)"
+    min_request_interval_s: float = Field(default=1.5, ge=0)
+    request_timeout_s: float = Field(default=60.0, gt=0)
+    max_attempts: int = Field(default=4, ge=1)
+    # e-qanun framework ids to keep in sync (46943 = Labour Code).
+    tracked_documents: list[int] = [46943]
 
 
 class Settings(BaseSettings):
@@ -96,6 +113,8 @@ class Settings(BaseSettings):
     redis: RedisSettings = RedisSettings()
     qdrant: QdrantSettings = QdrantSettings()
     neo4j: Neo4jSettings = Neo4jSettings()
+
+    ingestion: IngestionSettings = IngestionSettings()
 
     @model_validator(mode="after")
     def _reject_dev_secrets(self) -> Self:

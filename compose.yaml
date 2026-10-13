@@ -61,14 +61,15 @@ services:
       start_period: 30s
       test: ["CMD-SHELL", "cypher-shell -u neo4j -p \"$${NEO4J_AUTH#neo4j/}\" 'RETURN 1' || exit 1"]
 
-  api:
-    build:
+  # One-off: apply database migrations before anything that needs the schema starts.
+  migrate:
+    build: &worker-build
       context: .
-      dockerfile: apps/api/Dockerfile
-    env_file:
+      dockerfile: apps/worker/Dockerfile
+    env_file: &env-file
       - path: .env
         required: false
-    environment:
+    environment: &container-env
       # Containers log JSON (production parity); host-run code uses the .env setting.
       MIZAN_LOG__JSON_FORMAT: "true"
       MIZAN_POSTGRES__HOST: postgres
@@ -76,9 +77,30 @@ services:
       MIZAN_REDIS__URL: redis://redis:6379/0
       MIZAN_QDRANT__URL: http://qdrant:6333
       MIZAN_NEO4J__URI: bolt://neo4j:7687
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  worker:
+    build: *worker-build
+    env_file: *env-file
+    environment: *container-env
+    volumes: [raw-data:/app/data/raw]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file: *env-file
+    environment: *container-env
     ports:
       - "127.0.0.1:${MIZAN_HOST_PORT_API:-18000}:8000"
     depends_on:
+      migrate: { condition: service_completed_successfully }
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
       qdrant: { condition: service_healthy }
@@ -86,6 +108,7 @@ services:
 
 volumes:
   postgres-data:
+  raw-data:
   redis-data:
   qdrant-data:
   neo4j-data:

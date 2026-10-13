@@ -69,26 +69,28 @@
 
 ---
 
-## F1 — Ingestion pipeline (Həftə 2–3)
+## F1 — Ingestion pipeline (Həftə 2–3) ✅
 
 **Məqsəd:** hüquqi mətnləri strukturlu, versiyalanmış və təkrar emal oluna bilən şəkildə saxlamaq.
 
 ### Həftə 2 — Parse və struktur
-- [ ] Mənbə: e-qanun.az (istifadə şərtlərini yoxla, rate limit, `robots.txt`)
-- [ ] Başlanğıc korpusu: **Əmək Məcəlləsi** (sonra Mülki, Cinayət, Konstitusiya)
-- [ ] İyerarxik parser: Məcəllə → Fəsil → Maddə → Bənd
-- [ ] Data modeli: `Document`, `Article`, `Clause` + `parent_id`, `article_no`
-- [ ] Parser üçün unit testlər (real nümunələrlə fixture-lar)
+- [x] Mənbə: e-qanun.az. `robots.txt` yoxdur; sayt yalnız hotlink qoruması tətbiq edir. Dürüst User-Agent, 1.5 s rate limit, tarixi versiyalar üçün disk cache
+- [x] Başlanğıc korpusu: **Əmək Məcəlləsi**, 1999–2026 arası 14 versiya *(Mülki, Cinayət, Konstitusiya: `tracked_documents`-ə ID əlavə etmək kifayətdir)*
+- [x] İyerarxik parser: Bölmə → Fəsil → Maddə → Hissə → Bənd → Yarımbənd → hərfli bənd (a, b) + Əlavələr (§)
+- [x] Data modeli: stabil açarlar (`art:69/part:3-1/item:a`), `parent_key`, sıra, dərinlik
+- [x] Unit testlər: real markup nümunələrindən fixture-lar (kodlaşdırma, struktur, endnote-lar, chunking)
 
 ### Həftə 3 — Versiyalama və pipeline
-- [ ] **Temporal model:** `valid_from`, `valid_to`, `amended_by`
-- [ ] Məzmun hash-ı ilə idempotent ingestion (dəyişməyən mətn yenidən emal olunmur)
-- [ ] Arq worker-ləri: `fetch → parse → chunk → embed → index`
-- [ ] Dead-letter queue + retry siyasəti
-- [ ] Chunking strategiyaları: fixed / semantic / struktur əsaslı (hamısı saxlanılır, F2-də müqayisə olunur)
-- [ ] **ADR-003:** Temporal versiyalama modeli
+- [x] **Temporal model:** `valid_from` / `valid_to` (törəmə), tarixsiz cari mətn üçün `valid_from_estimated`, endnote-lardan dəyişdirən akt (nömrə + tarix)
+- [x] SHA-256 ilə idempotent ingestion + `PARSER_VERSION` artanda avtomatik reparse + yetim mətnlərin təmizlənməsi
+- [x] Arq worker: gecəlik cron + tələb üzrə `sync_document` *(embed → index F2-yə keçdi: model eval ilə seçilir, ADR-0003)*
+- [~] Retry siyasəti: HTTP səviyyəsində backoff + jitter, job səviyyəsində 3 cəhd. *Ayrıca DLQ → F9 (Temporal)*
+- [x] Chunking strategiyaları: maddə (parent-child), hissə, fixed (baseline). *Semantic chunking embedding tələb edir → F2*
+- [x] **ADR-0003:** Temporal versiyalama modeli
 
 **✅ DoD:** Əmək Məcəlləsinin bütün maddələri versiyaları ilə DB-dədir, pipeline ikinci dəfə işə salındıqda heç nəyi təkrar emal etmir.
+
+**Nəticə:** 14 versiya, 23 101 provision, 2 487 unikal mətn (89% dedup). Təkrar sync: `{'unchanged': 14}`, yalnız cari mətn yüklənir. `mizan-ingest as-of 46943 2021-06-01 --key art:69` həmin tarixdə qüvvədə olan mətni qaytarır.
 
 ---
 

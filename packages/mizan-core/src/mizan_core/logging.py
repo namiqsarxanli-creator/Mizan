@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import sys
 from collections.abc import Iterable
+from typing import TextIO
 
 import structlog
 from opentelemetry import trace
@@ -44,7 +45,13 @@ def configure_logging(
     *,
     json_format: bool = False,
     quiet_paths: Iterable[str] = (),
+    stream: TextIO | None = None,
 ) -> None:
+    """Route all logging through structlog.
+
+    Services log to stdout (twelve-factor); CLIs pass ``sys.stderr`` so that stdout carries
+    only their result and stays pipeable.
+    """
     shared: list[Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_log_level,
@@ -68,7 +75,7 @@ def configure_logging(
         cache_logger_on_first_use=True,
     )
 
-    handler = logging.StreamHandler(sys.stdout)
+    handler = logging.StreamHandler(stream or sys.stdout)
     handler.setFormatter(
         structlog.stdlib.ProcessorFormatter(
             foreign_pre_chain=shared,

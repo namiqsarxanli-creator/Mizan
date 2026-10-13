@@ -71,18 +71,21 @@ jobs:
         run: docker compose down -v
 
   docker:
-    name: Build API image
+    name: Build ${{ matrix.app }} image
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: [quality, test]
+    strategy:
+      matrix:
+        app: [api, worker]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: apps/api/Dockerfile
+          file: apps/${{ matrix.app }}/Dockerfile
           push: false
-          tags: mizan-api:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: mizan-${{ matrix.app }}:ci
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
