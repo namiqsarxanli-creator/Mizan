@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import io
 import json
+import os
 import re
 import sys
 import time
@@ -25,9 +27,10 @@ from mizan_core.config import Settings, get_settings
 from mizan_core.logging import configure_logging, get_logger
 from mizan_ingestion.chunking import Strategy
 from mizan_ingestion.db.session import create_engine, session_factory
+from mizan_retrieval import snapshot
 from mizan_retrieval.corpus import load_chunk_records
 from mizan_retrieval.embeddings import MODELS, Embedder, EmbeddingCache
-from mizan_retrieval.evaluation import Question, RunResult, load_dataset
+from mizan_retrieval.evaluation import Question, RunResult, load_dataset, paired_bootstrap
 from mizan_retrieval.index import build_index
 from mizan_retrieval.report import write_report
 from mizan_retrieval.rerank import Reranker
@@ -36,6 +39,7 @@ from mizan_retrieval.search import Mode, SearchConfig, Searcher
 
 log = get_logger(__name__)
 LABOUR_CODE = 46943
+_RECALL_FLOOR = 0.75  # F2 Definition of Done
 
 
 def _today_in_baku() -> date:
@@ -53,14 +57,23 @@ def _embedders(settings: Settings, names: list[str]) -> dict[str, Embedder]:
     return {n: Embedder(MODELS[n], cache) for n in names}
 
 
-async def _index(strategies: list[Strategy], model_names: list[str]) -> int:
+async def _index(
+    strategies: list[Strategy], model_names: list[str], from_snapshot: Path | None = None
+) -> int:
     settings = get_settings()
-    engine = create_engine(settings.postgres)
+    # A snapshot needs neither Postgres nor e-qanun.az: this is how CI builds its index.
+    engine = None if from_snapshot else create_engine(settings.postgres)
     client = _qdrant(settings)
     embedders = list(_embedders(settings, model_names).values())
     try:
         for strategy in strategies:
-            records = await load_chunk_records(session_factory(engine), LABOUR_CODE, strategy)
+            if from_snapshot is not None:
+                frozen = await asyncio.to_thread(snapshot.read, from_snapshot)
+                records = [r for r in frozen if r.strategy is strategy]
+            elif engine is not None:
+                records = await load_chunk_records(session_factory(engine), LABOUR_CODE, strategy)
+            else:  # pragma: no cover - engine exists whenever there is no snapshot
+                raise RuntimeError("no corpus source")
             started = time.perf_counter()
             name = await build_index(client, strategy, records, embedders)
             print(
@@ -75,8 +88,101 @@ async def _index(strategies: list[Strategy], model_names: list[str]) -> int:
             )
     finally:
         await client.close()
-        await engine.dispose()
+        if engine is not None:
+            await engine.dispose()
     return 0
+
+
+async def _snapshot(out: Path, strategies: list[Strategy]) -> int:
+    engine = create_engine(get_settings().postgres)
+    try:
+        records = []
+        for strategy in strategies:
+            records += await load_chunk_records(session_factory(engine), LABOUR_CODE, strategy)
+    finally:
+        await engine.dispose()
+    digest = await asyncio.to_thread(snapshot.write, out, records)
+    print(json.dumps({"snapshot": out.as_posix(), "records": len(records), "hash": digest}))
+    return 0
+
+
+# Serving configuration (ADR-0004): what the gate protects.
+def serving_variant() -> SearchConfig:
+    r = get_settings().retrieval
+    return SearchConfig(
+        mode=Mode(r.mode),
+        dense_model=r.dense_model,
+        sparse=r.sparse,
+        strategy=Strategy(r.strategy),
+        candidates=r.candidates,
+        rerank_top=r.rerank_top,
+    )
+
+
+async def _run_serving(questions: list[Question], config: SearchConfig) -> RunResult:
+    settings = get_settings()
+    client = _qdrant(settings)
+    try:
+        searcher = Searcher(client, _embedders(settings, [config.dense_model]), None)
+        return await run_variant(searcher, config, questions)
+    finally:
+        await client.close()
+
+
+def _gate(dataset: Path, baseline_path: Path, update: bool) -> int:
+    """Fail (exit 1) when the serving configuration is significantly worse than the baseline."""
+    questions = load_dataset(dataset)
+    config = serving_variant()
+    result = asyncio.run(_run_serving(questions, config))
+
+    dataset_hash = hashlib.sha256(dataset.read_bytes()).hexdigest()[:16]
+    if update:
+        payload = {
+            "dataset": dataset.as_posix(),
+            "dataset_hash": dataset_hash,
+            "variant": config.label,
+            "per_question": result.per_question,
+        }
+        baseline_path.parent.mkdir(parents=True, exist_ok=True)
+        baseline_path.write_text(json.dumps(payload, indent=1), encoding="utf-8")
+        print(f"baseline written: {baseline_path} ({len(result.per_question)} questions)")
+        return 0
+
+    baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
+    if baseline["dataset_hash"] != dataset_hash:
+        print("dataset changed since the baseline; run `mizan-retrieval gate --update-baseline`")
+        return 2
+    comparisons = paired_bootstrap(baseline["per_question"], result.per_question)
+    floor = result.summary()["Recall@5"]
+    lines = [
+        f"### Retrieval eval gate: `{config.label}` on `{dataset.as_posix()}`",
+        "",
+        "| Metric | Baseline | This change | Delta [95% CI] | |",
+        "|---|---|---|---|---|",
+    ]
+    failed = False
+    for c in comparisons:
+        verdict = (
+            "regression"
+            if c.significantly_worse
+            else ("improvement" if c.significantly_better else "no significant change")
+        )
+        failed |= c.significantly_worse
+        lines.append(
+            f"| {c.metric} | {c.baseline:.3f} | {c.candidate:.3f} | "
+            f"{c.delta.mean:+.3f} [{c.delta.low:+.3f}, {c.delta.high:+.3f}] | {verdict} |"
+        )
+    if floor.mean < _RECALL_FLOOR:
+        failed = True
+        lines.append(f"\nRecall@5 {floor.mean:.3f} is below the floor of {_RECALL_FLOOR}.")
+    lines.append("")
+    lines.append("**FAILED**: significant regression." if failed else "**PASSED**")
+    report = "\n".join(lines)
+    print(report)
+    if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(summary, "a", encoding="utf-8") as fh:
+            fh.write(report + "\n")
+    return 1 if failed else 0
 
 
 async def _search(query: str, as_of: date, config: SearchConfig, k: int) -> int:
@@ -235,6 +341,11 @@ async def _eval(dataset: Path, out_dir: Path, only: list[int] | None) -> int:
     return 0
 
 
+DEFAULT_DATASET = Path("evals/datasets/v0/retrieval.jsonl")
+DEFAULT_SNAPSHOT = Path("evals/snapshots/labour_code.jsonl.gz")
+DEFAULT_BASELINE = Path("evals/baselines/retrieval.json")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mizan-retrieval")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -244,6 +355,16 @@ def main(argv: list[str] | None = None) -> int:
         "--strategy", nargs="+", type=Strategy, default=[Strategy.ARTICLE, Strategy.PART]
     )
     p_index.add_argument("--models", nargs="+", choices=list(MODELS), default=list(MODELS))
+    p_index.add_argument("--from-snapshot", type=Path, help="build from a corpus snapshot")
+
+    p_snap = sub.add_parser("snapshot", help="freeze the chunk corpus for reproducible evals")
+    p_snap.add_argument("--out", type=Path, default=DEFAULT_SNAPSHOT)
+    p_snap.add_argument("--strategy", nargs="+", type=Strategy, default=[Strategy.ARTICLE])
+
+    p_gate = sub.add_parser("gate", help="fail on a significant regression vs the baseline")
+    p_gate.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
+    p_gate.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
+    p_gate.add_argument("--update-baseline", action="store_true")
 
     p_search = sub.add_parser("search", help="search the Labour Code")
     p_search.add_argument("query")
@@ -256,7 +377,7 @@ def main(argv: list[str] | None = None) -> int:
     p_search.add_argument("-k", type=int, default=10)
 
     p_eval = sub.add_parser("eval", help="compare retrieval variants on a dataset")
-    p_eval.add_argument("--dataset", type=Path, default=Path("evals/datasets/v0/retrieval.jsonl"))
+    p_eval.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     p_eval.add_argument("--out", type=Path, default=Path("evals/results/f2_retrieval"))
     p_eval.add_argument("--only", type=int, nargs="+", help="indices of variants to run")
 
@@ -267,7 +388,11 @@ def main(argv: list[str] | None = None) -> int:
     configure_logging(settings.log.level, json_format=settings.log.json_format, stream=sys.stderr)
 
     if args.command == "index":
-        return asyncio.run(_index(args.strategy, args.models))
+        return asyncio.run(_index(args.strategy, args.models, args.from_snapshot))
+    if args.command == "snapshot":
+        return asyncio.run(_snapshot(args.out, args.strategy))
+    if args.command == "gate":
+        return _gate(args.dataset, args.baseline, args.update_baseline)
     if args.command == "search":
         config = SearchConfig(
             mode=args.mode,

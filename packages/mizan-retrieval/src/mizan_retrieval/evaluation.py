@@ -127,3 +127,50 @@ class RunResult:
     def p50_latency_ms(self) -> float:
         ordered = sorted(self.latency_ms)
         return ordered[len(ordered) // 2] if ordered else 0.0
+
+
+@dataclass(frozen=True, slots=True)
+class Comparison:
+    metric: str
+    baseline: float
+    candidate: float
+    delta: Estimate  # candidate - baseline, paired over the same questions
+
+    @property
+    def significantly_worse(self) -> bool:
+        return self.delta.high < 0.0
+
+    @property
+    def significantly_better(self) -> bool:
+        return self.delta.low > 0.0
+
+
+def paired_bootstrap(
+    baseline: dict[str, dict[str, float]],
+    candidate: dict[str, dict[str, float]],
+    *,
+    metrics: Sequence[str] = ("Recall@5", "MRR@10", "nDCG@10"),
+    rounds: int = 2000,
+    seed: int = 7,
+) -> list[Comparison]:
+    """Compare two runs question by question.
+
+    Pairing removes between-question variance (some questions are hard for every system), so
+    a paired interval is far tighter than comparing two independent intervals: it is what
+    lets a 70-200 question set detect real regressions without flagging noise.
+    """
+    shared = sorted(baseline.keys() & candidate.keys())
+    if len(shared) != len(baseline) or len(shared) != len(candidate):
+        raise ValueError("runs cover different questions; regenerate the baseline")
+    out = []
+    for metric in metrics:
+        deltas = [candidate[q][metric] - baseline[q][metric] for q in shared]
+        out.append(
+            Comparison(
+                metric=metric,
+                baseline=sum(baseline[q][metric] for q in shared) / len(shared),
+                candidate=sum(candidate[q][metric] for q in shared) / len(shared),
+                delta=bootstrap(deltas, rounds=rounds, seed=seed),
+            )
+        )
+    return out

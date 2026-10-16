@@ -13,6 +13,7 @@ from mizan_retrieval.evaluation import (
     load_dataset,
     mrr_at,
     ndcg_at,
+    paired_bootstrap,
     recall_at,
 )
 
@@ -88,3 +89,41 @@ def test_shipped_dataset_is_well_formed() -> None:
     assert len(questions) >= 50
     assert len({q.id for q in questions}) == len(questions)
     assert all(q.relevant and all(k.startswith("art:") for k in q.relevant) for q in questions)
+
+
+def _runs(base: list[float], cand: list[float]) -> tuple[dict[str, dict[str, float]], ...]:
+    def run(values: list[float]) -> dict[str, dict[str, float]]:
+        return {f"q{i}": {"Recall@5": v, "MRR@10": v, "nDCG@10": v} for i, v in enumerate(values)}
+
+    return run(base), run(cand)
+
+
+def test_paired_bootstrap_flags_a_consistent_regression() -> None:
+    base, cand = _runs([1.0] * 40, [1.0] * 30 + [0.0] * 10)
+
+    [recall, *_] = paired_bootstrap(base, cand)
+
+    assert recall.baseline == 1.0
+    assert recall.candidate == 0.75
+    assert recall.significantly_worse
+    assert not recall.significantly_better
+
+
+def test_paired_bootstrap_ignores_a_single_flip() -> None:
+    base, cand = _runs([1.0] * 39 + [0.0], [0.0] + [1.0] * 39)
+
+    [recall, *_] = paired_bootstrap(base, cand)
+
+    assert recall.delta.mean == 0.0
+    assert not recall.significantly_worse
+
+
+def test_paired_bootstrap_detects_improvement() -> None:
+    base, cand = _runs([0.0] * 20 + [1.0] * 20, [1.0] * 40)
+    assert paired_bootstrap(base, cand)[0].significantly_better
+
+
+def test_paired_bootstrap_requires_the_same_questions() -> None:
+    base, cand = _runs([1.0] * 3, [1.0] * 4)
+    with pytest.raises(ValueError, match="different questions"):
+        paired_bootstrap(base, cand)
