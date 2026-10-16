@@ -6,8 +6,8 @@ Mizan answers legal questions with citations to the exact article of the law in 
 given date, verifies every claim against its source, and measures its own quality
 continuously. See [docs/ROADMAP.md](docs/ROADMAP.md) for the full 24-week plan.
 
-> **Status:** F2 done: temporal retrieval over the Labour Code's full history (Recall@5 0.93
-> on a 70-question eval) and cited answers via `/v1/ask`. Next: F3, the evaluation foundation.
+> **Status:** F3 done (judge calibration awaits human labels): retrieval gated in CI, answers
+> correct 0.91 on a 60-question judged sample, Hit@5 0.97 on 185 retrieval questions. Next: F4, the knowledge graph.
 
 ## Architecture (target)
 
@@ -28,11 +28,12 @@ packages/
   mizan-core/          settings, structured logging, tracing, health primitives
   mizan-ingestion/     e-qanun client, Word-HTML parser, temporal storage, chunking
     migrations/        Alembic migrations
-  mizan-retrieval/     embeddings, BM25 analyser, Qdrant index, search, answering, eval
+  mizan-retrieval/     embeddings, BM25 analyser, Qdrant index, search, answering, retrieval eval
+  mizan-evals/         generation eval: LLM judge, blind human labelling, Cohen's kappa
 docs/
   adr/                 architecture decision records
   ROADMAP.md
-evals/                 datasets (v0: 70 retrieval questions) and results per phase
+evals/                 datasets (v0: 70, v1: 200 questions), corpus snapshot, baselines, results
 infra/                 deployment manifests (from F9)
 compose.yaml           local stack: Postgres, Redis, Qdrant, Neo4j, migrate, worker, API
 ```
@@ -108,6 +109,27 @@ curl -X POST http://127.0.0.1:18000/v1/ask -H "Content-Type: application/json" \
 - Long articles are retrieved by part and answered from the whole article (parent-child).
 - Set `MIZAN_LLM__GROQ_API_KEY` to enable `/v1/ask`; `/v1/search` needs no key.
 
+## Evaluation (F3)
+
+Two layers ([ADR-0005](docs/adr/0005-evaluation-methodology.md)):
+
+- **Retrieval gate on every push.** CI rebuilds the index from a frozen, deterministic corpus
+  snapshot (no database, no scraping), evaluates the serving configuration and compares it with
+  a committed baseline by paired bootstrap. A change fails only when a metric's whole 95%
+  interval is below zero, or Recall@5 falls under 0.75.
+- **Generation eval before releases.** Retrieve, answer, then judge each answer against the
+  gold provisions in force on the question's date. Mechanical checks (verbatim quotes, citing a
+  gold article) are computed in code; only correctness is judged, by a different model from the
+  answerer, and the judge is calibrated against blind human labels (Cohen's kappa >= 0.6).
+
+```bash
+uv run mizan-retrieval gate                       # what CI runs
+uv run mizan-eval run --sample 60                 # paced for Groq's free tier, resumable
+uv run mizan-eval report
+uv run mizan-eval label --labeller <name>         # blind: the judge's verdict is never shown
+uv run mizan-eval kappa                           # judge vs human agreement
+```
+
 ## Quality gates
 
 | Command | What it checks |
@@ -117,6 +139,7 @@ curl -X POST http://127.0.0.1:18000/v1/ask -H "Content-Type: application/json" \
 | `uv run mypy packages apps` | strict typing |
 | `uv run pytest --cov` | unit tests + coverage |
 | `MIZAN_INTEGRATION=1 uv run pytest -m integration` | real Postgres: migrations + `alembic check`, ingestion pipeline end to end, dependency checks |
+| `uv run mizan-retrieval gate` | retrieval quality vs the committed baseline (paired bootstrap) |
 
 All of the above run in CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)), followed by a
 Docker image build. Install the git hooks once with `uv run pre-commit install`.
@@ -141,6 +164,7 @@ Docker image build. Install the git hooks once with `uv run pre-commit install`.
 | [0002](docs/adr/0002-vector-database.md) | Qdrant for retrieval, Postgres as source of truth |
 | [0003](docs/adr/0003-temporal-versioning.md) | Versioned snapshots with derived validity intervals; content-addressed text |
 | [0004](docs/adr/0004-retrieval-configuration.md) | Dense bge-m3, article chunks; hybrid, reranking and rewriting measured and left off |
+| [0005](docs/adr/0005-evaluation-methodology.md) | Versioned datasets, mechanical metrics first, calibrated judge, CI retrieval gate |
 
 ## Disclaimer
 

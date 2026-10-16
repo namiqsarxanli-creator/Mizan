@@ -1,0 +1,24 @@
+[project]
+name = "mizan-evals"
+version = "0.1.0"
+description = "Generation evaluation: LLM judge, human labelling, judge calibration."
+requires-python = ">=3.12"
+dependencies = [
+    "groq>=0.30",
+    "mizan-core",
+    "mizan-retrieval",
+]
+
+[project.scripts]
+mizan-eval = "mizan_evals.cli:main"
+
+[tool.uv.sources]
+mizan-core = { workspace = true }
+mizan-retrieval = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mizan_evals"]

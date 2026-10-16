@@ -18,7 +18,8 @@ def write_report(
     out_dir.mkdir(parents=True, exist_ok=True)
     by_type: dict[str, list[str]] = {}
     for q in questions:
-        by_type.setdefault(q.type, []).append(q.id)
+        if q.relevant:  # out-of-scope questions have no retrieval metrics
+            by_type.setdefault(q.type, []).append(q.id)
 
     lines = [
         "# Retrieval evaluation",
@@ -45,7 +46,11 @@ def write_report(
         lines.append(f"| {r.label} | {cells} |")
 
     best = max(results, key=lambda r: r.summary()["Recall@5"].mean)
-    misses = [q for q in questions if best.per_question[q.id]["Hit@5"] == 0.0]
+    misses = [
+        q
+        for q in questions
+        if q.id in best.per_question and best.per_question[q.id]["Hit@5"] == 0.0
+    ]
     lines += [
         "",
         f"## Misses of the best variant ({best.label}): Hit@5 = 0",

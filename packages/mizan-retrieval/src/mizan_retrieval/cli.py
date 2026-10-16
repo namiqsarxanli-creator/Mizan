@@ -247,6 +247,8 @@ async def run_variant(
 ) -> RunResult:
     result = RunResult(config.label)
     for q in questions:
+        if not q.relevant:  # out-of-scope questions have no recall to measure
+            continue
         started = time.perf_counter()
         # Part chunks: look deeper so that 10 distinct *articles* can be ranked.
         k = 30 if config.strategy is Strategy.PART else 10

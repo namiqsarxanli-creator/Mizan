@@ -120,26 +120,31 @@ query rewriting statistik fayda vermir. Hamısı konfiqurasiya ilə açıla bili
 
 ---
 
-## F3 — Eval təməli (Həftə 6–7)
+## F3 — Eval təməli (Həftə 6–7) ✅ (judge kalibrasiyası insan qiymətləndirməsini gözləyir)
 
 **Məqsəd:** bundan sonrakı hər qərarı rəqəmlə əsaslandırmaq.
 
 ### Həftə 6 — Dataset
-- [ ] Golden dataset: **200+ sual** (mümkünsə hüquqşünasla yoxlanılır)
-  - Sadə faktiki / multi-hop / temporal / cavabı olmayan / tələ suallar
-- [ ] Hər sual üçün: gözlənilən maddələr, istinad cavabı, çətinlik dərəcəsi
-- [ ] Dataset versiyalanır (`evals/datasets/v1/`)
+- [x] Dataset v1: **200 sual**: single 101, multi 35, exact_term 20, temporal 19, no_answer 15, false_premise 10
+- [x] Hər gold maddə sualın tarixində yoxlanılıb; false-premise faktları mətndə təsdiqlənib (q197 bu yoxlamada rədd edilib, əvəzlənib)
+- [x] Dataset versiyalanır (`evals/datasets/v0`, `v1`) və sənədləşdirilib
+- [ ] Hüquqşünas yoxlaması (silver → gold)
 
 ### Həftə 7 — Framework və CI
-- [ ] Retrieval metrikləri: Recall@k, MRR, nDCG
-- [ ] Generation metrikləri: faithfulness, citation accuracy, answer correctness
-- [ ] **Judge kalibrasiyası:** 100 cavab həm insan, həm LLM tərəfindən qiymətləndirilir, sonra Cohen's κ hesablanır
-- [ ] Bootstrap confidence interval (statistik əhəmiyyət)
-- [ ] **CI eval gate:** faithfulness və ya Recall@5 baseline-dan statistik əhəmiyyətli şəkildə düşərsə, PR bloklanır
-- [ ] Eval nəticələri PR-a avtomatik şərh kimi yazılır
-- [ ] **ADR-005:** Eval metodologiyası
+- [x] Retrieval metrikləri: Recall@k, MRR, nDCG, Hit@k
+- [x] Generasiya metrikləri: `answer_correct` (judge), `cites_gold` və `citation_valid` (deterministik), abstention
+- [x] Bootstrap CI + **paired bootstrap** müqayisə
+- [x] **CI eval gate:** dondurulmuş korpus snapshot-u, cache-lənmiş model və embedding-lər; baseline-dan əhəmiyyətli düşüşdə PR bloklanır
+- [x] Gate nəticəsi CI job summary-də cədvəl kimi
+- [~] **Judge kalibrasiyası:** alət hazırdır (`mizan-eval label`, kor qiymətləndirmə, Cohen's κ); insan qiymətləri gözlənilir
+- [x] **ADR-0005:** Eval metodologiyası
 
-**✅ DoD:** `make eval` tam hesabat verir, CI gate işləyir, judge-insan uyğunluğu κ ≥ 0.6.
+**✅ DoD:** `mizan-eval` tam hesabat verir ✅, CI gate işləyir ✅ (lokal və GitHub Actions-da), judge-insan uyğunluğu κ ≥ 0.6 ⏳.
+
+**Nəticələr:**
+- Generasiya (60 sual, judge hələ kalibrlənməyib): düzgün cavab **0.907** [0.81, 0.98], gold maddəyə istinad **0.889**, əhatədən kənar suallarda imtina **4/4**, yanlış fərziyyə **3/3**, p50 2.6 s.
+- Retrieval v1 (185 sual): dense bge-m3 MRR **0.894** vs hybrid 0.829. Amma hüquqi terminli suallarda BM25/hybrid **1.00**, dense 0.95 → F5 planner üçün sual növünə görə marşrutlaşdırma ideyası.
+- Judge-ın səhv saydığı 5 cavabın çoxu gold maddədən kənar, amma düzgün məlumat əlavə edir: judge həddindən artıq sərt ola bilər, κ bunu göstərəcək.
 
 ---
 
