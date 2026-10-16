@@ -10,7 +10,7 @@ from mizan_ingestion.parsing.word_html import parse_word_html
 
 # Bump whenever parsing output can change; stored versions parsed by an older parser are
 # re-parsed on the next sync.
-PARSER_VERSION = 2
+PARSER_VERSION = 3
 
 # Some genuine texts quote Russian names; a handful of Cyrillic letters is not mis-decoding.
 _MAX_CYRILLIC = 20

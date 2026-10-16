@@ -4,17 +4,19 @@ Every value comes from environment variables prefixed with ``MIZAN_`` (or a loca
 file). Nested sections use ``__`` as a delimiter, e.g. ``MIZAN_POSTGRES__HOST=db``.
 
 Connection defaults point at the host ports published by ``compose.yaml``, so code run on the
-host talks to the local Docker stack without any configuration.
+host talks to the local Docker stack without any configuration. They use ``127.0.0.1``, not
+``localhost``: on Windows ``localhost`` resolves to ``::1`` first, Docker publishes on IPv4 only,
+and every connection then waits ~2 s for the IPv6 attempt to fail.
 """
 
 from __future__ import annotations
 
 from enum import StrEnum
 from functools import lru_cache
-from typing import Self
+from typing import Literal, Self
 from urllib.parse import quote
 
-from pydantic import BaseModel, Field, SecretStr, model_validator
+from pydantic import BaseModel, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Shared with compose.yaml / .env.example so a fresh checkout works out of the box.
@@ -44,7 +46,7 @@ class TelemetrySettings(BaseModel):
 
 
 class PostgresSettings(BaseModel):
-    host: str = "localhost"
+    host: str = "127.0.0.1"
     port: int = 15432
     user: str = "mizan"
     password: SecretStr = SecretStr(DEV_PASSWORD)
@@ -62,16 +64,20 @@ class PostgresSettings(BaseModel):
 
 
 class RedisSettings(BaseModel):
-    url: str = "redis://localhost:16379/0"
+    url: str = "redis://127.0.0.1:16379/0"
 
 
 class QdrantSettings(BaseModel):
-    url: str = "http://localhost:16333"
+    url: str = "http://127.0.0.1:16333"
     api_key: SecretStr | None = None
+
+    _blank_key_is_unset = field_validator("api_key", mode="before")(
+        lambda v: None if isinstance(v, str) and not v.strip() else v
+    )
 
 
 class Neo4jSettings(BaseModel):
-    uri: str = "bolt://localhost:17687"
+    uri: str = "bolt://127.0.0.1:17687"
     user: str = "neo4j"
     password: SecretStr = SecretStr(DEV_PASSWORD)
 
@@ -91,6 +97,44 @@ class IngestionSettings(BaseModel):
     max_attempts: int = Field(default=4, ge=1)
     # e-qanun framework ids to keep in sync (46943 = Labour Code).
     tracked_documents: list[int] = [46943]
+
+
+class RetrievalSettings(BaseModel):
+    """Serving configuration; the defaults are the variant chosen by the F2 eval (ADR-0004)."""
+
+    source_id: int = 46943
+    # Dense-only won the F2 eval: fusing BM25 lowered MRR on colloquial questions (ADR-0004).
+    mode: str = "dense"
+    dense_model: str = "bge-m3"
+    sparse: str = "bm25_p5"
+    strategy: str = "article"
+    candidates: int = Field(default=50, ge=1, le=500)
+    rerank_top: int = Field(default=0, ge=0, le=100)
+    embeddings_cache: str = "data/embeddings/cache.sqlite"
+    # Load models at startup (readiness stays false until done) instead of on first request.
+    warmup: bool = True
+
+
+class LLMSettings(BaseModel):
+    """Answer generation. Disabled (``/v1/ask`` returns 503) until the chosen provider has a key."""
+
+    provider: Literal["groq", "anthropic"] = "groq"
+    groq_api_key: SecretStr | None = None
+    groq_model: str = "openai/gpt-oss-120b"
+    anthropic_api_key: SecretStr | None = None
+    anthropic_model: str = "claude-opus-5-5"
+    # Reasoning depth: Groq gpt-oss "reasoning_effort" / Claude "effort".
+    effort: Literal["low", "medium", "high"] = "medium"
+    # Restate questions in the Code's terminology before searching (Groq only; /v1/ask only).
+    # Off by default: no significant retrieval gain in F2, +~1.5 s per /ask (ADR-0004).
+    rewrite_queries: bool = False
+    rewrite_model: str = "openai/gpt-oss-20b"
+    # Characters of source text sent per answer (Groq free tier: 8k tokens/minute in total).
+    max_context_chars: int = Field(default=9000, ge=1000)
+
+    _blank_keys_are_unset = field_validator("groq_api_key", "anthropic_api_key", mode="before")(
+        lambda v: None if isinstance(v, str) and not v.strip() else v
+    )
 
 
 class Settings(BaseSettings):
@@ -115,6 +159,8 @@ class Settings(BaseSettings):
     neo4j: Neo4jSettings = Neo4jSettings()
 
     ingestion: IngestionSettings = IngestionSettings()
+    retrieval: RetrievalSettings = RetrievalSettings()
+    llm: LLMSettings = LLMSettings()
 
     @model_validator(mode="after")
     def _reject_dev_secrets(self) -> Self:

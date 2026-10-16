@@ -19,9 +19,8 @@ htmlcov/
 .env.*
 !.env.example
 
-# Data & model artifacts (tracked elsewhere, e.g. DVC / HF Hub)
-data/raw/
-data/processed/
+# Data & model artifacts (raw sources, embedding cache, logs; tracked elsewhere, e.g. DVC / HF Hub)
+data/
 models/
 wandb/
 

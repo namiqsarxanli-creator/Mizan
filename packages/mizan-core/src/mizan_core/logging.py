@@ -7,6 +7,7 @@ pipeline, so every line has the same shape and carries the active OpenTelemetry
 
 from __future__ import annotations
 
+import io
 import logging
 import sys
 from collections.abc import Iterable
@@ -75,7 +76,12 @@ def configure_logging(
         cache_logger_on_first_use=True,
     )
 
-    handler = logging.StreamHandler(stream or sys.stdout)
+    stream = stream or sys.stdout
+    # Log lines carry Azerbaijani text. A Windows console or redirected file defaults to
+    # cp1252, where "ə" cannot be encoded and the line - often a traceback - is lost.
+    if isinstance(stream, io.TextIOWrapper) and stream.encoding.lower() not in {"utf-8", "utf8"}:
+        stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+    handler = logging.StreamHandler(stream)
     handler.setFormatter(
         structlog.stdlib.ProcessorFormatter(
             foreign_pre_chain=shared,

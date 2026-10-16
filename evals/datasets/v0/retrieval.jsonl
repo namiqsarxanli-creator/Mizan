@@ -1,0 +1,70 @@
+{"id": "q001", "question": "İşdən çıxmaq istəyirəm, işəgötürənə neçə gün əvvəl xəbər verməliyəm?", "relevant": ["art:69"], "type": "single"}
+{"id": "q002", "question": "Müdir məni heç bir səbəb göstərmədən işdən çıxara bilərmi?", "relevant": ["art:70", "art:68"], "type": "multi"}
+{"id": "q003", "question": "Hamilə qadını ixtisar adı ilə işdən çıxarmaq olarmı?", "relevant": ["art:79"], "type": "single"}
+{"id": "q004", "question": "Ştatlar azaldılanda hansı işçilərin işdə qalmaq üstünlüyü olur?", "relevant": ["art:78"], "type": "single"}
+{"id": "q005", "question": "Yeni işə girəndə sınaq müddəti ən çox neçə ay ola bilər?", "relevant": ["art:51"], "type": "single"}
+{"id": "q006", "question": "Hansı işçilərə sınaq müddəti qoymaq qadağandır?", "relevant": ["art:52"], "type": "single"}
+{"id": "q007", "question": "Həftədə neçə saatdan çox işlətmək olmaz?", "relevant": ["art:89", "art:90"], "type": "multi"}
+{"id": "q008", "question": "16 yaşlı yeniyetmə gündə neçə saat işləyə bilər?", "relevant": ["art:91"], "type": "single"}
+{"id": "q009", "question": "Əlavə saatlarda işlədiyim üçün mənə neçə qat pul verilməlidir?", "relevant": ["art:165"], "type": "single"}
+{"id": "q010", "question": "Bir il ərzində işçini ən çox neçə saat əlavə işə cəlb etmək olar?", "relevant": ["art:100"], "type": "single"}
+{"id": "q011", "question": "Gecə növbəsində işləyənlərə maaşa əlavə ödənilirmi?", "relevant": ["art:166"], "type": "single"}
+{"id": "q012", "question": "Hansı saatlar gecə vaxtı sayılır?", "relevant": ["art:97"], "type": "single"}
+{"id": "q013", "question": "İllik ödənişli istirahət günlərim neçə gündür?", "relevant": ["art:114"], "type": "single"}
+{"id": "q014", "question": "Uzun illər eyni yerdə işləyənə əlavə istirahət günləri düşürmü?", "relevant": ["art:116"], "type": "single"}
+{"id": "q015", "question": "İki uşağı olan ana illik məzuniyyətə əlavə gün ala bilərmi?", "relevant": ["art:117"], "type": "single"}
+{"id": "q016", "question": "Doğuşdan əvvəl və sonra qadına neçə gün məzuniyyət verilir?", "relevant": ["art:125"], "type": "single"}
+{"id": "q017", "question": "Uşaq üç yaşına çatana qədər evdə qalıb ona baxmaq üçün məzuniyyət götürə bilərəmmi?", "relevant": ["art:127"], "type": "single"}
+{"id": "q018", "question": "Öz hesabıma, maaşsız neçə gün məzuniyyət götürə bilərəm?", "relevant": ["art:128", "art:129", "art:130"], "type": "multi"}
+{"id": "q019", "question": "İşdən çıxanda istifadə etmədiyim məzuniyyət günlərinə görə pul verirlərmi?", "relevant": ["art:144", "art:143"], "type": "multi"}
+{"id": "q020", "question": "Müdir məni məzuniyyətin ortasında işə geri çağıra bilərmi?", "relevant": ["art:137"], "type": "single"}
+{"id": "q021", "question": "Məzuniyyət pulu hansı maaşa əsasən hesablanır?", "relevant": ["art:140", "art:139"], "type": "multi"}
+{"id": "q022", "question": "Maaşı ayda ən az neçə dəfə verməlidirlər?", "relevant": ["art:172"], "type": "single"}
+{"id": "q023", "question": "İşəgötürən mənim razılığım olmadan maaşımdan pul tuta bilərmi?", "relevant": ["art:175"], "type": "single"}
+{"id": "q024", "question": "Maaşdan tutulan pul ən çox neçə faiz ola bilər?", "relevant": ["art:176"], "type": "single"}
+{"id": "q025", "question": "Ən aşağı maaşın məbləğini kim müəyyən edir?", "relevant": ["art:155"], "type": "single"}
+{"id": "q026", "question": "İş olmadığı üçün boş dayandığımız günlərə maaş ödənilirmi?", "relevant": ["art:169"], "type": "single"}
+{"id": "q027", "question": "Bayram günü işə çağırılsam, iki qat pul almalıyammı?", "relevant": ["art:164", "art:109"], "type": "multi"}
+{"id": "q028", "question": "Novruz və digər hansı günlər qeyri-iş günləridir?", "relevant": ["art:105"], "type": "single"}
+{"id": "q029", "question": "Günorta yemək fasiləsi nə qədər olmalıdır?", "relevant": ["art:103"], "type": "single"}
+{"id": "q030", "question": "İşə şifahi razılaşma ilə götürmək olar, yoxsa kağız müqavilə mütləqdir?", "relevant": ["art:44", "art:46"], "type": "multi"}
+{"id": "q031", "question": "İşə qəbul olunanda hansı sənədləri təqdim etməliyəm?", "relevant": ["art:48"], "type": "single"}
+{"id": "q032", "question": "Müqaviləni bir illik bağlamaq hansı hallarda mümkündür?", "relevant": ["art:47", "art:45"], "type": "multi"}
+{"id": "q033", "question": "Əmək müqaviləsində hansı məlumatlar mütləq yazılmalıdır?", "relevant": ["art:43"], "type": "single"}
+{"id": "q034", "question": "İşəgötürən razılığım olmadan məni başqa vəzifəyə keçirə bilərmi?", "relevant": ["art:59", "art:60"], "type": "multi"}
+{"id": "q035", "question": "Əsas işimdən əlavə başqa yerdə də rəsmi işləyə bilərəmmi?", "relevant": ["art:58"], "type": "single"}
+{"id": "q036", "question": "İşə içkili gələn işçini həmin gün işə buraxmamaq olarmı?", "relevant": ["art:62"], "type": "single"}
+{"id": "q037", "question": "Hansı hərəkətlərə görə işçi dərhal işdən qovula bilər?", "relevant": ["art:72", "art:70"], "type": "multi"}
+{"id": "q038", "question": "İşdən çıxarılanda mənə hansı kompensasiya ödənilməlidir?", "relevant": ["art:77"], "type": "single"}
+{"id": "q039", "question": "Pozuntunu aşkar edəndən sonra işəgötürən neçə müddət ərzində töhmət verə bilər?", "relevant": ["art:187"], "type": "single"}
+{"id": "q040", "question": "İşçiyə hansı növ intizam cəzaları verilə bilər?", "relevant": ["art:186"], "type": "single"}
+{"id": "q041", "question": "Töhmət nə vaxt götürülür və qüvvədən düşür?", "relevant": ["art:190"], "type": "single"}
+{"id": "q042", "question": "Təsadüfən işdəki avadanlığı sındırsam, onun bütün dəyərini ödəməliyəmmi?", "relevant": ["art:198", "art:199", "art:201"], "type": "multi"}
+{"id": "q043", "question": "Kassirlə tam maddi məsuliyyət haqqında müqavilə bağlamaq olarmı?", "relevant": ["art:200"], "type": "single"}
+{"id": "q044", "question": "İstehsalatda bədbəxt hadisə olarsa, necə araşdırılmalıdır?", "relevant": ["art:217"], "type": "single"}
+{"id": "q045", "question": "İşə qəbuldan əvvəl həkim müayinəsindən keçmək məcburidirmi?", "relevant": ["art:226"], "type": "single"}
+{"id": "q046", "question": "Hamilə qadını gecə işinə və ya əlavə saatlara cəlb etmək olarmı?", "relevant": ["art:242"], "type": "single"}
+{"id": "q047", "question": "Körpəni əmizdirmək üçün iş vaxtı fasilə verilirmi?", "relevant": ["art:244"], "type": "single"}
+{"id": "q048", "question": "Neçə yaşından etibarən uşağı işə götürmək olar?", "relevant": ["art:249"], "type": "single"}
+{"id": "q049", "question": "Yetkinlik yaşına çatmayanlara hansı işlərdə işləmək qadağandır?", "relevant": ["art:250"], "type": "single"}
+{"id": "q050", "question": "Qadınların ağır və zərərli işlərdə işləməsinə məhdudiyyət varmı?", "relevant": ["art:241"], "type": "single"}
+{"id": "q051", "question": "İşdən qanunsuz çıxarılmışamsa, məhkəməyə nə qədər müddətdə müraciət etməliyəm?", "relevant": ["art:296"], "type": "single"}
+{"id": "q052", "question": "Əmək mübahisəsinə görə məhkəməyə müraciət edəndə dövlət rüsumu ödəyirəmmi?", "relevant": ["art:298"], "type": "single"}
+{"id": "q053", "question": "Məhkəmə qanunsuz işdən çıxarılmanı təsdiq etsə, nə baş verir?", "relevant": ["art:300"], "type": "single"}
+{"id": "q054", "question": "İşçilər tətil keçirmək barədə qərarı necə qəbul edirlər?", "relevant": ["art:271", "art:270"], "type": "multi"}
+{"id": "q055", "question": "Xəstəxanalarda və təcili yardımda işçilər tətil edə bilərmi?", "relevant": ["art:281", "art:280"], "type": "multi"}
+{"id": "q056", "question": "İşəgötürən işçiləri müəssisəyə buraxmayıb işi dayandıra bilərmi?", "relevant": ["art:284"], "type": "single"}
+{"id": "q057", "question": "Kollektiv müqavilədə hansı məsələlər öz əksini tapır?", "relevant": ["art:31"], "type": "single"}
+{"id": "q058", "question": "Xarici vətəndaş Azərbaycanda işləyəndə hansı qaydalar tətbiq olunur?", "relevant": ["art:13"], "type": "single"}
+{"id": "q059", "question": "İşə qəbulda qadın olduğuma görə məndən imtina edə bilərlərmi?", "relevant": ["art:16"], "type": "single"}
+{"id": "q060", "question": "İşçini zorla, pulsuz işlətmək qanunla qadağandırmı?", "relevant": ["art:17"], "type": "single"}
+{"id": "q061", "question": "Uşaqlarını anasız böyüdən ataya hansı güzəştlər var?", "relevant": ["art:246"], "type": "single"}
+{"id": "q062", "question": "Şaxtalı havada çöldə işləyən fəhlələrə istirahət fasiləsi düşürmü?", "relevant": ["art:233"], "type": "single"}
+{"id": "q063", "question": "Şirkətin sahibi dəyişəndə əmək müqaviləm qüvvədə qalırmı?", "relevant": ["art:63"], "type": "single"}
+{"id": "q064", "question": "Yarım gün işləyən işçinin maaşı necə ödənilir?", "relevant": ["art:171", "art:94"], "type": "multi"}
+{"id": "q065", "question": "Qiyabi oxuyan işçiyə imtahanlar üçün ödənişli məzuniyyət verilirmi?", "relevant": ["art:123", "art:124"], "type": "multi"}
+{"id": "q066", "question": "İşdən çıxanda işəgötürəndən mənim haqqımda xasiyyətnamə tələb edə bilərəmmi?", "relevant": ["art:88"], "type": "single"}
+{"id": "q067", "question": "İşdən çıxmaq üçün ərizəni elektron sistem vasitəsilə vermək olarmı?", "relevant": ["art:69"], "type": "temporal"}
+{"id": "q068", "question": "İşdən çıxmaq üçün işəgötürəni nə qədər əvvəl xəbərdar etməliyəm?", "relevant": ["art:69"], "type": "temporal", "as_of": "2015-03-01"}
+{"id": "q069", "question": "Hamilə qadını işdən çıxarmaq olarmı?", "relevant": ["art:79"], "type": "temporal", "as_of": "2005-06-01"}
+{"id": "q070", "question": "Sınaq müddəti ən çox nə qədər ola bilər?", "relevant": ["art:51"], "type": "temporal", "as_of": "2010-01-01"}

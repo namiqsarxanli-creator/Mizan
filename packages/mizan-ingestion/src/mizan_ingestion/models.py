@@ -49,6 +49,7 @@ class Node:
     heading: str | None = None
     lines: list[str] = field(default_factory=list)
     endnote_refs: list[int] = field(default_factory=list)
+    linked_acts: list[int] = field(default_factory=list)
     children: list[Node] = field(default_factory=list)
 
     @property
@@ -90,6 +91,7 @@ class Provision:
     ordinal: int
     depth: int
     endnote_refs: tuple[int, ...]
+    linked_acts: tuple[int, ...] = ()
 
     @property
     def content_hash(self) -> str:

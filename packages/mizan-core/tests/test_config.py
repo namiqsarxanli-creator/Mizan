@@ -15,7 +15,7 @@ def test_defaults_work_for_local_development() -> None:
     settings = Settings(_env_file=None)
 
     assert settings.environment is Environment.LOCAL
-    assert settings.postgres.host == "localhost"
+    assert settings.postgres.host == "127.0.0.1"  # not "localhost": see config docstring
 
 
 def test_nested_settings_are_read_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -58,3 +58,19 @@ def test_real_secrets_are_accepted_in_production() -> None:
 def test_sample_ratio_is_bounded() -> None:
     with pytest.raises(ValidationError):
         Settings(_env_file=None, telemetry=TelemetrySettings(sample_ratio=1.5))
+
+
+def test_blank_api_keys_count_as_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    # `KEY=` in .env must disable the feature, not send an empty key to the provider.
+    monkeypatch.setenv("MIZAN_LLM__GROQ_API_KEY", "")
+    monkeypatch.setenv("MIZAN_QDRANT__API_KEY", "  ")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.llm.groq_api_key is None
+    assert settings.qdrant.api_key is None
+
+
+def test_llm_provider_is_validated() -> None:
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, llm={"provider": "openai"})  # type: ignore[arg-type]

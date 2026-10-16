@@ -6,8 +6,8 @@ Mizan answers legal questions with citations to the exact article of the law in 
 given date, verifies every claim against its source, and measures its own quality
 continuously. See [docs/ROADMAP.md](docs/ROADMAP.md) for the full 24-week plan.
 
-> **Status:** F1 done: the Labour Code's full version history (1999 to today) is ingested,
-> structured and queryable by date. Next: F2, retrieval.
+> **Status:** F2 done: temporal retrieval over the Labour Code's full history (Recall@5 0.93
+> on a 70-question eval) and cited answers via `/v1/ask`. Next: F3, the evaluation foundation.
 
 ## Architecture (target)
 
@@ -28,10 +28,11 @@ packages/
   mizan-core/          settings, structured logging, tracing, health primitives
   mizan-ingestion/     e-qanun client, Word-HTML parser, temporal storage, chunking
     migrations/        Alembic migrations
+  mizan-retrieval/     embeddings, BM25 analyser, Qdrant index, search, answering, eval
 docs/
   adr/                 architecture decision records
   ROADMAP.md
-evals/                 golden datasets and eval runners (from F3)
+evals/                 datasets (v0: 70 retrieval questions) and results per phase
 infra/                 deployment manifests (from F9)
 compose.yaml           local stack: Postgres, Redis, Qdrant, Neo4j, migrate, worker, API
 ```
@@ -85,6 +86,28 @@ at most one every 1.5 s, and historical versions are downloaded once and then se
 The worker re-syncs tracked documents nightly; a re-run downloads only the current text and
 writes nothing if it has not changed.
 
+## Retrieval and answering (F2)
+
+```bash
+uv run mizan-retrieval index                         # embed + index all versions (resumable)
+uv run mizan-retrieval search "Məni işdən qova bilərlər?" --as-of 2020-01-01
+uv run mizan-retrieval eval                          # 17 variants, report in evals/results/
+curl "http://127.0.0.1:18000/v1/search?q=sınaq+müddəti&as_of=2010-01-01"
+curl -X POST http://127.0.0.1:18000/v1/ask -H "Content-Type: application/json" \
+     -d '{"question": "İşdən çıxmaq üçün neçə gün əvvəl xəbər verməliyəm?"}'
+```
+
+- **Configuration chosen by measurement** ([ADR-0004](docs/adr/0004-retrieval-configuration.md)):
+  dense bge-m3 over article chunks, filtered to the text in force on the requested date.
+  Recall@5 **0.929** [0.87, 0.98], MRR 0.831, 376 ms p50 on a laptop CPU. Hybrid fusion,
+  cross-encoder reranking and LLM query rewriting were all built and measured; none paid for
+  itself on this question set, and each can be switched on by configuration.
+- **Answers cite the statute verbatim.** `/v1/ask` uses Groq (`openai/gpt-oss-120b`) by
+  default, or Claude with its native Citations API. With Groq, every quote the model returns
+  is checked to occur in the source it names; unverifiable quotes are dropped and counted.
+- Long articles are retrieved by part and answered from the whole article (parent-child).
+- Set `MIZAN_LLM__GROQ_API_KEY` to enable `/v1/ask`; `/v1/search` needs no key.
+
 ## Quality gates
 
 | Command | What it checks |
@@ -117,6 +140,7 @@ Docker image build. Install the git hooks once with `uv run pre-commit install`.
 | [0001](docs/adr/0001-monorepo-and-stack.md) | uv workspace monorepo; FastAPI, Pydantic, structlog, OpenTelemetry |
 | [0002](docs/adr/0002-vector-database.md) | Qdrant for retrieval, Postgres as source of truth |
 | [0003](docs/adr/0003-temporal-versioning.md) | Versioned snapshots with derived validity intervals; content-addressed text |
+| [0004](docs/adr/0004-retrieval-configuration.md) | Dense bge-m3, article chunks; hybrid, reranking and rewriting measured and left off |
 
 ## Disclaimer
 

@@ -2,6 +2,7 @@ from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 
 import pytest
+from fakes import fake_legal_services
 from fastapi.testclient import TestClient
 
 from mizan_api.main import create_app
@@ -22,7 +23,7 @@ class StubCheck:
 
 def make_client(checks: Sequence[DependencyCheck]) -> TestClient:
     settings = Settings(_env_file=None, environment=Environment.TEST)
-    return TestClient(create_app(settings, checks=checks))
+    return TestClient(create_app(settings, checks=checks, legal=fake_legal_services()))
 
 
 @pytest.fixture

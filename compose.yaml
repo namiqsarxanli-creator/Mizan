@@ -14,6 +14,7 @@ x-healthcheck: &healthcheck
 
 services:
   postgres:
+    restart: unless-stopped
     image: postgres:16.6-alpine
     environment:
       POSTGRES_USER: ${MIZAN_POSTGRES__USER:-mizan}
@@ -27,6 +28,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
 
   redis:
+    restart: unless-stopped
     image: redis:7.4-alpine
     command: ["redis-server", "--appendonly", "yes"]
     ports:
@@ -37,7 +39,8 @@ services:
       test: ["CMD", "redis-cli", "ping"]
 
   qdrant:
-    image: qdrant/qdrant:v1.12.5
+    restart: unless-stopped
+    image: qdrant/qdrant:v1.19.2
     ports:
       - "127.0.0.1:${MIZAN_HOST_PORT_QDRANT:-16333}:6333"
       - "127.0.0.1:${MIZAN_HOST_PORT_QDRANT_GRPC:-16334}:6334"
@@ -48,6 +51,7 @@ services:
       test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
 
   neo4j:
+    restart: unless-stopped
     image: neo4j:5.26-community
     environment:
       NEO4J_AUTH: neo4j/${MIZAN_NEO4J__PASSWORD:-mizan-dev-password}
@@ -83,6 +87,7 @@ services:
       postgres: { condition: service_healthy }
 
   worker:
+    restart: unless-stopped
     build: *worker-build
     env_file: *env-file
     environment: *container-env
@@ -92,11 +97,14 @@ services:
       redis: { condition: service_healthy }
 
   api:
+    restart: unless-stopped
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     env_file: *env-file
     environment: *container-env
+    volumes:
+      - model-cache:/app/data/hf
     ports:
       - "127.0.0.1:${MIZAN_HOST_PORT_API:-18000}:8000"
     depends_on:
@@ -109,6 +117,8 @@ services:
 volumes:
   postgres-data:
   raw-data:
+  # Hugging Face models (~2 GB each): downloaded once, kept across rebuilds.
+  model-cache:
   redis-data:
   qdrant-data:
   neo4j-data:

@@ -137,6 +137,7 @@ async def store_version(
                 "depth": p.depth,
                 "content_hash": p.content_hash,
                 "endnote_refs": list(p.endnote_refs),
+                "linked_acts": list(p.linked_acts),
             }
             for p in provisions
         ],

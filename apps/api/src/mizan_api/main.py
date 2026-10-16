@@ -12,9 +12,10 @@ from fastapi import FastAPI
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from mizan_api import __version__
-from mizan_api.dependencies import build_dependency_checks
+from mizan_api.dependencies import LegalServices, build_dependency_checks, build_legal_services
 from mizan_api.middleware import TraceIdHeaderMiddleware
 from mizan_api.routes import health
+from mizan_api.routes import legal as legal_routes
 from mizan_core.config import Settings, get_settings
 from mizan_core.health import DependencyCheck
 from mizan_core.logging import configure_logging, get_logger
@@ -27,11 +28,12 @@ def create_app(
     settings: Settings | None = None,
     *,
     checks: Sequence[DependencyCheck] | None = None,
+    legal: LegalServices | None = None,
 ) -> FastAPI:
     """Build the API.
 
-    ``checks`` overrides the real dependency checks; tests use it to run without any
-    backing services.
+    ``checks`` and ``legal`` override the real dependency checks and search/answer services;
+    tests use them to run without any backing services or models.
     """
     settings = settings or get_settings()
     configure_logging(
@@ -50,10 +52,16 @@ def create_app(
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         async with AsyncExitStack() as stack:
+            services = legal or await build_legal_services(settings, stack)
+            app.state.searcher = services.searcher
+            app.state.search_config = services.config
+            app.state.answerer = services.answerer
+            app.state.rewriter = services.rewriter
+            app.state.expand = services.expand
             app.state.checks = (
                 list(checks)
                 if checks is not None
-                else await build_dependency_checks(settings, stack)
+                else [*await build_dependency_checks(settings, stack), *services.checks]
             )
             log.info("startup", environment=settings.environment, version=__version__)
             yield
@@ -64,6 +72,7 @@ def create_app(
     app.state.settings = settings
     app.add_middleware(TraceIdHeaderMiddleware)
     app.include_router(health.router)
+    app.include_router(legal_routes.router)
 
     # Wraps the whole middleware stack, so every request (including TraceIdHeaderMiddleware)
     # runs inside a server span.

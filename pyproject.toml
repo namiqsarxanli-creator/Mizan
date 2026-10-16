@@ -3,7 +3,7 @@ name = "mizan"
 version = "0.1.0"
 description = "Agentic, measurable legal research platform for Azerbaijani law."
 requires-python = ">=3.12"
-dependencies = ["mizan-core", "mizan-api", "mizan-ingestion", "mizan-worker"]
+dependencies = ["mizan-core", "mizan-api", "mizan-ingestion", "mizan-retrieval", "mizan-worker"]
 
 [tool.uv]
 package = false
@@ -16,6 +16,8 @@ mizan-core = { workspace = true }
 mizan-api = { workspace = true }
 mizan-ingestion = { workspace = true }
 mizan-worker = { workspace = true }
+mizan-retrieval = { workspace = true }
+torch = { index = "pytorch-cpu" }
 
 [dependency-groups]
 dev = [
@@ -61,7 +63,7 @@ allowed-confusables = ["ı"]
 "**/migrations/**" = ["E501"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["mizan_core", "mizan_api", "mizan_ingestion", "mizan_worker"]
+known-first-party = ["mizan_core", "mizan_api", "mizan_ingestion", "mizan_retrieval", "mizan_worker"]
 
 # ---------------------------------------------------------------- mypy
 [tool.mypy]
@@ -69,7 +71,17 @@ python_version = "3.12"
 strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
-mypy_path = ["packages/mizan-core/src", "packages/mizan-ingestion/src", "apps/api/src", "apps/worker/src"]
+mypy_path = [
+    "packages/mizan-core/src",
+    "packages/mizan-ingestion/src",
+    "packages/mizan-retrieval/src",
+    "apps/api/src",
+    "apps/worker/src",
+    # Shared test helpers, imported as top-level modules (see pytest `pythonpath`).
+    "packages/mizan-ingestion/tests",
+    "packages/mizan-retrieval/tests",
+    "apps/api/tests",
+]
 explicit_package_bases = true
 
 [[tool.mypy.overrides]]
@@ -85,18 +97,30 @@ warn_required_dynamic_aliases = true
 [tool.pytest.ini_options]
 testpaths = ["packages", "apps"]
 # Shared test helpers (importable as top-level modules from tests).
-pythonpath = ["packages/mizan-ingestion/tests"]
+pythonpath = ["packages/mizan-ingestion/tests", "packages/mizan-retrieval/tests", "apps/api/tests"]
 addopts = ["--import-mode=importlib", "--strict-markers", "-ra"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = ["integration: needs the docker compose stack (MIZAN_INTEGRATION=1)"]
-filterwarnings = ["error::DeprecationWarning:mizan_.*"]
+filterwarnings = [
+    "error::DeprecationWarning:mizan_.*",
+    # In-process Qdrant (unit tests) ignores payload indexes; the server honours them.
+    "ignore:Payload indexes have no effect:UserWarning",
+]
 
 [tool.coverage.run]
 branch = true
-source = ["mizan_core", "mizan_api", "mizan_ingestion", "mizan_worker"]
+source = ["mizan_core", "mizan_api", "mizan_ingestion", "mizan_retrieval", "mizan_worker"]
 
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
 exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
+
+# ---------------------------------------------------------------- torch (CPU-only)
+# PyPI's Linux torch wheels bundle ~2.5 GB of CUDA libraries; we run on CPU (dev laptop, CI,
+# small containers), so pin torch to the official CPU wheel index everywhere.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

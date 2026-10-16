@@ -7,7 +7,9 @@ with inline styles. What survives and what we rely on:
 * centring (``align=center`` / ``text-align:center``) for section and chapter titles,
 * bold runs or Word heading styles (``<h3>``, used by older exports) for article headings,
 * endnote anchors (``<a href="#_edn204">[204]</a>``) and the endnote bodies
-  (``<div id=edn204>``), which carry the amendment history.
+  (``<div id=edn204>``), which carry the amendment history,
+* links to other acts on e-qanun (``<a href=".../framework/48189">KMQ6</a>``): the "KMQ"
+  markers after article headings point to Constitutional Court decisions interpreting them.
 """
 
 from __future__ import annotations
@@ -23,6 +25,9 @@ from mizan_ingestion.text import normalize
 
 _EDN_HREF = re.compile(r"#_edn(\d+)$")
 _EDN_ID = re.compile(r"^edn(\d+)$")
+_ACT_HREF = re.compile(r"e-qanun\.az/framework/(\d+)")
+# Reference markers that link to an act and carry no text of their own ("KMQ6", "KM4").
+_MARKER_TEXT = re.compile(r"^\s*KMQ?\s*\d+\s*$")
 _EDN_MARKER = re.compile(r"^\s*\[\d+\]\s*")
 
 
@@ -33,6 +38,8 @@ class Paragraph:
     bold: bool
     endnote_refs: tuple[int, ...]
     heading_tag: bool = False
+    # e-qanun ids of acts linked from this paragraph (e.g. Constitutional Court decisions).
+    linked_acts: tuple[int, ...] = ()
 
     @property
     def emphasised(self) -> bool:
@@ -54,12 +61,17 @@ def _is_centered(el: HtmlElement) -> bool:
 
 def _paragraph(el: HtmlElement) -> Paragraph | None:
     refs: list[int] = []
+    acts: list[int] = []
     for anchor in el.iterfind(".//a[@href]"):
-        match = _EDN_HREF.search(anchor.get("href", ""))
-        if match:
+        href = anchor.get("href", "")
+        if match := _EDN_HREF.search(href):
             refs.append(int(match.group(1)))
             # Drop the "[204]" marker from the text but keep whatever follows the anchor.
             anchor.drop_tree()
+        elif match := _ACT_HREF.search(href):
+            acts.append(int(match.group(1)))
+            if _MARKER_TEXT.match(anchor.text_content()):
+                anchor.drop_tree()
     text = normalize(el.text_content())
     if not text:
         return None
@@ -71,6 +83,7 @@ def _paragraph(el: HtmlElement) -> Paragraph | None:
         bold=bool(bold_text) and text.startswith(bold_text[:20]),
         endnote_refs=tuple(dict.fromkeys(refs)),
         heading_tag=el.tag in {"h1", "h2", "h3"},
+        linked_acts=tuple(dict.fromkeys(acts)),
     )
 
 

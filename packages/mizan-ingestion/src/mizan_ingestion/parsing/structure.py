@@ -39,6 +39,8 @@ ANNEX_RE = re.compile(
 )
 # Dedication line printed above annexes: "Azərbaycan Respublikasının Əmək Məcəlləsinə".
 ANNEX_DEDICATION_RE = re.compile(r"(?:məcəlləsinə|qanununa)$")
+# Unlinked court-decision markers glued to a heading: "...cəmlənmə qaydasıKM4".
+_TRAILING_MARKER_RE = re.compile(r"\s*KMQ?\d+$")
 ANNEX_PART_RE = re.compile(r"^§\s*(?P<num>\d+(?:-\d+)?)\.?\s*(?P<title>.*)$")
 
 _MAX_MARKER_LEN = 200
@@ -109,7 +111,13 @@ class _Builder:
         return self.article or self.container
 
     def add_heading(self, kind: NodeKind, number: str, title: str | None, p: Paragraph) -> None:
-        node = Node(kind, number=number, heading=title, endnote_refs=list(p.endnote_refs))
+        node = Node(
+            kind,
+            number=number,
+            heading=title,
+            endnote_refs=list(p.endnote_refs),
+            linked_acts=list(p.linked_acts),
+        )
         if kind is NodeKind.SECTION:
             self.root.children.append(node)
             self.section, self.chapter = node, None
@@ -120,7 +128,14 @@ class _Builder:
         self.pending_title = None if title else node
 
     def add_article(self, number: str, title: str, p: Paragraph) -> None:
-        node = Node(NodeKind.ARTICLE, number, title or None, endnote_refs=list(p.endnote_refs))
+        title = _TRAILING_MARKER_RE.sub("", title)
+        node = Node(
+            NodeKind.ARTICLE,
+            number,
+            title or None,
+            endnote_refs=list(p.endnote_refs),
+            linked_acts=list(p.linked_acts),
+        )
         self.container.children.append(node)
         self.article, self.stack, self.pending_title = node, [], None
 
@@ -137,6 +152,7 @@ class _Builder:
             title,
             lines=[h.text for h in header],
             endnote_refs=[r for h in (*header, p) for r in h.endnote_refs],
+            linked_acts=[a for h in (*header, p) for a in h.linked_acts],
         )
         self.root.children.append(node)
         self.section = self.chapter = None
@@ -154,6 +170,7 @@ class _Builder:
             heading,
             lines=[rest] if rest else [],
             endnote_refs=list(p.endnote_refs),
+            linked_acts=list(p.linked_acts),
         )
         level = _LEVEL[kind]
         while self.stack and _LEVEL[self.stack[-1].kind] >= level:
@@ -171,12 +188,14 @@ class _Builder:
         if self.pending_title is not None and (p.centered or p.emphasised or p.heading_tag):
             self.pending_title.heading = p.text
             self.pending_title.endnote_refs.extend(p.endnote_refs)
+            self.pending_title.linked_acts.extend(p.linked_acts)
             self.pending_title = None
             return
         self.pending_title = None
         target = self.deepest
         target.lines.append(p.text)
         target.endnote_refs.extend(p.endnote_refs)
+        target.linked_acts.extend(p.linked_acts)
 
     def flush_held(self) -> None:
         held, self.held = self.held, []
@@ -262,6 +281,7 @@ def flatten(root: Node) -> tuple[list[Provision], list[str]]:
                 ordinal=len(provisions),
                 depth=depth,
                 endnote_refs=tuple(dict.fromkeys(node.endnote_refs)),
+                linked_acts=tuple(dict.fromkeys(node.linked_acts)),
             )
         )
         for child in node.children:

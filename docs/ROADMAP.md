@@ -94,24 +94,29 @@
 
 ---
 
-## F2 — Baseline retrieval (Həftə 4–5)
+## F2 — Baseline retrieval (Həftə 4–5) ✅
 
 **Məqsəd:** ölçülə bilən, güclü retrieval baseline-ı.
 
 ### Həftə 4
-- [ ] Dense axtarış: `bge-m3` və `multilingual-e5-large` müqayisəsi
-- [ ] Sparse axtarış: BM25 (Azərbaycan dili üçün tokenizasiya və stemming problemləri)
-- [ ] Hybrid: **Reciprocal Rank Fusion**
-- [ ] Temporal filter: `as_of_date` parametri
+- [x] Dense axtarış: `bge-m3` və `multilingual-e5-large` müqayisəsi (CPU, embedding cache ilə)
+- [x] Sparse axtarış: BM25, Azərbaycan dili analizatoru + prefix stemming (5/6/7 hərf müqayisəsi)
+- [x] Hybrid: **Reciprocal Rank Fusion** (Qdrant Query API)
+- [x] Temporal filter: `as_of` parametri, hər chunk öz qüvvədə olduğu intervalla
 
 ### Həftə 5
-- [ ] Reranker: `bge-reranker-v2-m3`
-- [ ] Parent-child retrieval: kiçik chunk ilə axtarış, LLM-ə bütöv maddə verilir
-- [ ] Query rewriting (hələlik Claude Haiku ilə)
-- [ ] İlk 50 sual üzərində mini-eval: Recall@5, MRR
-- [ ] Sadə RAG endpoint-i: `/ask` (single-shot, istinadlarla)
+- [x] Reranker: `bge-reranker-v2-m3`
+- [x] Parent-child retrieval: kiçik chunk ilə axtarış, LLM-ə bütöv maddə verilir
+- [x] Query rewriting: Groq `gpt-oss-20b` ilə (Claude yox, istifadəçi seçimi)
+- [x] Eval: 70 sual (silver), 17 variant, bootstrap etibar intervalları
+- [x] RAG endpoint-ləri: `/v1/search` və `/v1/ask` (Groq `gpt-oss-120b`, hərfi sitat yoxlaması ilə istinadlar)
+- [x] **ADR-0004:** Retrieval konfiqurasiyası (ölçmə ilə seçilib)
 
 **✅ DoD:** Recall@5 ≥ 0.75. Hər chunking və axtarış variantının nəticəsi cədvəldə qeyd olunub.
+
+**Nəticə:** bge-m3 dense, maddə chunk-ları: **Recall@5 0.929 [0.87, 0.98], MRR 0.831, p50 376 ms (CPU)**.
+Gözlənilməz tapıntılar: hybrid (RRF) MRR-i 0.831 → 0.741 **aşağı salır**; reranker +0.03 MRR üçün gecikməni 45 dəfə artırır;
+query rewriting statistik fayda vermir. Hamısı konfiqurasiya ilə açıla bilir; F3-də hüquqşünas datasetində yenidən yoxlanacaq.
 
 ---
 
@@ -132,7 +137,7 @@
 - [ ] Bootstrap confidence interval (statistik əhəmiyyət)
 - [ ] **CI eval gate:** faithfulness və ya Recall@5 baseline-dan statistik əhəmiyyətli şəkildə düşərsə, PR bloklanır
 - [ ] Eval nəticələri PR-a avtomatik şərh kimi yazılır
-- [ ] **ADR-004:** Eval metodologiyası
+- [ ] **ADR-005:** Eval metodologiyası
 
 **✅ DoD:** `make eval` tam hesabat verir, CI gate işləyir, judge-insan uyğunluğu κ ≥ 0.6.
 
@@ -153,7 +158,7 @@
 - [ ] `(:CourtDecision)-[:INTERPRETS]->(:Article)` əlaqələri
 - [ ] **Ziddiyyət aşkarlama:** *lex specialis* və *lex posterior* qaydaları
 - [ ] Amendment diff: `/diff?code=ƏM&from=2022&to=2025`
-- [ ] **ADR-005:** Niyə ayrıca qraf DB (Neo4j vs Postgres recursive CTE)
+- [ ] **ADR-006:** Niyə ayrıca qraf DB (Neo4j vs Postgres recursive CTE)
 
 **✅ DoD:** Multi-hop suallarda Recall@5 baseline-dan ≥ 10% yaxşıdır. Ziddiyyət aşkarlamanın 20 test ssenarisi keçir.
 
@@ -167,7 +172,7 @@
 - [ ] State machine: `Planner → Researcher(s) → Drafter → Verifier → Judge`
 - [ ] Agentlər arası məlumat ötürülməsi yalnız Pydantic sxemləri ilə
 - [ ] Hər addım üçün limitlər: max iterasiya, timeout, token büdcəsi
-- [ ] **ADR-006:** LangGraph vs öz orkestratorun
+- [ ] **ADR-007:** LangGraph vs öz orkestratorun
 
 ### Həftə 11 — Tool-lar və agentlər
 - [ ] Tool-lar: `search_law`, `get_article`, `get_related_articles` (qraf), `get_court_decisions`, `check_conflicts`
@@ -233,7 +238,7 @@
 - [ ] Student: kiçik cross-encoder
 - [ ] Müqayisə: keyfiyyət / latency / xərc
 - [ ] ONNX export + kvantizasiya (CPU-da inference)
-- [ ] **ADR-007:** Model serving strategiyası
+- [ ] **ADR-008:** Model serving strategiyası
 
 **✅ DoD:** Fine-tuned embedding Recall@5-də base modeldən ≥ 8% yaxşıdır, distilled reranker teacher keyfiyyətinin ≥ 95%-ni saxlayır.
 
@@ -262,7 +267,7 @@
 - [ ] LLM Gateway-ə əlavə: routing qaydası (`task=verify` → lokal model, fallback → Claude)
 - [ ] Eval: keyfiyyət / xərc / latency (Claude ilə müqayisədə)
 - [ ] Shadow rejimdə test (növbəti fazanın infrastrukturu ilə)
-- [ ] **ADR-008:** Hansı tapşırıqlar lokal modelə, hansılar API-yə gedir
+- [ ] **ADR-009:** Hansı tapşırıqlar lokal modelə, hansılar API-yə gedir
 
 **✅ DoD:** Lokal verifier Claude-un keyfiyyətinin ≥ 95%-ni saxlayır, sorğu başına xərc ≥ 5 dəfə azalır.
 
@@ -342,13 +347,14 @@
 | 001 | Monorepo və texnologiya stack-i |
 | 002 | Vektor DB: Qdrant vs pgvector |
 | 003 | Temporal versiyalama modeli |
-| 004 | Eval metodologiyası və CI gate |
-| 005 | Qraf DB: Neo4j vs Postgres |
-| 006 | Agent orkestrasiyası: LangGraph vs öz implementasiya |
-| 007 | Model serving strategiyası |
-| 008 | Lokal model vs API routing |
-| 009 | Semantic cache invalidation |
-| 010 | Multi-tenancy və data izolyasiyası |
+| 004 | Retrieval konfiqurasiyası (ölçmə ilə seçilib) |
+| 005 | Eval metodologiyası və CI gate |
+| 006 | Qraf DB: Neo4j vs Postgres |
+| 007 | Agent orkestrasiyası: LangGraph vs öz implementasiya |
+| 008 | Model serving strategiyası |
+| 009 | Lokal model vs API routing |
+| 010 | Semantic cache invalidation |
+| 011 | Multi-tenancy və data izolyasiyası |
 
 ---
 

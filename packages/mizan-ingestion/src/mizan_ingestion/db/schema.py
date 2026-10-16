@@ -119,6 +119,10 @@ class Provision(Base):
     depth: Mapped[int] = mapped_column(SmallInteger)
     content_hash: Mapped[str] = mapped_column(ForeignKey("provision_texts.content_hash"))
     endnote_refs: Mapped[list[int]] = mapped_column(ARRAY(Integer), default=list)
+    # e-qanun ids of linked acts, e.g. Constitutional Court decisions interpreting this provision.
+    linked_acts: Mapped[list[int]] = mapped_column(
+        ARRAY(BigInteger), default=list, server_default="{}"
+    )
 
     content: Mapped[ProvisionText] = relationship(lazy="joined")
 
