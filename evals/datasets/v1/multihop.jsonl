@@ -1,0 +1,40 @@
+{"id": "mh01", "question": "Ştat ixtisarı ilə işdən çıxarılan işçiyə əvvəlcədən necə xəbərdarlıq edilməli və hansı müavinət ödənilməlidir?", "relevant": ["art:77", "art:70"], "type": "multihop"}
+{"id": "mh02", "question": "Məzuniyyətdə olan işçini işəgötürən öz təşəbbüsü ilə hansı əsaslarla işdən çıxara bilməz?", "relevant": ["art:79", "art:70"], "type": "multihop"}
+{"id": "mh03", "question": "İşdən çıxanda istifadə etmədiyim staja görə əlavə məzuniyyət günlərinin pulunu ala bilərəmmi?", "relevant": ["art:144", "art:116"], "type": "multihop"}
+{"id": "mh04", "question": "Məzuniyyətə çıxmamış işçini işəgötürən işdən çıxaranda o, əvvəlcə məzuniyyətini götürə bilərmi və hansı işdən çıxarılma hallarında bu hüquq yoxdur?", "relevant": ["art:143", "art:70"], "type": "multihop"}
+{"id": "mh05", "question": "Yaradıcılıq məzuniyyətində olan işçiyə ödəniləcək orta əmək haqqı necə hesablanır?", "relevant": ["art:122", "art:177"], "type": "multihop"}
+{"id": "mh06", "question": "Ödənişli təhsil məzuniyyəti zamanı ödənilən məbləğ hansı qaydada hesablanır?", "relevant": ["art:123", "art:177"], "type": "multihop"}
+{"id": "mh07", "question": "Əsas məzuniyyət hansı əlavə məzuniyyətlərlə birləşdirilib verilməlidir və əsas məzuniyyətin özü neçə gündür?", "relevant": ["art:136", "art:114"], "type": "multihop"}
+{"id": "mh08", "question": "Sınaq müddəti ən çox nə qədər ola bilər və hansı hallarda ümumiyyətlə sınaq müddəti qoyulmur?", "relevant": ["art:51", "art:52"], "type": "multihop"}
+{"id": "mh09", "question": "İşçi işəgötürənə vurduğu ziyana görə nə vaxt bir aylıq maaş həddində, nə vaxt isə tam həcmdə məsuliyyət daşıyır?", "relevant": ["art:198", "art:199"], "type": "multihop"}
+{"id": "mh10", "question": "Verilmiş intizam tənbehi nə qədər qüvvədə qalır və hansı tənbeh növləri mövcuddur?", "relevant": ["art:190", "art:186"], "type": "multihop"}
+{"id": "mh11", "question": "Tibbi müayinədən keçməkdən imtina edən işçini işəgötürən işdən kənarlaşdıra bilərmi, bu hansı qaydada olur?", "relevant": ["art:226", "art:62"], "type": "multihop"}
+{"id": "mh12", "question": "İşdən kənar edilmiş işçiyə bundan əlavə hansı intizam tənbehləri tətbiq edilə bilər?", "relevant": ["art:62", "art:186"], "type": "multihop"}
+{"id": "mh13", "question": "Attestasiyada vəzifəyə uyğun olmadığı müəyyən edilən işçi ilə əmək müqaviləsinə hansı əsasla xitam verilir?", "relevant": ["art:67", "art:70"], "type": "multihop"}
+{"id": "mh14", "question": "Attestasiya hansı işçilərə keçirilə bilər və kimlər attestasiyadan azaddır?", "relevant": ["art:65", "art:66"], "type": "multihop"}
+{"id": "mh15", "question": "Fərdi əmək mübahisəsi üzrə hansı orqana və hüququn pozulduğunu bildikdən sonra neçə ay ərzində müraciət etmək olar?", "relevant": ["art:296", "art:294"], "type": "multihop"}
+{"id": "mh16", "question": "Hüquqları pozulan işçi onları bərpa etmək üçün hansı yollara əl ata bilər, təkbaşına tətil etmək hüququ varmı?", "relevant": ["art:292", "art:295"], "type": "multihop"}
+{"id": "mh17", "question": "Tətil keçirmək barədə qərarı kim və hansı qaydada qəbul edir?", "relevant": ["art:271", "art:262"], "type": "multihop"}
+{"id": "mh18", "question": "Yetkinlik yaşına çatmayan işçini peşəkarlıq səviyyəsi kifayət etmədiyinə görə işdən çıxarmaq olarmı?", "relevant": ["art:255", "art:70"], "type": "multihop"}
+{"id": "mh19", "question": "18 yaşınadək işçilərə qısaldılmış iş vaxtına görə maaş az ödənilirmi və onların iş vaxtı nə qədərdir?", "relevant": ["art:253", "art:91"], "type": "multihop"}
+{"id": "mh20", "question": "Zərərli əmək şəraitində qısaldılmış iş vaxtı ilə işləyənlərin əmək haqqı azaldılırmı?", "relevant": ["art:159", "art:92"], "type": "multihop"}
+{"id": "mh21", "question": "16 yaşlı işçi əvəzçiliklə ikinci işdə işləyə bilərmi və gündəlik iş vaxtı nə qədər olmalıdır?", "relevant": ["art:58", "art:91"], "type": "multihop"}
+{"id": "mh22", "question": "Xəstə olan iş yoldaşımın vəzifəsini müvəqqəti yerinə yetirsəm, mənə əlavə haqq ödənilirmi?", "relevant": ["art:61", "art:162"], "type": "multihop"}
+{"id": "mh23", "question": "İşəgötürənin günahı ilə iş dayandıqda işçiləri ödənişsiz məzuniyyətə göndərmək olarmı və onlara nə qədər ödənilir?", "relevant": ["art:146", "art:169"], "type": "multihop"}
+{"id": "mh24", "question": "Havanın çox isti olduğuna görə iş dayandırıldıqda işçini başqa işə keçirmək olarmı və maaşı saxlanılırmı?", "relevant": ["art:234", "art:233"], "type": "multihop"}
+{"id": "mh25", "question": "Əlilliyi olan uşağı olan qadını gecə növbəsinə cəlb etmək olarmı?", "relevant": ["art:98", "art:242"], "type": "multihop"}
+{"id": "mh26", "question": "Bayram günündən əvvəlki iş günü qısaldılırmı və hansı günlər iş günü hesab edilməyən bayramlardır?", "relevant": ["art:108", "art:105"], "type": "multihop"}
+{"id": "mh27", "question": "Bayram günü işə çağırılan işçiyə əmək haqqı hansı qaydada ödənilir?", "relevant": ["art:109", "art:164"], "type": "multihop"}
+{"id": "mh28", "question": "Uşağı övladlığa götürən qadın hansı əlavə məzuniyyətlərdən istifadə edə bilər?", "relevant": ["art:126", "art:117"], "type": "multihop"}
+{"id": "mh29", "question": "Daimi xarakterli iş üçün müddətli əmək müqaviləsi bağlamaq olarmı, hansı hallarda olar?", "relevant": ["art:45", "art:47"], "type": "multihop"}
+{"id": "mh30", "question": "İşəgötürən əmək şəraitini dəyişdirmək istəsə işçini nə qədər əvvəl xəbərdar etməlidir və hansı şərtlər bu qaydaya aid deyil?", "relevant": ["art:56", "art:55"], "type": "multihop"}
+{"id": "mh31", "question": "İşdən çıxarkən işəgötürənin günahı ucbatından sənədlərim gec verilsə, mənə kompensasiya ödənilirmi?", "relevant": ["art:172", "art:83"], "type": "multihop"}
+{"id": "mh32", "question": "Müəssisə ləğv olunanda işçilərin hansı ödənişləri birinci növbədə ödənilir, işdənçıxarma müavinəti də bura daxildirmi?", "relevant": ["art:178", "art:77"], "type": "multihop"}
+{"id": "mh33", "question": "İşəgötürən qanunsuz olaraq məni işdən çıxarıbsa, məhkəmə hansı qərarı verir?", "relevant": ["art:300", "art:70"], "type": "multihop"}
+{"id": "mh34", "question": "İntizam tənbehi kimi işçini işdən çıxarmaq mümkündürmü, hansı əsasla?", "relevant": ["art:186", "art:70"], "type": "multihop"}
+{"id": "mh35", "question": "İntizam tənbehi vermək üçün nəzərdə tutulan bir aylıq müddətə hansı dövrlər daxil edilmir?", "relevant": ["art:187", "art:179"], "type": "multihop"}
+{"id": "mh36", "question": "Əmək stajına görə əlavə məzuniyyəti hesablayarkən işə çıxmadığım hansı dövrlər staja daxil edilir?", "relevant": ["art:116", "art:179"], "type": "multihop"}
+{"id": "mh37", "question": "Uşaqlı qadınlara verilən əlavə məzuniyyət müəllim işləyən qadınlara da verilirmi?", "relevant": ["art:117", "art:118"], "type": "multihop"}
+{"id": "mh38", "question": "Qismən ödənişli sosial məzuniyyətdə olduğum müddət əmək məzuniyyəti hüququ verən staja daxil edilirmi?", "relevant": ["art:132", "art:127"], "type": "multihop"}
+{"id": "mh39", "question": "Büdcə təşkilatında yaş həddinə çatmış işçinin çalışma müddəti uzadılıbsa, onunla müqaviləyə yaş həddinə görə xitam verilə bilərmi?", "relevant": ["art:10-1", "art:70"], "type": "multihop"}
+{"id": "mh40", "question": "Əmək müqaviləsində məcburi şərtlər göstərilməyibsə, müqavilə etibarsız sayılırmı və hansı şərtlər məcburidir?", "relevant": ["art:46", "art:43"], "type": "multihop"}

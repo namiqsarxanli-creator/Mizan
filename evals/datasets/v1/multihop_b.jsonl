@@ -1,0 +1,30 @@
+{"id": "mhb01", "question": "Teatrda işləyən iki uşaqlı qadın uşaqlı qadınlar üçün nəzərdə tutulmuş əlavə məzuniyyəti ala bilərmi?", "relevant": ["art:117", "art:121"], "type": "multihop"}
+{"id": "mhb02", "question": "Məktəbdə müəllim işləyən şəxsə əmək stajına görə əlavə məzuniyyət verilirmi?", "relevant": ["art:116", "art:118"], "type": "multihop"}
+{"id": "mhb03", "question": "Məzuniyyətdən geri çağırılan işçiyə istifadə etmədiyi məzuniyyət günləri necə kompensasiya olunur?", "relevant": ["art:137", "art:140"], "type": "multihop"}
+{"id": "mhb04", "question": "Məzuniyyət pulu hesablanarkən hansı ödənişlər nəzərə alınır və əmək haqqına nələr daxildir?", "relevant": ["art:139", "art:154"], "type": "multihop"}
+{"id": "mhb05", "question": "İntizam tənbehi olan işçi mükafatlandırılarsa, tənbeh qüvvədə qalırmı və hansı həvəsləndirmə tədbirləri var?", "relevant": ["art:190", "art:185"], "type": "multihop"}
+{"id": "mhb06", "question": "Kollektiv əmək mübahisəsində vasitəçi və ya arbitr kimi iştirak edən işçilərə hansı təminatlar verilir?", "relevant": ["art:269", "art:27"], "type": "multihop"}
+{"id": "mhb07", "question": "Xəbərdarlıq tətili nə qədər davam edə bilər və bu barədə qərar necə qəbul olunur?", "relevant": ["art:273", "art:262"], "type": "multihop"}
+{"id": "mhb08", "question": "Kollektiv müqavilə bağlamaq təşəbbüsü necə irəli sürülür və onun zəruriliyi barədə qərarı kim verir?", "relevant": ["art:28", "art:25"], "type": "multihop"}
+{"id": "mhb09", "question": "Əmək müqaviləsi bağlanarkən əmək şəraitinin hansı şərtləri göstərilməlidir?", "relevant": ["art:46", "art:54"], "type": "multihop"}
+{"id": "mhb10", "question": "Müəssisənin yeni sahibi direktoru və baş mühasibi işdən çıxara bilərmi?", "relevant": ["art:63", "art:68"], "type": "multihop"}
+{"id": "mhb11", "question": "Attestasiyadan keçə bilməyən işçini işdən çıxarmazdan əvvəl işəgötürən hansı tədbirləri görməlidir?", "relevant": ["art:67", "art:71"], "type": "multihop"}
+{"id": "mhb12", "question": "İşəgötürən əmək vəzifələrini kobud pozduğuna görə işçini işdən çıxara bilər; hansı hərəkətlər kobud pozuntu sayılır?", "relevant": ["art:70", "art:72"], "type": "multihop"}
+{"id": "mhb13", "question": "Həmkarlar ittifaqı üzvü olan işçini ixtisar səbəbindən işdən çıxarmaq üçün kimin razılığı lazımdır?", "relevant": ["art:80", "art:70"], "type": "multihop"}
+{"id": "mhb14", "question": "Öz ərizəmlə işdən çıxanda bu necə rəsmiləşdirilir və nə qədər əvvəl ərizə verməliyəm?", "relevant": ["art:83", "art:69"], "type": "multihop"}
+{"id": "mhb15", "question": "İstirahət günü işçini işə çağırmaq hansı müstəsna hallarda mümkündür?", "relevant": ["art:107", "art:101"], "type": "multihop"}
+{"id": "mhb16", "question": "Bayramqabağı iş gününün bir saat qısaldılması yeniyetmə işçilərə də aiddirmi?", "relevant": ["art:108", "art:91"], "type": "multihop"}
+{"id": "mhb17", "question": "İşdən çıxarkən istifadə etmədiyim məzuniyyəti götürmək istəməsəm, mənə nə ödənilir?", "relevant": ["art:143", "art:144"], "type": "multihop"}
+{"id": "mhb18", "question": "İşdən çıxan uşaqlı qadına istifadə etmədiyi əlavə məzuniyyət üçün kompensasiya verilirmi?", "relevant": ["art:144", "art:117"], "type": "multihop"}
+{"id": "mhb19", "question": "Müəssisə ləğv edilərsə, işdə sağlamlığına zərər dəymiş işçiyə ödənişlər hansı növbədə edilir?", "relevant": ["art:178", "art:239"], "type": "multihop"}
+{"id": "mhb20", "question": "İşçi əmək vəzifələrini yerinə yetirmədikdə ona hansı tənbeh verilə bilər və işçinin əsas vəzifələri nələrdir?", "relevant": ["art:186", "art:10"], "type": "multihop"}
+{"id": "mhb21", "question": "Xəstəlik vərəqəsində olan və ya iş yeri saxlanılan işçiyə intizam tənbehi vermək olarmı?", "relevant": ["art:189", "art:179"], "type": "multihop"}
+{"id": "mhb22", "question": "Tam maddi məsuliyyət barədə yazılı müqavilə bağlanmayıbsa, işçi vurduğu ziyana görə hansı həddə cavab verir?", "relevant": ["art:198", "art:200"], "type": "multihop"}
+{"id": "mhb23", "question": "Təhlükəsiz əmək şəraiti olmadığı üçün iş dayandırılanda işçini başqa işə keçirmək olarmı?", "relevant": ["art:234", "art:230"], "type": "multihop"}
+{"id": "mhb24", "question": "Hamilə qadını işə götürməkdən imtina etmək olarmı və bu qayda hansı ağır və zərərli işlərə şamil edilmir?", "relevant": ["art:240", "art:211"], "type": "multihop"}
+{"id": "mhb25", "question": "Təkbaşına tətil edən işçiyə tətil günləri üçün maaş verilirmi?", "relevant": ["art:295", "art:283"], "type": "multihop"}
+{"id": "mhb26", "question": "İşəgötürən əmək qanunvericiliyini pozaraq işçiyə ziyan vurarsa, hansı məsuliyyətə cəlb olunur?", "relevant": ["art:311", "art:186"], "type": "multihop"}
+{"id": "mhb27", "question": "Əvəzçiliklə işləyəndə ikinci işdə iş vaxtı ən çox nə qədər ola bilər?", "relevant": ["art:58", "art:89"], "type": "multihop"}
+{"id": "mhb28", "question": "İşəgötürən qadın olduğuna görə işçinin maaşını kişilərdən az təyin edə bilərmi?", "relevant": ["art:154", "art:16"], "type": "multihop"}
+{"id": "mhb29", "question": "Müddətli müqavilənin vaxtı bitəndə heç kim xəbərdarlıq etməsə, müqavilə nə olur?", "relevant": ["art:73", "art:45"], "type": "multihop"}
+{"id": "mhb30", "question": "Övladlığa götürən qadın qismən ödənişli sosial məzuniyyətdən istifadə edə bilərmi və bu məzuniyyət nə qədərdir?", "relevant": ["art:126", "art:127"], "type": "multihop"}
