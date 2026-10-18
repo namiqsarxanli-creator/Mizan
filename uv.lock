@@ -18,6 +18,7 @@ members = [
     "mizan-api",
     "mizan-core",
     "mizan-evals",
+    "mizan-graph",
     "mizan-ingestion",
     "mizan-retrieval",
     "mizan-worker",
@@ -1544,6 +1545,7 @@ dependencies = [
     { name = "mizan-api" },
     { name = "mizan-core" },
     { name = "mizan-evals" },
+    { name = "mizan-graph" },
     { name = "mizan-ingestion" },
     { name = "mizan-retrieval" },
     { name = "mizan-worker" },
@@ -1567,6 +1569,7 @@ requires-dist = [
     { name = "mizan-api", editable = "apps/api" },
     { name = "mizan-core", editable = "packages/mizan-core" },
     { name = "mizan-evals", editable = "packages/mizan-evals" },
+    { name = "mizan-graph", editable = "packages/mizan-graph" },
     { name = "mizan-ingestion", editable = "packages/mizan-ingestion" },
     { name = "mizan-retrieval", editable = "packages/mizan-retrieval" },
     { name = "mizan-worker", editable = "apps/worker" },
@@ -1596,6 +1599,7 @@ dependencies = [
     { name = "groq" },
     { name = "httpx" },
     { name = "mizan-core" },
+    { name = "mizan-graph" },
     { name = "mizan-ingestion" },
     { name = "mizan-retrieval" },
     { name = "neo4j" },
@@ -1612,6 +1616,7 @@ requires-dist = [
     { name = "groq", specifier = ">=0.30" },
     { name = "httpx", specifier = ">=0.28" },
     { name = "mizan-core", editable = "packages/mizan-core" },
+    { name = "mizan-graph", editable = "packages/mizan-graph" },
     { name = "mizan-ingestion", editable = "packages/mizan-ingestion" },
     { name = "mizan-retrieval", editable = "packages/mizan-retrieval" },
     { name = "neo4j", specifier = ">=5.26" },
@@ -1658,6 +1663,25 @@ requires-dist = [
     { name = "groq", specifier = ">=0.30" },
     { name = "mizan-core", editable = "packages/mizan-core" },
     { name = "mizan-retrieval", editable = "packages/mizan-retrieval" },
+]
+
+[[package]]
+name = "mizan-graph"
+version = "0.1.0"
+source = { editable = "packages/mizan-graph" }
+dependencies = [
+    { name = "mizan-core" },
+    { name = "mizan-ingestion" },
+    { name = "mizan-retrieval" },
+    { name = "neo4j" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "mizan-core", editable = "packages/mizan-core" },
+    { name = "mizan-ingestion", editable = "packages/mizan-ingestion" },
+    { name = "mizan-retrieval", editable = "packages/mizan-retrieval" },
+    { name = "neo4j", specifier = ">=5.26" },
 ]
 
 [[package]]

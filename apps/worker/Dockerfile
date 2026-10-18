@@ -17,6 +17,7 @@ COPY packages/mizan-core/pyproject.toml packages/mizan-core/
 COPY packages/mizan-ingestion/pyproject.toml packages/mizan-ingestion/
 COPY packages/mizan-retrieval/pyproject.toml packages/mizan-retrieval/
 COPY packages/mizan-evals/pyproject.toml packages/mizan-evals/
+COPY packages/mizan-graph/pyproject.toml packages/mizan-graph/
 COPY apps/worker/pyproject.toml apps/worker/
 COPY apps/api/pyproject.toml apps/api/
 RUN --mount=type=cache,target=/root/.cache/uv \

@@ -111,6 +111,9 @@ class RetrievalSettings(BaseModel):
     candidates: int = Field(default=50, ge=1, le=500)
     rerank_top: int = Field(default=0, ge=0, le=100)
     embeddings_cache: str = "data/embeddings/cache.sqlite"
+    # Graph-aware retrieval (ADR-0006): one top-5 place goes to the most similar article cited
+    # by the best hit. +17% Recall@5 on multi-hop questions, no harm elsewhere (F4 eval).
+    graph: bool = True
     # Load models at startup (readiness stays false until done) instead of on first request.
     warmup: bool = True
 

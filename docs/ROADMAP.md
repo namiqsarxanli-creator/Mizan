@@ -152,18 +152,20 @@ query rewriting statistik fayda vermir. Hamısı konfiqurasiya ilə açıla bili
 
 **Məqsəd:** oxşar mətndən əlavə, normalar arasındakı əlaqələri də anlamaq.
 
-### Həftə 8 — Qraf
-- [ ] Citation extraction (hələlik Claude ilə, F8-də öz modelin əvəz edəcək): `"70-ci maddəyə uyğun"` → `{code, article}`
-- [ ] Neo4j sxemi: `(:Article)-[:REFERENCES]->(:Article)`, `[:AMENDS]`, `[:SUPERSEDES]`
-- [ ] Graph-aware retrieval: tapılan maddələrin 1–2 hop qonşuları da gətirilir
-- [ ] Eval: multi-hop suallarda F2 baseline ilə müqayisə
+### Həftə 8 — Qraf ✅
+- [x] Citation extraction: `"70-ci maddəyə uyğun"` → `{act, article}`. LLM əvəzinə **qrammatika**: cari mətndə 633 istinad, 0 həll olunmayan (ADR-0006). LLM başqa aktlar və məhkəmə qərarları üçün qalır.
+- [x] Neo4j sxemi: `(:Article)-[:REFERENCES {valid_from, valid_to}]->(:Article)`, `(:Act)`; zaman intervallı kənarlar. `[:AMENDS]`, `[:INTERPRETS]` → Həftə 9
+- [x] Graph-aware retrieval: top maddənin istinad etdiyi ən oxşar maddəyə top-5-də bir yer ayrılır; sualda adı çəkilən maddə birinci gəlir; Neo4j əlçatmazdırsa dense-ə qayıdır
+- [x] Eval: **əvvəlcədən qeydə alınmış** test (30 yeni multi-hop sual): Recall@5 0.700 → **0.817 (+16.7%)**, v1-də zərər yoxdur. İlk avtomatik seçim protokolu "winner's curse" səbəbindən uğursuz oldu və bu sənədləşdirilib
+- [x] Parser düzəlişi: 2021-ci ildən sonrakı versiyalarda düzəlişlərin siyahısı 2-ci əlavəyə qarışırdı (50k simvol), PARSER_VERSION 4
+- [x] CI gate artıq serving yolunu (dense + qraf) qoruyur; qraf snapshot-dan qurulur, Neo4j tələb olunmur
 
 ### Həftə 9 — Case law və ziddiyyətlər
 - [ ] Ali Məhkəmə qərarlarının ingestion-u (açıq mənbələrdən)
 - [ ] `(:CourtDecision)-[:INTERPRETS]->(:Article)` əlaqələri
 - [ ] **Ziddiyyət aşkarlama:** *lex specialis* və *lex posterior* qaydaları
 - [ ] Amendment diff: `/diff?code=ƏM&from=2022&to=2025`
-- [ ] **ADR-006:** Niyə ayrıca qraf DB (Neo4j vs Postgres recursive CTE)
+- [x] **ADR-0006:** Qraf: Neo4j (törəmə, yenidən qurula bilən data) vs Postgres recursive CTE
 
 **✅ DoD:** Multi-hop suallarda Recall@5 baseline-dan ≥ 10% yaxşıdır. Ziddiyyət aşkarlamanın 20 test ssenarisi keçir.
 

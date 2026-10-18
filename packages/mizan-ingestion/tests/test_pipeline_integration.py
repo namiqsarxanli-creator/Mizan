@@ -246,3 +246,24 @@ async def test_current_text_gets_its_real_date_once_published_as_a_version(
     assert versions[-1].is_current
     assert versions[-1].valid_from > date(2024, 3, 20)
     assert await _part1_on(sessions, date(2030, 1, 1)) == "Ən yeni redaksiya."
+
+
+async def test_republished_current_text_replaces_the_previous_one(
+    source: FakeEQanun,
+    ingestion_settings: IngestionSettings,
+    sessions: async_sessionmaker[AsyncSession],
+) -> None:
+    await _sync(ingestion_settings, sessions)
+    first_current = next(v for v in await _versions(sessions) if v.is_current)
+
+    # Same law text and endnotes, different bytes: e-qanun re-rendered the page.
+    source.current = CURRENT.replace(b"</body>", b"<p>KMQ</p></body>")
+    report = await _sync(ingestion_settings, sessions)
+
+    assert report.outcomes == {Outcome.UNCHANGED: 2, Outcome.INSERTED: 1}
+    versions = await _versions(sessions)
+    assert len(versions) == 3
+    assert first_current.id not in {v.id for v in versions}
+    assert versions[-1].is_current
+    assert versions[-1].valid_from == first_current.valid_from
+    assert versions[-1].valid_to is None

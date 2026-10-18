@@ -42,6 +42,10 @@ ANNEX_DEDICATION_RE = re.compile(r"(?:məcəlləsinə|qanununa)$")
 # Unlinked court-decision markers glued to a heading: "...cəmlənmə qaydasıKM4".
 _TRAILING_MARKER_RE = re.compile(r"\s*KMQ?\d+$")
 ANNEX_PART_RE = re.compile(r"^§\s*(?P<num>\d+(?:-\d+)?)\.?\s*(?P<title>.*)$")
+# Newer exports print the amendment history in the body after the last annex:
+# "İSTİFADƏ OLUNMUŞ MƏNBƏ SƏNƏDLƏRİNİN SİYAHISI", the amending laws, the court decisions.
+# It is not law text; the endnotes carry the same history in structured form.
+SOURCES_RE = re.compile(r"^istifadə\s+(?:olunmuş|edilmiş)\s+mənbə\s+sənədləri(?:nin)?\s+siyahısı$")
 
 _MAX_MARKER_LEN = 200
 
@@ -238,6 +242,8 @@ class _Builder:
 def build_tree(paragraphs: list[Paragraph], *, title: str) -> tuple[Node, list[str]]:
     builder = _Builder(root=Node(NodeKind.DOCUMENT, heading=title))
     for p in paragraphs:
+        if len(p.text) <= _MAX_MARKER_LEN and SOURCES_RE.match(az_lower(p.text)):
+            break
         builder.feed(p)
     builder.flush_held()
     return builder.root, builder.warnings

@@ -6,8 +6,9 @@ Mizan answers legal questions with citations to the exact article of the law in 
 given date, verifies every claim against its source, and measures its own quality
 continuously. See [docs/ROADMAP.md](docs/ROADMAP.md) for the full 24-week plan.
 
-> **Status:** F3 done (judge calibration awaits human labels): retrieval gated in CI, answers
-> correct 0.91 on a 60-question judged sample, Hit@5 0.97 on 185 retrieval questions. Next: F4, the knowledge graph.
+> **Status:** F4 in progress. The citation graph is live: +17% Recall@5 on multi-hop questions
+> (pre-registered test), no change elsewhere. Next: Constitutional Court decisions and
+> contradiction detection. F3's judge calibration awaits human labels.
 
 ## Architecture (target)
 
@@ -30,6 +31,7 @@ packages/
     migrations/        Alembic migrations
   mizan-retrieval/     embeddings, BM25 analyser, Qdrant index, search, answering, retrieval eval
   mizan-evals/         generation eval: LLM judge, blind human labelling, Cohen's kappa
+  mizan-graph/         citation extraction, temporal knowledge graph (Neo4j), graph-aware search
 docs/
   adr/                 architecture decision records
   ROADMAP.md
@@ -123,11 +125,26 @@ Two layers ([ADR-0005](docs/adr/0005-evaluation-methodology.md)):
   answerer, and the judge is calibrated against blind human labels (Cohen's kappa >= 0.6).
 
 ```bash
-uv run mizan-retrieval gate                       # what CI runs
+uv run mizan-graph gate                           # what CI runs (dense + graph, F4)
 uv run mizan-eval run --sample 60                 # paced for Groq's free tier, resumable
 uv run mizan-eval report
 uv run mizan-eval label --labeller <name>         # blind: the judge's verdict is never shown
 uv run mizan-eval kappa                           # judge vs human agreement
+```
+
+## Knowledge graph (F4)
+
+Articles cite each other ("bu Məcəllənin 70-ci maddəsinin “b” bəndi"). A grammar extracts the
+citations (633 in the current text, none unresolved), and each becomes a temporal edge in
+Neo4j, valid while the citing text is in force ([ADR-0006](docs/adr/0006-knowledge-graph.md)).
+Search keeps the dense ranking and gives the 5th place to the most similar article the best hit
+cites. If Neo4j is down, search falls back to dense results.
+
+```bash
+uv run mizan-graph build                          # extract citations, rewrite the graph
+uv run mizan-graph neighbours art:70              # who cites Art. 70, what it cites
+uv run mizan-graph eval                           # dense vs graph policies on v1 + multi-hop sets
+uv run mizan-graph gate                           # what CI runs: the serving path vs baseline
 ```
 
 ## Quality gates
@@ -139,7 +156,7 @@ uv run mizan-eval kappa                           # judge vs human agreement
 | `uv run mypy packages apps` | strict typing |
 | `uv run pytest --cov` | unit tests + coverage |
 | `MIZAN_INTEGRATION=1 uv run pytest -m integration` | real Postgres: migrations + `alembic check`, ingestion pipeline end to end, dependency checks |
-| `uv run mizan-retrieval gate` | retrieval quality vs the committed baseline (paired bootstrap) |
+| `uv run mizan-graph gate` | quality of the serving path (dense + graph) vs the committed baseline (paired bootstrap) |
 
 All of the above run in CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)), followed by a
 Docker image build. Install the git hooks once with `uv run pre-commit install`.
@@ -165,6 +182,7 @@ Docker image build. Install the git hooks once with `uv run pre-commit install`.
 | [0003](docs/adr/0003-temporal-versioning.md) | Versioned snapshots with derived validity intervals; content-addressed text |
 | [0004](docs/adr/0004-retrieval-configuration.md) | Dense bge-m3, article chunks; hybrid, reranking and rewriting measured and left off |
 | [0005](docs/adr/0005-evaluation-methodology.md) | Versioned datasets, mechanical metrics first, calibrated judge, CI retrieval gate |
+| [0006](docs/adr/0006-knowledge-graph.md) | Grammar-extracted temporal citation graph in Neo4j (derived, rebuildable); one reserved top-5 slot, pre-registered test |
 
 ## Disclaimer
 

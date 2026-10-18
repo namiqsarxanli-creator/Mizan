@@ -104,5 +104,8 @@ def labour_code_excerpt() -> str:
         centered("§1. Tərəflər haqqında məlumatlar"),
         para("1.1. İşəgötürən ________"),
         para("1.2. İşçi ________"),
+        centered("İSTİFADƏ OLUNMUŞ MƏNBƏ SƏNƏDLƏRİNİN SİYAHISI"),
+        para("Məcəlləyə əlavə və dəyişikliklər etmiş qanunlar"),
+        para("1. 20 fevral 2001-ci il tarixli 88-IIQD nömrəli Qanun"),
         endnotes={204: ACT_2025, 206: ACT_2007},
     )

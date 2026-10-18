@@ -7,6 +7,7 @@ dependencies = [
     "mizan-core",
     "mizan-api",
     "mizan-evals",
+    "mizan-graph",
     "mizan-ingestion",
     "mizan-retrieval",
     "mizan-worker",
@@ -25,6 +26,7 @@ mizan-ingestion = { workspace = true }
 mizan-worker = { workspace = true }
 mizan-retrieval = { workspace = true }
 mizan-evals = { workspace = true }
+mizan-graph = { workspace = true }
 torch = { index = "pytorch-cpu" }
 
 [dependency-groups]
@@ -63,8 +65,9 @@ select = [
     "TID",          # tidy imports
     "RUF",
 ]
-# Azerbaijani text: dotless i is a letter, not a homoglyph attack.
-allowed-confusables = ["ı"]
+# Azerbaijani text: dotless i is a letter, not a homoglyph attack; legal texts write ranges
+# of articles with an en dash ("115–117-ci maddələr").
+allowed-confusables = ["ı", "–"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101", "S105", "S106", "ASYNC240"]
@@ -75,6 +78,7 @@ known-first-party = [
     "mizan_core",
     "mizan_api",
     "mizan_evals",
+    "mizan_graph",
     "mizan_ingestion",
     "mizan_retrieval",
     "mizan_worker",
@@ -91,6 +95,7 @@ mypy_path = [
     "packages/mizan-ingestion/src",
     "packages/mizan-retrieval/src",
     "packages/mizan-evals/src",
+    "packages/mizan-graph/src",
     "apps/api/src",
     "apps/worker/src",
     # Shared test helpers, imported as top-level modules (see pytest `pythonpath`).
@@ -130,6 +135,7 @@ source = [
     "mizan_core",
     "mizan_api",
     "mizan_evals",
+    "mizan_graph",
     "mizan_ingestion",
     "mizan_retrieval",
     "mizan_worker",

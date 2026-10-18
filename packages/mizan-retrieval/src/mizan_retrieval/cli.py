@@ -16,8 +16,10 @@ import os
 import re
 import sys
 import time
+from collections.abc import Callable, Coroutine
 from datetime import date, datetime
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import groq
@@ -35,7 +37,7 @@ from mizan_retrieval.index import build_index
 from mizan_retrieval.report import write_report
 from mizan_retrieval.rerank import Reranker
 from mizan_retrieval.rewrite import GroqQueryRewriter
-from mizan_retrieval.search import Mode, SearchConfig, Searcher
+from mizan_retrieval.search import Mode, SearchBackend, SearchConfig, Searcher
 
 log = get_logger(__name__)
 LABOUR_CODE = 46943
@@ -130,17 +132,38 @@ async def _run_serving(questions: list[Question], config: SearchConfig) -> RunRe
 
 
 def _gate(dataset: Path, baseline_path: Path, update: bool) -> int:
-    """Fail (exit 1) when the serving configuration is significantly worse than the baseline."""
-    questions = load_dataset(dataset)
     config = serving_variant()
-    result = asyncio.run(_run_serving(questions, config))
+    return run_gate(
+        dataset,
+        baseline_path,
+        update,
+        label=config.label,
+        run=lambda questions: _run_serving(questions, config),
+    )
+
+
+def run_gate(
+    dataset: Path,
+    baseline_path: Path,
+    update: bool,
+    *,
+    label: str,
+    run: Callable[[list[Question]], Coroutine[Any, Any, RunResult]],
+) -> int:
+    """Fail (exit 1) when the serving configuration is significantly worse than the baseline.
+
+    ``run`` evaluates the serving configuration; packages that extend retrieval (the knowledge
+    graph) gate their own serving path through it.
+    """
+    questions = load_dataset(dataset)
+    result = asyncio.run(run(questions))
 
     dataset_hash = hashlib.sha256(dataset.read_bytes()).hexdigest()[:16]
     if update:
         payload = {
             "dataset": dataset.as_posix(),
             "dataset_hash": dataset_hash,
-            "variant": config.label,
+            "variant": label,
             "per_question": result.per_question,
         }
         baseline_path.parent.mkdir(parents=True, exist_ok=True)
@@ -155,7 +178,7 @@ def _gate(dataset: Path, baseline_path: Path, update: bool) -> int:
     comparisons = paired_bootstrap(baseline["per_question"], result.per_question)
     floor = result.summary()["Recall@5"]
     lines = [
-        f"### Retrieval eval gate: `{config.label}` on `{dataset.as_posix()}`",
+        f"### Retrieval eval gate: `{label}` on `{dataset.as_posix()}`",
         "",
         "| Metric | Baseline | This change | Delta [95% CI] | |",
         "|---|---|---|---|---|",
@@ -240,7 +263,7 @@ def default_variants() -> list[SearchConfig]:
 
 
 async def run_variant(
-    searcher: Searcher,
+    searcher: SearchBackend,
     config: SearchConfig,
     questions: list[Question],
     rewrites: dict[str, str] | None = None,

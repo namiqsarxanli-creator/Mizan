@@ -1,0 +1,422 @@
+{
+ "graph_backend": "neo4j",
+ "primary_policy": "graph out seeds=1 slots=1/5 + cited-article routing",
+ "secondary_policy": "graph out seeds=1 slots=2/5 + cited-article routing",
+ "questions": {
+  "dataset": "evals/datasets/v1/questions.jsonl",
+  "questions": 185,
+  "recall_at_5_by_type": {
+   "exact_term": {
+    "dense": 0.95,
+    "primary": 1.0,
+    "secondary": 1.0
+   },
+   "false_premise": {
+    "dense": 0.95,
+    "primary": 0.95,
+    "secondary": 0.95
+   },
+   "multi": {
+    "dense": 0.852,
+    "primary": 0.867,
+    "secondary": 0.852
+   },
+   "single": {
+    "dense": 0.98,
+    "primary": 0.97,
+    "secondary": 0.97
+   },
+   "temporal": {
+    "dense": 0.947,
+    "primary": 0.947,
+    "secondary": 0.947
+   }
+  },
+  "primary_vs_dense": [
+   {
+    "metric": "Recall@5",
+    "dense": 0.948,
+    "graph": 0.95,
+    "delta": "0.003 [-0.01, 0.02]",
+    "verdict": "no significant change"
+   },
+   {
+    "metric": "MRR@10",
+    "dense": 0.894,
+    "graph": 0.901,
+    "delta": "0.007 [-0.00, 0.02]",
+    "verdict": "no significant change"
+   },
+   {
+    "metric": "nDCG@10",
+    "dense": 0.901,
+    "graph": 0.907,
+    "delta": "0.007 [-0.00, 0.02]",
+    "verdict": "no significant change"
+   }
+  ],
+  "secondary_vs_dense": [
+   {
+    "metric": "Recall@5",
+    "dense": 0.948,
+    "graph": 0.948,
+    "delta": "0.000 [-0.02, 0.02]",
+    "verdict": "no significant change"
+   },
+   {
+    "metric": "MRR@10",
+    "dense": 0.894,
+    "graph": 0.901,
+    "delta": "0.007 [-0.00, 0.02]",
+    "verdict": "no significant change"
+   },
+   {
+    "metric": "nDCG@10",
+    "dense": 0.901,
+    "graph": 0.907,
+    "delta": "0.006 [-0.00, 0.02]",
+    "verdict": "no significant change"
+   }
+  ]
+ },
+ "multihop": {
+  "dataset": "evals/datasets/v1/multihop.jsonl",
+  "questions": 40,
+  "recall_at_5_by_type": {
+   "multihop": {
+    "dense": 0.838,
+    "primary": 0.912,
+    "secondary": 0.925
+   }
+  },
+  "primary_vs_dense": [
+   {
+    "metric": "Recall@5",
+    "dense": 0.838,
+    "graph": 0.912,
+    "delta": "0.075 [0.03, 0.14]",
+    "verdict": "better"
+   },
+   {
+    "metric": "MRR@10",
+    "dense": 0.911,
+    "graph": 0.911,
+    "delta": "0.000 [0.00, 0.00]",
+    "verdict": "no significant change"
+   },
+   {
+    "metric": "nDCG@10",
+    "dense": 0.815,
+    "graph": 0.846,
+    "delta": "0.031 [0.01, 0.06]",
+    "verdict": "better"
+   }
+  ],
+  "secondary_vs_dense": [
+   {
+    "metric": "Recall@5",
+    "dense": 0.838,
+    "graph": 0.925,
+    "delta": "0.087 [0.04, 0.15]",
+    "verdict": "better"
+   },
+   {
+    "metric": "MRR@10",
+    "dense": 0.911,
+    "graph": 0.911,
+    "delta": "0.000 [0.00, 0.00]",
+    "verdict": "no significant change"
+   },
+   {
+    "metric": "nDCG@10",
+    "dense": 0.815,
+    "graph": 0.857,
+    "delta": "0.041 [0.01, 0.07]",
+    "verdict": "better"
+   }
+  ]
+ },
+ "multihop_b": {
+  "dataset": "evals/datasets/v1/multihop_b.jsonl",
+  "questions": 30,
+  "recall_at_5_by_type": {
+   "multihop": {
+    "dense": 0.7,
+    "primary": 0.817,
+    "secondary": 0.817
+   }
+  },
+  "primary_vs_dense": [
+   {
+    "metric": "Recall@5",
+    "dense": 0.7,
+    "graph": 0.817,
+    "delta": "0.117 [0.05, 0.20]",
+    "verdict": "better"
+   },
+   {
+    "metric": "MRR@10",
+    "dense": 0.836,
+    "graph": 0.836,
+    "delta": "0.000 [0.00, 0.00]",
+    "verdict": "no significant change"
+   },
+   {
+    "metric": "nDCG@10",
+    "dense": 0.704,
+    "graph": 0.744,
+    "delta": "0.040 [0.01, 0.07]",
+    "verdict": "better"
+   }
+  ],
+  "secondary_vs_dense": [
+   {
+    "metric": "Recall@5",
+    "dense": 0.7,
+    "graph": 0.817,
+    "delta": "0.117 [0.05, 0.20]",
+    "verdict": "better"
+   },
+   {
+    "metric": "MRR@10",
+    "dense": 0.836,
+    "graph": 0.836,
+    "delta": "0.000 [0.00, 0.00]",
+    "verdict": "no significant change"
+   },
+   {
+    "metric": "nDCG@10",
+    "dense": 0.704,
+    "graph": 0.751,
+    "delta": "0.048 [0.01, 0.08]",
+    "verdict": "better"
+   }
+  ]
+ },
+ "grid": {
+  "no graph": {
+   "questions R@5": 0.948,
+   "questions MRR": 0.894,
+   "multihop R@5": 0.838,
+   "multihop MRR": 0.911,
+   "multihop_b R@5": 0.7,
+   "multihop_b MRR": 0.836
+  },
+  "cited-article routing": {
+   "questions R@5": 0.953,
+   "questions MRR": 0.902,
+   "multihop R@5": 0.838,
+   "multihop MRR": 0.911,
+   "multihop_b R@5": 0.7,
+   "multihop_b MRR": 0.836
+  },
+  "graph out seeds=1 boost=0.02 + cited-article routing": {
+   "questions R@5": 0.953,
+   "questions MRR": 0.903,
+   "multihop R@5": 0.85,
+   "multihop MRR": 0.899,
+   "multihop_b R@5": 0.733,
+   "multihop_b MRR": 0.836
+  },
+  "graph out seeds=1 boost=0.05 + cited-article routing": {
+   "questions R@5": 0.953,
+   "questions MRR": 0.901,
+   "multihop R@5": 0.863,
+   "multihop MRR": 0.899,
+   "multihop_b R@5": 0.783,
+   "multihop_b MRR": 0.833
+  },
+  "graph out seeds=1 boost=0.1 + cited-article routing": {
+   "questions R@5": 0.937,
+   "questions MRR": 0.858,
+   "multihop R@5": 0.9,
+   "multihop MRR": 0.888,
+   "multihop_b R@5": 0.817,
+   "multihop_b MRR": 0.817
+  },
+  "graph out seeds=2 boost=0.02 + cited-article routing": {
+   "questions R@5": 0.953,
+   "questions MRR": 0.905,
+   "multihop R@5": 0.85,
+   "multihop MRR": 0.882,
+   "multihop_b R@5": 0.733,
+   "multihop_b MRR": 0.836
+  },
+  "graph out seeds=2 boost=0.05 + cited-article routing": {
+   "questions R@5": 0.953,
+   "questions MRR": 0.902,
+   "multihop R@5": 0.863,
+   "multihop MRR": 0.882,
+   "multihop_b R@5": 0.783,
+   "multihop_b MRR": 0.833
+  },
+  "graph out seeds=2 boost=0.1 + cited-article routing": {
+   "questions R@5": 0.929,
+   "questions MRR": 0.827,
+   "multihop R@5": 0.863,
+   "multihop MRR": 0.832,
+   "multihop_b R@5": 0.8,
+   "multihop_b MRR": 0.765
+  },
+  "graph out seeds=3 boost=0.02 + cited-article routing": {
+   "questions R@5": 0.953,
+   "questions MRR": 0.903,
+   "multihop R@5": 0.85,
+   "multihop MRR": 0.899,
+   "multihop_b R@5": 0.733,
+   "multihop_b MRR": 0.836
+  },
+  "graph out seeds=3 boost=0.05 + cited-article routing": {
+   "questions R@5": 0.953,
+   "questions MRR": 0.888,
+   "multihop R@5": 0.85,
+   "multihop MRR": 0.882,
+   "multihop_b R@5": 0.783,
+   "multihop_b MRR": 0.833
+  },
+  "graph out seeds=3 boost=0.1 + cited-article routing": {
+   "questions R@5": 0.916,
+   "questions MRR": 0.796,
+   "multihop R@5": 0.863,
+   "multihop MRR": 0.788,
+   "multihop_b R@5": 0.733,
+   "multihop_b MRR": 0.743
+  },
+  "graph out seeds=1 slots=1/5 + cited-article routing": {
+   "questions R@5": 0.95,
+   "questions MRR": 0.901,
+   "multihop R@5": 0.912,
+   "multihop MRR": 0.911,
+   "multihop_b R@5": 0.817,
+   "multihop_b MRR": 0.836
+  },
+  "graph out seeds=1 slots=2/5 + cited-article routing": {
+   "questions R@5": 0.948,
+   "questions MRR": 0.901,
+   "multihop R@5": 0.925,
+   "multihop MRR": 0.911,
+   "multihop_b R@5": 0.817,
+   "multihop_b MRR": 0.836
+  },
+  "graph out seeds=2 slots=1/5 + cited-article routing": {
+   "questions R@5": 0.948,
+   "questions MRR": 0.901,
+   "multihop R@5": 0.887,
+   "multihop MRR": 0.91,
+   "multihop_b R@5": 0.833,
+   "multihop_b MRR": 0.836
+  },
+  "graph out seeds=2 slots=2/5 + cited-article routing": {
+   "questions R@5": 0.945,
+   "questions MRR": 0.901,
+   "multihop R@5": 0.9,
+   "multihop MRR": 0.91,
+   "multihop_b R@5": 0.833,
+   "multihop_b MRR": 0.834
+  },
+  "graph both seeds=1 boost=0.02 + cited-article routing": {
+   "questions R@5": 0.953,
+   "questions MRR": 0.892,
+   "multihop R@5": 0.85,
+   "multihop MRR": 0.899,
+   "multihop_b R@5": 0.733,
+   "multihop_b MRR": 0.833
+  },
+  "graph both seeds=1 boost=0.05 + cited-article routing": {
+   "questions R@5": 0.958,
+   "questions MRR": 0.864,
+   "multihop R@5": 0.863,
+   "multihop MRR": 0.874,
+   "multihop_b R@5": 0.817,
+   "multihop_b MRR": 0.819
+  },
+  "graph both seeds=1 boost=0.1 + cited-article routing": {
+   "questions R@5": 0.944,
+   "questions MRR": 0.801,
+   "multihop R@5": 0.9,
+   "multihop MRR": 0.838,
+   "multihop_b R@5": 0.833,
+   "multihop_b MRR": 0.775
+  },
+  "graph both seeds=2 boost=0.02 + cited-article routing": {
+   "questions R@5": 0.953,
+   "questions MRR": 0.901,
+   "multihop R@5": 0.85,
+   "multihop MRR": 0.882,
+   "multihop_b R@5": 0.75,
+   "multihop_b MRR": 0.833
+  },
+  "graph both seeds=2 boost=0.05 + cited-article routing": {
+   "questions R@5": 0.96,
+   "questions MRR": 0.874,
+   "multihop R@5": 0.838,
+   "multihop MRR": 0.87,
+   "multihop_b R@5": 0.833,
+   "multihop_b MRR": 0.812
+  },
+  "graph both seeds=2 boost=0.1 + cited-article routing": {
+   "questions R@5": 0.929,
+   "questions MRR": 0.773,
+   "multihop R@5": 0.838,
+   "multihop MRR": 0.737,
+   "multihop_b R@5": 0.767,
+   "multihop_b MRR": 0.707
+  },
+  "graph both seeds=3 boost=0.02 + cited-article routing": {
+   "questions R@5": 0.953,
+   "questions MRR": 0.902,
+   "multihop R@5": 0.85,
+   "multihop MRR": 0.899,
+   "multihop_b R@5": 0.75,
+   "multihop_b MRR": 0.833
+  },
+  "graph both seeds=3 boost=0.05 + cited-article routing": {
+   "questions R@5": 0.948,
+   "questions MRR": 0.873,
+   "multihop R@5": 0.825,
+   "multihop MRR": 0.87,
+   "multihop_b R@5": 0.817,
+   "multihop_b MRR": 0.812
+  },
+  "graph both seeds=3 boost=0.1 + cited-article routing": {
+   "questions R@5": 0.902,
+   "questions MRR": 0.743,
+   "multihop R@5": 0.8,
+   "multihop MRR": 0.711,
+   "multihop_b R@5": 0.7,
+   "multihop_b MRR": 0.679
+  },
+  "graph both seeds=1 slots=1/5 + cited-article routing": {
+   "questions R@5": 0.952,
+   "questions MRR": 0.901,
+   "multihop R@5": 0.9,
+   "multihop MRR": 0.911,
+   "multihop_b R@5": 0.85,
+   "multihop_b MRR": 0.836
+  },
+  "graph both seeds=1 slots=2/5 + cited-article routing": {
+   "questions R@5": 0.95,
+   "questions MRR": 0.901,
+   "multihop R@5": 0.925,
+   "multihop MRR": 0.911,
+   "multihop_b R@5": 0.867,
+   "multihop_b MRR": 0.836
+  },
+  "graph both seeds=2 slots=1/5 + cited-article routing": {
+   "questions R@5": 0.95,
+   "questions MRR": 0.901,
+   "multihop R@5": 0.863,
+   "multihop MRR": 0.91,
+   "multihop_b R@5": 0.867,
+   "multihop_b MRR": 0.836
+  },
+  "graph both seeds=2 slots=2/5 + cited-article routing": {
+   "questions R@5": 0.95,
+   "questions MRR": 0.901,
+   "multihop R@5": 0.9,
+   "multihop MRR": 0.91,
+   "multihop_b R@5": 0.883,
+   "multihop_b MRR": 0.833
+  }
+ }
+}

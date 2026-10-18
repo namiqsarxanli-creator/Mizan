@@ -180,6 +180,30 @@ async def mark_current(session: AsyncSession, document_id: int, version_id: int)
     )
 
 
+async def delete_republished_current(session: AsyncSession, document_id: int) -> int:
+    """Drop undated former current texts that the new current text starts on or before.
+
+    e-qanun re-renders the current page without a new amending act (e.g. it appends a court
+    decision to the source list). The new text gets the same estimated start, which would leave
+    the old one valid on an empty interval. Undated texts that were later archived as dated
+    versions have a ``source_version_id`` and are kept.
+    """
+    current = (
+        select(DocumentVersion.valid_from)
+        .where(DocumentVersion.document_id == document_id, DocumentVersion.is_current)
+        .scalar_subquery()
+    )
+    result = await session.execute(
+        delete(DocumentVersion).where(
+            DocumentVersion.document_id == document_id,
+            ~DocumentVersion.is_current,
+            DocumentVersion.source_version_id.is_(None),
+            DocumentVersion.valid_from >= current,
+        )
+    )
+    return int(getattr(result, "rowcount", 0) or 0)
+
+
 async def delete_orphan_texts(session: AsyncSession) -> int:
     """Drop texts no provision points to any more (left behind by re-parsing)."""
     referenced = select(Provision.content_hash).where(

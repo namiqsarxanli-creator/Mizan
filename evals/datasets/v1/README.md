@@ -28,3 +28,16 @@ Fields: `id`, `question`, `relevant` (article keys; empty for `no_answer`), `typ
   The F3 human labelling (`mizan-eval label`) is the first human pass; a lawyer review remains
   the path to a gold set.
 - `relevant` lists the articles a lawyer would cite first; recall against it is a lower bound.
+
+## `multihop.jsonl` (F4)
+
+40 questions whose answer needs an article **and an article it cites** ("severance on
+redundancy" needs Art. 77, which applies to dismissals under Art. 70 "b"). Each pair was taken
+from a citation edge of the knowledge graph (`mizan-graph`) and the citing sentence was read
+before the question was written.
+
+- Measures whether retrieval can follow citations. Because the pairs come from graph edges,
+  it is biased towards questions a graph can help with: it shows the size of the effect on
+  such questions, not how often users ask them. The 35 `multi` questions above were written
+  without the graph and are the unbiased check (8 of their gold pairs are linked by an edge).
+- Silver, like the rest of v1.

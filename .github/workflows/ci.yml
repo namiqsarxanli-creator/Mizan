@@ -94,11 +94,13 @@ jobs:
         with:
           path: ~/.cache/huggingface
           key: hf-bge-m3-v1
-      # Passage embeddings are keyed by the frozen corpus: re-embedded only when it changes.
+      # Passage embeddings are keyed by the frozen corpus. The cache is content-addressed, so
+      # when the corpus changes the previous one is restored and only changed texts are embedded.
       - uses: actions/cache@v4
         with:
           path: data/embeddings
           key: embeddings-bge-m3-${{ hashFiles('evals/snapshots/labour_code.jsonl.gz') }}
+          restore-keys: embeddings-bge-m3-
       - name: Wait for Qdrant
         run: |
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:16333/readyz && exit 0; sleep 2; done
@@ -107,8 +109,9 @@ jobs:
         run: >
           uv run mizan-retrieval index --strategy article --models bge-m3
           --from-snapshot evals/snapshots/labour_code.jsonl.gz
+      # The serving path: dense search + citation graph (rebuilt from the snapshot, no Neo4j).
       - name: Compare with the baseline (fails on a significant regression)
-        run: uv run mizan-retrieval gate
+        run: uv run mizan-graph gate
 
   docker:
     name: Build ${{ matrix.app }} image

@@ -25,6 +25,8 @@ from redis.asyncio import Redis
 from mizan_core.config import Settings
 from mizan_core.health import DependencyCheck
 from mizan_core.logging import get_logger
+from mizan_graph.search import SERVING_POLICY, GraphSearcher
+from mizan_graph.store import Neo4jGraph
 from mizan_ingestion.chunking import Strategy
 from mizan_retrieval.answer import AnswerBackend, ClaudeAnswerer, GroqAnswerer
 from mizan_retrieval.embeddings import MODELS, Embedder, EmbeddingCache
@@ -81,6 +83,13 @@ class Neo4jCheck:
         await self.driver.verify_connectivity()
 
 
+def _neo4j_driver(settings: Settings) -> AsyncDriver:
+    return AsyncGraphDatabase.driver(
+        settings.neo4j.uri,
+        auth=(settings.neo4j.user, settings.neo4j.password.get_secret_value()),
+    )
+
+
 async def build_dependency_checks(
     settings: Settings, stack: AsyncExitStack
 ) -> list[DependencyCheck]:
@@ -97,10 +106,7 @@ async def build_dependency_checks(
     qdrant = httpx.AsyncClient(base_url=settings.qdrant.url, headers=qdrant_headers)
     stack.push_async_callback(qdrant.aclose)
 
-    neo4j = AsyncGraphDatabase.driver(
-        settings.neo4j.uri,
-        auth=(settings.neo4j.user, settings.neo4j.password.get_secret_value()),
-    )
+    neo4j = _neo4j_driver(settings)
     stack.push_async_callback(neo4j.close)
 
     return [PostgresCheck(pool), RedisCheck(redis), QdrantCheck(qdrant), Neo4jCheck(neo4j)]
@@ -222,5 +228,9 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
     async def expand(hits: Sequence[Hit], source_id: int, as_of: date) -> list[Hit]:
         return await expand_to_articles(qdrant, hits, source_id=source_id, as_of=as_of)
 
-    searcher = Searcher(qdrant, {config.dense_model: embedder}, reranker)
+    searcher: SearchBackend = Searcher(qdrant, {config.dense_model: embedder}, reranker)
+    if settings.retrieval.graph and config.mode is Mode.DENSE:
+        driver = _neo4j_driver(settings)
+        stack.push_async_callback(driver.close)
+        searcher = GraphSearcher(searcher, Neo4jGraph(driver), SERVING_POLICY)
     return LegalServices(searcher, config, answerer, checks, rewriter, expand)

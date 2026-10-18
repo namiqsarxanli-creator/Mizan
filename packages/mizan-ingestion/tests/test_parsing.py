@@ -101,6 +101,10 @@ def test_annexes_are_split_from_the_last_article(provisions: dict[str, Provision
     assert part.text == "1.1. İşəgötürən ________\n1.2. İşçi ________"
 
 
+def test_source_list_after_the_annexes_is_not_law_text(provisions: dict[str, Provision]) -> None:
+    assert not any("88-IIQD" in p.text or "SİYAHISI" in p.text for p in provisions.values())
+
+
 def test_provision_keys_are_unique_and_ordered(provisions: dict[str, Provision]) -> None:
     ordinals = [p.ordinal for p in provisions.values()]
     assert ordinals == sorted(ordinals) == list(range(len(ordinals)))

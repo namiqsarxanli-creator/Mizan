@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import re
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
@@ -69,7 +69,14 @@ class Hit:
 
 class SearchBackend(Protocol):
     async def search(
-        self, query: str, *, source_id: int, as_of: date, config: SearchConfig, k: int = 10
+        self,
+        query: str,
+        *,
+        source_id: int,
+        as_of: date,
+        config: SearchConfig,
+        k: int = 10,
+        only_articles: Collection[str] | None = None,
     ) -> list[Hit]: ...
 
 
@@ -105,8 +112,19 @@ class Searcher:
         as_of: date,
         config: SearchConfig,
         k: int = 10,
+        only_articles: Collection[str] | None = None,
     ) -> list[Hit]:
-        flt = temporal_filter(source_id, as_of)
+        """Rank chunks valid on ``as_of``; ``only_articles`` restricts ranking to those articles."""
+        extra = (
+            [
+                models.FieldCondition(
+                    key="article_key", match=models.MatchAny(any=list(only_articles))
+                )
+            ]
+            if only_articles is not None
+            else []
+        )
+        flt = temporal_filter(source_id, as_of, *extra)
         limit = max(k, config.candidates, config.rerank_top)
         prefetch: list[models.Prefetch] = []
 

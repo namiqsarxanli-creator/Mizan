@@ -172,8 +172,11 @@ async def sync_document(
             )
             report.outcomes[outcome] += 1
         await repo.mark_current(session, document_id, current_id)
+        replaced = await repo.delete_republished_current(session, document_id)
         await repo.recompute_validity(session, document_id)
-        if report.outcomes[Outcome.REPARSED]:
+        if replaced:
+            log.info("republished_current_replaced", source_id=source_id, versions=replaced)
+        if report.outcomes[Outcome.REPARSED] or replaced:
             report.orphan_texts_deleted = await repo.delete_orphan_texts(session)
 
     log.info(

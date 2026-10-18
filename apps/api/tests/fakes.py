@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from datetime import date
 from types import SimpleNamespace
 from typing import Any
@@ -29,7 +29,14 @@ class FakeSearcher:
         self.calls: list[dict[str, Any]] = []
 
     async def search(
-        self, query: str, *, source_id: int, as_of: date, config: SearchConfig, k: int = 10
+        self,
+        query: str,
+        *,
+        source_id: int,
+        as_of: date,
+        config: SearchConfig,
+        k: int = 10,
+        only_articles: Collection[str] | None = None,
     ) -> list[Hit]:
         self.calls.append({"query": query, "as_of": as_of, "k": k, "source_id": source_id})
         return self.hits[:k]

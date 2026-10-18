@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
@@ -117,7 +117,14 @@ HIT = Hit("art:69", "art:69", "art:69", "Maddə 69\nmətn", 0.9, TODAY, ("art:69
 
 class FakeSearcher:
     async def search(
-        self, query: str, *, source_id: int, as_of: date, config: SearchConfig, k: int = 10
+        self,
+        query: str,
+        *,
+        source_id: int,
+        as_of: date,
+        config: SearchConfig,
+        k: int = 10,
+        only_articles: Collection[str] | None = None,
     ) -> list[Hit]:
         return [HIT]
 

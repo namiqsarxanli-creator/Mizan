@@ -10,6 +10,7 @@ dependencies = [
     "groq>=0.30",
     "httpx>=0.28",
     "mizan-core",
+    "mizan-graph",
     "mizan-ingestion",
     "mizan-retrieval",
     "neo4j>=5.26",
@@ -20,6 +21,7 @@ dependencies = [
 
 [tool.uv.sources]
 mizan-core = { workspace = true }
+mizan-graph = { workspace = true }
 mizan-ingestion = { workspace = true }
 mizan-retrieval = { workspace = true }
 torch = { index = "pytorch-cpu" }
