@@ -95,6 +95,11 @@ class BrokenGraph:
     ) -> list[Neighbour]:
         raise ConnectionError("neo4j is down")
 
+    async def exceptions(
+        self, source_id: int, keys: Collection[str], *, as_of: date
+    ) -> list[tuple[str, str]]:
+        raise ConnectionError("neo4j is down")
+
 
 # Art. 77 cites Art. 70 (similarity rank 9) and Art. 68 (rank 7).
 GRAPH = InMemoryGraph(
@@ -216,6 +221,7 @@ async def test_neo4j_answers_like_the_in_memory_graph(neo4j: Neo4jGraph) -> None
         Reference("art:79", SELF, "art:70", ("70",), D1, OPEN_END),
         Reference("art:77", "konstitusiya", "art:25", ("25",), D1, OPEN_END),
     ]
+    refs.append(Reference("art:51", SELF, "art:52", ("52",), D1, OPEN_END, exception=True))
     memory = InMemoryGraph(TEST_SOURCE, refs)
     await neo4j.replace_references(TEST_SOURCE, "test", refs)
     await neo4j.replace_references(TEST_SOURCE, "test", refs)  # idempotent
@@ -226,6 +232,10 @@ async def test_neo4j_answers_like_the_in_memory_graph(neo4j: Neo4jGraph) -> None
             got = await neo4j.neighbours(TEST_SOURCE, keys, as_of=as_of, direction=direction)
             want = await memory.neighbours(TEST_SOURCE, keys, as_of=as_of, direction=direction)
             assert sorted(got, key=repr) == sorted(want, key=repr), (as_of, direction)
+        keys = ["art:51", "art:52", "art:77"]
+        exceptions = await neo4j.exceptions(TEST_SOURCE, keys, as_of=as_of)
+        assert exceptions == await memory.exceptions(TEST_SOURCE, keys, as_of=as_of)
+        assert exceptions == [("art:51", "art:52")]
 
 
 @integration

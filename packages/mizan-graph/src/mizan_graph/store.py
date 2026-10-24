@@ -50,6 +50,13 @@ class GraphStore(Protocol):
         """Articles of the same act linked to ``keys`` by citations in force on ``as_of``."""
         ...
 
+    async def exceptions(
+        self, source_id: int, keys: Collection[str], *, as_of: date
+    ) -> list[tuple[str, str]]:
+        """(general, special) pairs among ``keys``: the general article makes the special one
+        an exception to itself ("52-ci maddəsində göstərilən hallar istisna olmaqla")."""
+        ...
+
 
 class DecisionStore(Protocol):
     async def decisions_for(
@@ -108,6 +115,21 @@ class InMemoryGraph:
                     if r.valid_from <= as_of < r.valid_to
                 ]
         return found
+
+    async def exceptions(
+        self, source_id: int, keys: Collection[str], *, as_of: date
+    ) -> list[tuple[str, str]]:
+        if source_id != self._source_id:
+            return []
+        wanted = set(keys)
+        return sorted(
+            {
+                (r.source, r.target)
+                for key in wanted
+                for r in self._out.get(key, ())
+                if r.exception and r.target in wanted and r.valid_from <= as_of < r.valid_to
+            }
+        )
 
     async def decisions_for(
         self, source_id: int, keys: Collection[str], *, as_of: date
@@ -242,6 +264,21 @@ class Neo4jGraph:
             incoming=direction in (Direction.IN, Direction.BOTH),
         )
         return [Neighbour(r["seed"], r["key"], Direction(r["direction"])) for r in records]
+
+    async def exceptions(
+        self, source_id: int, keys: Collection[str], *, as_of: date
+    ) -> list[tuple[str, str]]:
+        act = act_uid(source_id)
+        records = await self._run(
+            "MATCH (g:Article {act: $act})-[r:REFERENCES]->(s:Article {act: $act}) "
+            "WHERE g.key IN $keys AND s.key IN $keys AND r.exception "
+            "AND r.valid_from <= $day < r.valid_to "
+            "RETURN DISTINCT g.key AS general, s.key AS special ORDER BY general, special",
+            act=act,
+            keys=list(keys),
+            day=as_of.toordinal(),
+        )
+        return [(r["general"], r["special"]) for r in records]
 
     async def replace_acts(self, acts: Sequence[tuple[int, str, str | None]]) -> None:
         """Register acts known from e-qanun: (id, title, document type)."""

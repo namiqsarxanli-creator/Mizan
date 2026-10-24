@@ -15,6 +15,7 @@ resolution-markers = [
 [manifest]
 members = [
     "mizan",
+    "mizan-agents",
     "mizan-api",
     "mizan-core",
     "mizan-evals",
@@ -1542,6 +1543,7 @@ name = "mizan"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "mizan-agents" },
     { name = "mizan-api" },
     { name = "mizan-core" },
     { name = "mizan-evals" },
@@ -1566,6 +1568,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "mizan-agents", editable = "packages/mizan-agents" },
     { name = "mizan-api", editable = "apps/api" },
     { name = "mizan-core", editable = "packages/mizan-core" },
     { name = "mizan-evals", editable = "packages/mizan-evals" },
@@ -1589,6 +1592,25 @@ dev = [
 ]
 
 [[package]]
+name = "mizan-agents"
+version = "0.1.0"
+source = { editable = "packages/mizan-agents" }
+dependencies = [
+    { name = "mizan-core" },
+    { name = "mizan-graph" },
+    { name = "mizan-retrieval" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "mizan-core", editable = "packages/mizan-core" },
+    { name = "mizan-graph", editable = "packages/mizan-graph" },
+    { name = "mizan-retrieval", editable = "packages/mizan-retrieval" },
+    { name = "pydantic", specifier = ">=2.9" },
+]
+
+[[package]]
 name = "mizan-api"
 version = "0.1.0"
 source = { editable = "apps/api" }
@@ -1598,6 +1620,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "groq" },
     { name = "httpx" },
+    { name = "mizan-agents" },
     { name = "mizan-core" },
     { name = "mizan-graph" },
     { name = "mizan-ingestion" },
@@ -1615,6 +1638,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "groq", specifier = ">=0.30" },
     { name = "httpx", specifier = ">=0.28" },
+    { name = "mizan-agents", editable = "packages/mizan-agents" },
     { name = "mizan-core", editable = "packages/mizan-core" },
     { name = "mizan-graph", editable = "packages/mizan-graph" },
     { name = "mizan-ingestion", editable = "packages/mizan-ingestion" },
@@ -1654,6 +1678,7 @@ version = "0.1.0"
 source = { editable = "packages/mizan-evals" }
 dependencies = [
     { name = "groq" },
+    { name = "mizan-agents" },
     { name = "mizan-core" },
     { name = "mizan-graph" },
     { name = "mizan-retrieval" },
@@ -1662,6 +1687,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "groq", specifier = ">=0.30" },
+    { name = "mizan-agents", editable = "packages/mizan-agents" },
     { name = "mizan-core", editable = "packages/mizan-core" },
     { name = "mizan-graph", editable = "packages/mizan-graph" },
     { name = "mizan-retrieval", editable = "packages/mizan-retrieval" },

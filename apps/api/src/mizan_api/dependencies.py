@@ -22,6 +22,9 @@ from neo4j import AsyncDriver, AsyncGraphDatabase
 from qdrant_client import AsyncQdrantClient
 from redis.asyncio import Redis
 
+from mizan_agents.gateway import LLMGateway
+from mizan_agents.orchestrator import Orchestrator
+from mizan_agents.tools import LegalTools
 from mizan_core.config import Settings
 from mizan_core.health import DependencyCheck
 from mizan_core.logging import get_logger
@@ -84,6 +87,24 @@ class Neo4jCheck:
 
     async def check(self) -> None:
         await self.driver.verify_connectivity()
+
+
+def _build_agent(
+    settings: Settings,
+    stack: AsyncExitStack,
+    searcher: SearchBackend,
+    config: SearchConfig,
+    to_articles: ArticleExpander,
+    graph: Neo4jGraph | None,
+) -> Orchestrator | None:
+    if settings.llm.groq_api_key is None or graph is None:
+        log.warning("agent_disabled", reason="needs MIZAN_LLM__GROQ_API_KEY and the graph")
+        return None
+    client = groq.AsyncGroq(api_key=settings.llm.groq_api_key.get_secret_value())
+    stack.push_async_callback(client.close)
+    # Researchers add court decisions themselves, so they get whole articles only.
+    tools = LegalTools(searcher, config, to_articles, graph, graph, settings.retrieval.source_id)
+    return Orchestrator(LLMGateway(client), tools)
 
 
 def _with_decisions(expand: ArticleExpander, graph: Neo4jGraph) -> ArticleExpander:
@@ -164,6 +185,8 @@ class LegalServices:
     # Parent-child retrieval: replace part-level hits by their whole articles before answering.
     expand: ArticleExpander | None = None
     diff: DiffBackend | None = None
+    # Multi-agent research (F5); None without an LLM key or without the graph.
+    agent: Orchestrator | None = None
 
 
 def search_config(settings: Settings) -> SearchConfig:
@@ -252,9 +275,10 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
         graph = Neo4jGraph(driver)
     if graph is not None and settings.retrieval.graph and config.mode is Mode.DENSE:
         searcher = GraphSearcher(searcher, graph, SERVING_POLICY)
+    agent = _build_agent(settings, stack, searcher, config, to_articles, graph)
     if graph is not None and settings.retrieval.court_decisions:
         expand = _with_decisions(expand, graph)
     engine = create_engine(settings.postgres)
     stack.push_async_callback(engine.dispose)
     diff = PostgresDiff(session_factory(engine))
-    return LegalServices(searcher, config, answerer, checks, rewriter, expand, diff)
+    return LegalServices(searcher, config, answerer, checks, rewriter, expand, diff, agent)

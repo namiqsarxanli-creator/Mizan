@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Agentic, measurable legal research platform for Azerbaijani law."
 requires-python = ">=3.12"
 dependencies = [
+    "mizan-agents",
     "mizan-core",
     "mizan-api",
     "mizan-evals",
@@ -20,6 +21,7 @@ package = false
 members = ["packages/*", "apps/*"]
 
 [tool.uv.sources]
+mizan-agents = { workspace = true }
 mizan-core = { workspace = true }
 mizan-api = { workspace = true }
 mizan-ingestion = { workspace = true }
@@ -75,6 +77,7 @@ allowed-confusables = ["ı", "–"]
 
 [tool.ruff.lint.isort]
 known-first-party = [
+    "mizan_agents",
     "mizan_core",
     "mizan_api",
     "mizan_evals",
@@ -91,6 +94,7 @@ strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
 mypy_path = [
+    "packages/mizan-agents/src",
     "packages/mizan-core/src",
     "packages/mizan-ingestion/src",
     "packages/mizan-retrieval/src",
@@ -132,6 +136,7 @@ filterwarnings = [
 [tool.coverage.run]
 branch = true
 source = [
+    "mizan_agents",
     "mizan_core",
     "mizan_api",
     "mizan_evals",

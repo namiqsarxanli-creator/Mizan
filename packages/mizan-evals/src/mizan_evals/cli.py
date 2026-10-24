@@ -4,6 +4,7 @@ mizan-eval run    [--sample 60] [--pace 45]   retrieve -> answer -> judge (resum
 mizan-eval report                             metrics with 95% CIs -> report.md / summary.json
 mizan-eval label  --labeller NAME             blind human labelling (resumable)
 mizan-eval kappa                              judge vs human agreement (Cohen's kappa)
+mizan-eval agent  [--sample 40] [--extra ...] multi-agent vs baseline RAG (F5, resumable)
 """
 
 from __future__ import annotations
@@ -21,8 +22,18 @@ import groq
 from neo4j import AsyncGraphDatabase
 from qdrant_client import AsyncQdrantClient
 
+from mizan_agents.gateway import LLMGateway
+from mizan_agents.orchestrator import Orchestrator
+from mizan_agents.schemas import Verdict
+from mizan_agents.tools import LegalTools
 from mizan_core.config import get_settings
 from mizan_core.logging import configure_logging
+from mizan_evals.agent_eval import (
+    FaithfulnessJudge,
+    SystemOutput,
+    run_agent_eval,
+    summarise_agent_eval,
+)
 from mizan_evals.judge import DEFAULT_JUDGE_MODEL, GroqJudge
 from mizan_evals.labels import agreement, label_session, load_labels
 from mizan_evals.run import Record, load_records, run_generation_eval, stratified_sample, summarise
@@ -32,7 +43,7 @@ from mizan_graph.store import Neo4jGraph
 from mizan_ingestion.db import repository as repo
 from mizan_ingestion.db.session import create_engine, session_factory
 from mizan_ingestion.sources.eqanun import SOURCE
-from mizan_retrieval.answer import GroqAnswerer
+from mizan_retrieval.answer import GroqAnswerer, fit_to_budget
 from mizan_retrieval.cli import serving_variant
 from mizan_retrieval.embeddings import MODELS, Embedder, EmbeddingCache
 from mizan_retrieval.evaluation import Question, load_dataset
@@ -229,6 +240,122 @@ def _kappa(out: Path) -> int:
     return 0 if result.kappa >= KAPPA_TARGET else 1
 
 
+async def _agent_eval(
+    dataset: Path, extra: list[Path], out: Path, sample: int, pace_s: float
+) -> int:
+    """Agent vs baseline RAG (the serving /v1/ask pipeline) on the same questions."""
+    settings = get_settings()
+    if settings.llm.groq_api_key is None:
+        print("the agent eval needs MIZAN_LLM__GROQ_API_KEY", file=sys.stderr)
+        return 2
+    questions = load_dataset(dataset)
+    if sample:
+        questions = stratified_sample(questions, sample)
+    expected: dict[str, str] = {}
+    for path in extra:
+        questions += load_dataset(path)
+        expected |= _expected(path)
+    config = serving_variant()
+    key = settings.qdrant.api_key.get_secret_value() if settings.qdrant.api_key else None
+    qdrant = AsyncQdrantClient(url=settings.qdrant.url, api_key=key, timeout=120)
+    cache = EmbeddingCache(Path(settings.retrieval.embeddings_cache))
+    client = groq.AsyncGroq(api_key=settings.llm.groq_api_key.get_secret_value())
+    driver = AsyncGraphDatabase.driver(
+        settings.neo4j.uri,
+        auth=(settings.neo4j.user, settings.neo4j.password.get_secret_value()),
+    )
+    store = Neo4jGraph(driver)
+    source_id = settings.retrieval.source_id
+    try:
+        dense = Searcher(qdrant, {config.dense_model: Embedder(MODELS[config.dense_model], cache)})
+        searcher = GraphSearcher(dense, store, SERVING_POLICY)
+        answerer = GroqAnswerer(
+            client,
+            model=settings.llm.groq_model,
+            reasoning_effort=settings.llm.effort,
+            max_context_chars=settings.llm.max_context_chars,
+        )
+
+        async def to_articles(hits: Sequence[Hit], sid: int, on: date) -> list[Hit]:
+            return await expand_to_articles(qdrant, hits, source_id=sid, as_of=on)
+
+        tools = LegalTools(searcher, config, to_articles, store, store, source_id)
+        agent = Orchestrator(LLMGateway(client), tools)
+
+        async def baseline(q: Question) -> SystemOutput:
+            hits = await searcher.search(
+                q.question, source_id=source_id, as_of=q.as_of, config=config, k=6
+            )
+            hits = await to_articles(hits, source_id, q.as_of)
+            hits = await attach_decisions(hits, store, source_id=source_id, as_of=q.as_of)
+            answer = await answerer.answer(q.question, hits, as_of=q.as_of)
+            given = fit_to_budget(hits, settings.llm.max_context_chars)
+            return SystemOutput(
+                answer=answer.text,
+                abstained=answer.refused,
+                citations_total=len(answer.citations) + answer.rejected_citations,
+                citations_verbatim=len(answer.citations),
+                sources=[(h.key, h.text) for h in given],
+                tokens=sum(answer.usage.values()),
+                claims=[
+                    {"source": c.key, "quote": c.quote, "verbatim": True} for c in answer.citations
+                ],
+            )
+
+        async def multi_agent(q: Question) -> SystemOutput:
+            result = await agent.run(q.question, as_of=q.as_of)
+            return SystemOutput(
+                answer=result.answer,
+                abstained=result.verdict is Verdict.ABSTAIN,
+                citations_total=len(result.claims),
+                citations_verbatim=sum(c.quote_found for c in result.claims),
+                sources=[(e.key, e.text) for e in result.evidence],
+                confidence=result.confidence,
+                tokens=result.usage.get("total", 0),
+                claims=[
+                    {
+                        "source": c.claim.source,
+                        "quote": c.claim.quote,
+                        "verbatim": c.quote_found,
+                        "support": c.support.value,
+                    }
+                    for c in result.claims
+                ],
+            )
+
+        async def gold(q: Question) -> str:
+            parts = [await _gold_texts(sorted(q.relevant), q.as_of)]
+            if q.type == "court_decision":
+                found = await store.decisions_for(source_id, sorted(q.relevant), as_of=q.as_of)
+                parts += [decision_hit(d).text for d in found]
+                if q.id in expected:
+                    parts.append(f"Expected conclusion: {expected[q.id]}")
+            return "\n\n".join(p for p in parts if p)
+
+        records = await run_agent_eval(
+            questions,
+            {"baseline": baseline, "agent": multi_agent},
+            judge=GroqJudge(client, model=DEFAULT_JUDGE_MODEL),
+            faithfulness=FaithfulnessJudge(client),
+            gold=gold,
+            out=out / "records.jsonl",
+            pace_s=pace_s,
+        )
+    finally:
+        await driver.close()
+        await client.close()
+        await qdrant.close()
+        cache.close()
+    chosen = {q.id for q in questions}
+    summary = summarise_agent_eval(
+        [r for r in records.values() if r.id in chosen], ["baseline", "agent"]
+    )
+    text = json.dumps(summary, ensure_ascii=False, indent=1)
+    (out / "summary.json").write_text(text + "\n", encoding="utf-8")
+    print(text)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mizan-eval")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -239,6 +366,15 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument("--pace", type=float, default=45.0, help="seconds between questions")
     p_run.add_argument("--graph", action="store_true", help="graph-aware search (F4)")
     p_run.add_argument("--decisions", action="store_true", help="court decisions in context")
+    p_agent = sub.add_parser("agent", help="multi-agent vs baseline RAG")
+    p_agent.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
+    p_agent.add_argument(
+        "--extra", type=Path, nargs="*", default=[Path("evals/datasets/v1/court_decisions.jsonl")]
+    )
+    p_agent.add_argument("--out", type=Path, default=Path("evals/results/f5_agent"))
+    p_agent.add_argument("--sample", type=int, default=40)
+    p_agent.add_argument("--pace", type=float, default=20.0)
+
     p_report = sub.add_parser("report")
     p_report.add_argument("--out", type=Path, default=DEFAULT_OUT)
     p_label = sub.add_parser("label")
@@ -265,6 +401,8 @@ def main(argv: list[str] | None = None) -> int:
                 decisions=args.decisions,
             )
         )
+    if args.command == "agent":
+        return asyncio.run(_agent_eval(args.dataset, args.extra, args.out, args.sample, args.pace))
     if args.command == "report":
         _report(args.out, list(load_records(args.out / "records.jsonl").values()))
         return 0

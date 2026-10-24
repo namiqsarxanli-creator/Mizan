@@ -14,6 +14,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from mizan_api import __version__
 from mizan_api.dependencies import LegalServices, build_dependency_checks, build_legal_services
 from mizan_api.middleware import TraceIdHeaderMiddleware
+from mizan_api.routes import agent as agent_routes
 from mizan_api.routes import health
 from mizan_api.routes import legal as legal_routes
 from mizan_core.config import Settings, get_settings
@@ -59,6 +60,7 @@ def create_app(
             app.state.rewriter = services.rewriter
             app.state.expand = services.expand
             app.state.diff = services.diff
+            app.state.agent = services.agent
             app.state.checks = (
                 list(checks)
                 if checks is not None
@@ -74,6 +76,7 @@ def create_app(
     app.add_middleware(TraceIdHeaderMiddleware)
     app.include_router(health.router)
     app.include_router(legal_routes.router)
+    app.include_router(agent_routes.router)
 
     # Wraps the whole middleware stack, so every request (including TraceIdHeaderMiddleware)
     # runs inside a server span.
