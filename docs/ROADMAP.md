@@ -148,7 +148,7 @@ query rewriting statistik fayda vermir. Hamısı konfiqurasiya ilə açıla bili
 
 ---
 
-## F4 — Knowledge Graph + məhkəmə qərarları (Həftə 8–9)
+## F4 — Knowledge Graph + məhkəmə qərarları (Həftə 8–9) ✅
 
 **Məqsəd:** oxşar mətndən əlavə, normalar arasındakı əlaqələri də anlamaq.
 
@@ -160,14 +160,15 @@ query rewriting statistik fayda vermir. Hamısı konfiqurasiya ilə açıla bili
 - [x] Parser düzəlişi: 2021-ci ildən sonrakı versiyalarda düzəlişlərin siyahısı 2-ci əlavəyə qarışırdı (50k simvol), PARSER_VERSION 4
 - [x] CI gate artıq serving yolunu (dense + qraf) qoruyur; qraf snapshot-dan qurulur, Neo4j tələb olunmur
 
-### Həftə 9 — Case law və ziddiyyətlər
-- [ ] Ali Məhkəmə qərarlarının ingestion-u (açıq mənbələrdən)
-- [ ] `(:CourtDecision)-[:INTERPRETS]->(:Article)` əlaqələri
-- [ ] **Ziddiyyət aşkarlama:** *lex specialis* və *lex posterior* qaydaları
-- [ ] Amendment diff: `/diff?code=ƏM&from=2022&to=2025`
+### Həftə 9 — Case law və ziddiyyətlər ✅
+- [x] Konstitusiya Məhkəməsinin qərarlarının ingestion-u: 11 qərar, əsaslandırma və nəticə hissəsi, nəticənin növü (şərh / uyğundur / uyğun deyil). *Ali Məhkəmə qərarları əvəzinə: KMQ qərarları normativ xarakterli aktdır (NHA 4.1.1) və e-qanun-da hüquqi baxımdan açıq mənbədir; Ali Məhkəmə qərarları üçün açıq və strukturlu mənbə tapılmayıb, sonraya saxlanılıb.*
+- [x] `(:CourtDecision)-[:INTERPRETS]->(:Article)`: 22 əlaqə (başlıqdan və nəticə hissəsindən); aktlar reyestri xarici istinadları e-qanun id-lərinə bağlayır (8/8)
+- [x] **Ziddiyyətlərin həlli:** "Normativ hüquqi aktlar haqqında" Konstitusiya Qanununun 2.3–2.8, 10.2–10.6 və 11-ci maddələri; lex specialis üçün mətndəki "istisna olmaqla" kənarları (19); 23 ssenari testi
+- [x] Amendment diff: `GET /v1/diff?key=art:69&from=2020-01-01&to=2026-10-01` (söz səviyyəsində diff + düzəliş edən aktlar)
+- [x] **Cavabda KMQ qərarları:** düzgünlük 0.27 → **0.91**, cütlənmiş fərq +0.64 [+0.36, +0.91], 7 sual düzəlib, 0 pozulub (`evals/results/f4_decisions`). Səbəb: 144-cü maddənin 3-cü hissəsinin tətbiqi 18.02.2026-da dayandırılıb, rəsmi mətn isə hələ dəyişməyib
 - [x] **ADR-0006:** Qraf: Neo4j (törəmə, yenidən qurula bilən data) vs Postgres recursive CTE
 
-**✅ DoD:** Multi-hop suallarda Recall@5 baseline-dan ≥ 10% yaxşıdır. Ziddiyyət aşkarlamanın 20 test ssenarisi keçir.
+**✅ DoD:** Multi-hop suallarda Recall@5 baseline-dan ≥ 10% yaxşıdır ✅ (+16.7%, əvvəlcədən qeydə alınmış test). Ziddiyyətlərin həlli üzrə 20 test ssenarisi keçir ✅ (23).
 
 ---
 

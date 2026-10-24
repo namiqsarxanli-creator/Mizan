@@ -6,9 +6,10 @@ Mizan answers legal questions with citations to the exact article of the law in 
 given date, verifies every claim against its source, and measures its own quality
 continuously. See [docs/ROADMAP.md](docs/ROADMAP.md) for the full 24-week plan.
 
-> **Status:** F4 in progress. The citation graph is live: +17% Recall@5 on multi-hop questions
-> (pre-registered test), no change elsewhere. Next: Constitutional Court decisions and
-> contradiction detection. F3's judge calibration awaits human labels.
+> **Status:** F4 done. The citation graph gives +17% Recall@5 on multi-hop questions
+> (pre-registered test). Constitutional Court decisions in the context raise correctness on
+> questions they govern from 0.27 to 0.91. Next: F5, the multi-agent system. F3's judge
+> calibration awaits human labels.
 
 ## Architecture (target)
 

@@ -1,0 +1,38 @@
+{
+ "questions": 11,
+ "failed": 0,
+ "answer_correct": {
+  "mean": 0.2727272727272727,
+  "low": 0.0,
+  "high": 0.5454545454545454,
+  "n": 11
+ },
+ "answer_correct_in_scope": {
+  "mean": 0.2727272727272727,
+  "low": 0.0,
+  "high": 0.5454545454545454,
+  "n": 11
+ },
+ "abstention_accuracy": {
+  "mean": 0.0,
+  "low": 0.0,
+  "high": 0.0,
+  "n": 0
+ },
+ "cites_gold": {
+  "mean": 0.9090909090909091,
+  "low": 0.7272727272727273,
+  "high": 1.0,
+  "n": 11
+ },
+ "citation_valid": 0.7727272727272727,
+ "by_type": {
+  "court_decision": {
+   "mean": 0.2727272727272727,
+   "low": 0.0,
+   "high": 0.5454545454545454,
+   "n": 11
+  }
+ },
+ "p50_latency_ms": 2821.3
+}
