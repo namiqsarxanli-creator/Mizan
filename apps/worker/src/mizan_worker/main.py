@@ -3,7 +3,8 @@
     arq mizan_worker.main.WorkerSettings
 
 Jobs:
-* ``sync_document(source_id)`` - on demand (enqueue from the API or a script);
+* ``sync_document(source_id)`` - on demand (enqueue from the API or a script): the document's
+  versions, then the acts it links to and the Constitutional Court decisions interpreting it;
 * nightly cron at 03:00 UTC syncing every tracked document.
 
 Arq gives us retries, a job timeout and at-most-one-instance-per-job-id; the pipeline itself is
@@ -21,6 +22,7 @@ from arq.typing import WorkerCoroutine
 from mizan_core.config import get_settings
 from mizan_core.logging import configure_logging, get_logger
 from mizan_ingestion.db.session import create_engine, session_factory
+from mizan_ingestion.decisions import sync_linked_acts
 from mizan_ingestion.pipeline import sync_document as run_sync
 from mizan_ingestion.sources.eqanun import EQanunClient
 
@@ -45,11 +47,14 @@ async def shutdown(ctx: Ctx) -> None:
 
 async def sync_document(ctx: Ctx, source_id: int, force_reparse: bool = False) -> dict[str, Any]:
     report = await run_sync(ctx["client"], ctx["sessions"], source_id, force_reparse=force_reparse)
+    linked = await sync_linked_acts(ctx["client"], ctx["sessions"], source_id)
     return {
         "source_id": report.source_id,
         "outcomes": {k.value: v for k, v in report.outcomes.items()},
         "downloaded": report.downloaded,
         "warnings": len(report.warnings),
+        "linked_acts": linked.acts,
+        "court_decisions": linked.decisions_stored,
     }
 
 

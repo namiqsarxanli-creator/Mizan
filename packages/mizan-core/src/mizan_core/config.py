@@ -114,6 +114,9 @@ class RetrievalSettings(BaseModel):
     # Graph-aware retrieval (ADR-0006): one top-5 place goes to the most similar article cited
     # by the best hit. +17% Recall@5 on multi-hop questions, no harm elsewhere (F4 eval).
     graph: bool = True
+    # Answer with the Constitutional Court decisions interpreting the retrieved articles: the
+    # consolidated text can lag behind them (Art. 144(3), suspended on 2026-02-18).
+    court_decisions: bool = True
     # Load models at startup (readiness stays false until done) instead of on first request.
     warmup: bool = True
 

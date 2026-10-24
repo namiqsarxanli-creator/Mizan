@@ -79,6 +79,46 @@ the seed in cosine, more than any boost that leaves other rankings intact.
 On the test set the gain is **+16.7% relative**, above the F4 target of 10%. Elsewhere there is
 no significant change. Cost: about 8 ms p50 (one Neo4j query and, sometimes, one Qdrant query).
 
+### 6. Constitutional Court decisions are part of the law in force (F4 week 9)
+The Word export links provisions to the decisions interpreting them. `mizan-ingest linked`
+registers every linked act (39: laws, codes, the Constitution, 11 decisions) and stores each
+decision's reasoning and operative part, with its outcome classified from the operative text
+(interpretation / constitutional / unconstitutional). A decision's title and operative part
+name the provisions it rules on, so the citation grammar links it:
+`(:CourtDecision)-[:INTERPRETS]->(:Article)`, 22 edges.
+
+The registry also resolves the Code's citations of other acts to their e-qanun ids (8 of 8:
+"Vergi Məcəlləsinin 33.2-ci maddəsi" → act 46948).
+
+**Why this is not optional.** On 2026-02-18 the Court suspended the rule of Art. 144(3) that
+unused additional leave is not compensated on dismissal. In October 2026 the consolidated text
+still states that rule. An answer built from the text alone is wrong. So `/v1/ask` adds the
+decisions adopted by the question's date that interpret the retrieved articles, each one right
+after its article, and the system prompt makes them controlling. A graph outage leaves the
+answer to the articles alone.
+
+### 7. Collision rules come from the law, not from heuristics
+`mizan_graph/conflicts.py` implements the Constitutional Law "Normativ hüquqi aktlar haqqında"
+(NHA), in its own order (Art. 11):
+1. Court voidness (Constitution 130; NHA 2.3, 4.1.1).
+2. Legal force: Constitution > referendum act > law > decree > Cabinet > central executive
+   (NHA 2.3–2.8, with the Civil Code's priority on civil-law norms, 2.5).
+3. Special competence, sectoral act, lex specialis, lex posterior (10.2–10.5).
+4. No conflict when the norms can be applied together (10.6).
+
+The engine resolves conflicts; it does not detect them. Whether two norms conflict on a
+relation, and the relation's field, are facts the caller supplies (an F5 agent, a lawyer).
+Specialness inside the Code comes from the graph: a citation followed by "... istisna olmaqla"
+or "... hallardan başqa" marks the cited provision as the special norm (19 such edges, e.g.
+51 → 52 on probation). There are 23 scenario tests, each tied to its NHA article; real
+provisions are used where the Code has them.
+
+### 8. Amendment diff
+`GET /v1/diff?key=art:69&from=2020-01-01&to=2026-10-01` compares the texts in force on the two
+dates provision by provision. The result is a word-level diff (`[-ləğv-]{+xitam+}`) plus the
+amending acts adopted in the window. Endnotes are split per act: one endnote often records
+several amendments.
+
 ## Consequences
 - The serving path is dense search plus the graph (`MIZAN_RETRIEVAL__GRAPH=true`); the CI gate
   protects that path (`mizan-graph gate`).

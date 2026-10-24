@@ -63,6 +63,19 @@ _NAMED_LAW = re.compile(
     r"[“\"«]([^”\"»]{3,160})[”\"»]\s+(?:azərbaycan\s+respublikası(?:nın)?\s+)?qanunu(?:nun)?\s*$"
 )
 _QUALIFIER_WINDOW = 200
+# An act named earlier in the sentence, in the genitive, when nothing qualifies the citation
+# itself: "Konstitusiyasının əmək müqaviləsinin ... təsbit edən 35-ci maddəsi". The court is
+# not the act: "Konstitusiya Məhkəməsinin" does not count.
+_MENTION = re.compile(
+    r"(?P<constitution>konstitusiyas[ıi]n[ıi]n|konstitusiyan[ıi]n)(?!\s+(?:məhkəmə|qanun))"
+    r"|(?P<this>(?<![a-zəğıöşüç])bu\s+məcəllənin)"
+    r"|(?<![a-zəğıöşüç])(?P<code>" + "|".join(re.escape(c) for c in CODES) + r")\s+məcəlləsinin"
+)
+# Right after a citation, within its clause: "... hallar istisna olmaqla", "... şərtlərdən başqa".
+_EXCEPTION = re.compile(
+    r"[^.,;:]{0,80}?(?:istisna\s+ol(?:un)?maqla|istisna\s+edilməklə"
+    r"|hallardan\s+başqa|hallar\s+istisna|şərtlərdən\s+başqa)"
+)
 # Words that may sit between an act's name and the citation: "Məcəlləsinin yalnız 70-ci".
 _FILLER = re.compile(r"(?:\s+(?:yalnız|isə|da|də|məhz))*\s*$")
 _SENTENCE_END = re.compile(r"[.;:!?]\s+(?=[A-ZƏÜÖĞIİŞÇ“\"«(]|\d+\.)|\n")
@@ -74,6 +87,9 @@ class Citation:
     number: str  # as cited: "70", "118-1", or a dotted point such as "10-1.2"
     start: int
     end: int
+    # "52-ci maddəsində göstərilən hallar istisna olmaqla": the cited provision is an exception
+    # to the citing one, i.e. the special norm (lex specialis, NHA Konstitusiya Qanunu 10.4).
+    exception: bool = False
 
     @property
     def article(self) -> str:
@@ -129,6 +145,20 @@ def _qualifier(before: str, self_names: frozenset[str]) -> str | None:
     return None
 
 
+def _last_mention(prefix: str, self_names: frozenset[str]) -> str | None:
+    found = None
+    for m in _MENTION.finditer(az_lower(prefix)):
+        found = m
+    if found is None:
+        return None
+    if found.group("constitution"):
+        return "konstitusiya"
+    if found.group("this"):
+        return SELF
+    name = f"{found.group('code')} məcəllə"
+    return SELF if name in self_names else name
+
+
 def extract(
     text: str, *, self_names: frozenset[str] = frozenset({"əmək məcəllə"})
 ) -> list[Citation]:
@@ -145,10 +175,17 @@ def extract(
             sentence_start = breaks.pop(0)
             sentence_act = None
         # No qualifier, or "həmin Məcəllə": the act cited last in this sentence, else this act.
-        act = _qualifier(text[sentence_start : m.start()], self_names) or sentence_act or SELF
+        prefix = text[sentence_start : m.start()]
+        act = (
+            _qualifier(prefix, self_names)
+            or sentence_act
+            or _last_mention(prefix, self_names)
+            or SELF
+        )
         sentence_act = act
+        exception = bool(_EXCEPTION.match(az_lower(text[m.end() : m.end() + 120])))
         citations.extend(
-            Citation(act=act, number=number, start=m.start(), end=m.end())
+            Citation(act=act, number=number, start=m.start(), end=m.end(), exception=exception)
             for number in _expand(m.group("list"))
         )
     return citations

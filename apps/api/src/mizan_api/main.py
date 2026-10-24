@@ -58,6 +58,7 @@ def create_app(
             app.state.answerer = services.answerer
             app.state.rewriter = services.rewriter
             app.state.expand = services.expand
+            app.state.diff = services.diff
             app.state.checks = (
                 list(checks)
                 if checks is not None

@@ -33,6 +33,8 @@ from mizan_retrieval.search import Hit, SearchBackend, SearchConfig
 log = get_logger(__name__)
 
 GoldLoader = Callable[[Sequence[str], date], Awaitable[str]]
+# Gold beyond the statute text for one question (court decisions, an expected conclusion).
+ExtraGold = Callable[[Question], Awaitable[str]]
 Expander = Callable[[Sequence[Hit], date], Awaitable[list[Hit]]]
 
 
@@ -140,6 +142,7 @@ async def run_generation_eval(
     out: Path,
     pace_s: float = 0.0,
     k: int = 6,
+    extra_gold: ExtraGold | None = None,
 ) -> dict[str, Record]:
     records = await asyncio.to_thread(load_records, out)
     for i, q in enumerate(questions, start=1):
@@ -172,7 +175,14 @@ async def run_generation_eval(
                 question=q.question,
                 qtype=q.type,
                 as_of=q.as_of,
-                gold=await gold_text(record.gold, q.as_of),
+                gold="\n\n".join(
+                    part
+                    for part in (
+                        await gold_text(record.gold, q.as_of),
+                        await extra_gold(q) if extra_gold else "",
+                    )
+                    if part
+                ),
                 answer=answer.text,
             )
             record.correct = verdict.correct

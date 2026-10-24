@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 
+from mizan_ingestion.diff import DiffBackend
 from mizan_retrieval.answer import AnswerBackend, AnswerUnavailableError, source_title
 from mizan_retrieval.search import Hit, SearchBackend, SearchConfig
 
@@ -121,4 +122,71 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
         model=answer.model,
         refused=answer.refused,
         rejected_citations=answer.rejected_citations,
+    )
+
+
+class AmendmentOut(BaseModel):
+    act_number: str | None = Field(examples=["332-VIIQD"])
+    adopted_on: date
+    note: str
+
+
+class ChangeOut(BaseModel):
+    key: str = Field(examples=["art:69/part:1"])
+    kind: str = Field(examples=["changed"])
+    before: str | None
+    after: str | None
+    marked: str = Field(description="Word-level diff: [-removed-]{+added+}")
+
+
+class DiffResponse(BaseModel):
+    key: str
+    start: date
+    end: date
+    # The texts actually compared: the versions in force on ``start`` and on ``end``.
+    start_text_in_force_since: date
+    end_text_in_force_since: date
+    amendments: list[AmendmentOut]
+    changes: list[ChangeOut]
+
+
+_PROVISION_KEY = r"^(art|annex):[0-9]+(-[0-9]+)?(/[a-z]+:[0-9a-zəçğıöşü.-]+)*$"
+
+
+@router.get("/diff", responses={404: {"description": "No text in force on a date"}})
+async def diff(
+    request: Request,
+    key: Annotated[
+        str, Query(pattern=r"^(art|annex):[0-9]+(-[0-9]+)?(/[a-z]+:[0-9a-zəçğıöşü.-]+)*$")
+    ],
+    start: Annotated[date, Query(alias="from", description="Köhnə tarix")],
+    end: Annotated[
+        date | None, Query(alias="to", description="Yeni tarix (default: bu gün)")
+    ] = None,
+) -> DiffResponse:
+    """How a provision changed between two dates, and which acts changed it."""
+    backend: DiffBackend | None = request.app.state.diff
+    if backend is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "diff is not configured")
+    until = end or today_in_baku()
+    if start > until:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "'from' must not be after 'to'")
+    source_id = request.app.state.settings.retrieval.source_id
+    result = await backend.diff(source_id, key, start, until)
+    if result is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"no text in force on {start} or {until}")
+    return DiffResponse(
+        key=key,
+        start=start,
+        end=until,
+        start_text_in_force_since=result.start_version_from,
+        end_text_in_force_since=result.end_version_from,
+        amendments=[
+            AmendmentOut(act_number=a.number, adopted_on=a.adopted_on, note=a.note)
+            for a in result.amendments
+        ],
+        changes=[
+            ChangeOut(key=c.key, kind=c.kind.value, before=c.before, after=c.after, marked=c.marked)
+            for c in result.changes
+        ],
     )

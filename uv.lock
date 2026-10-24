@@ -1655,6 +1655,7 @@ source = { editable = "packages/mizan-evals" }
 dependencies = [
     { name = "groq" },
     { name = "mizan-core" },
+    { name = "mizan-graph" },
     { name = "mizan-retrieval" },
 ]
 
@@ -1662,6 +1663,7 @@ dependencies = [
 requires-dist = [
     { name = "groq", specifier = ">=0.30" },
     { name = "mizan-core", editable = "packages/mizan-core" },
+    { name = "mizan-graph", editable = "packages/mizan-graph" },
     { name = "mizan-retrieval", editable = "packages/mizan-retrieval" },
 ]
 

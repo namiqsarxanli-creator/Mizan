@@ -8,6 +8,7 @@ import pytest
 
 from mizan_graph.build import BuildStats, Reference, build_references
 from mizan_graph.citations import SELF
+from mizan_graph.decisions import Decision
 from mizan_graph.search import GraphPolicy, GraphSearcher
 from mizan_graph.store import Direction, InMemoryGraph, Neighbour, Neo4jGraph
 from mizan_ingestion.chunking import Strategy
@@ -200,7 +201,7 @@ async def neo4j() -> AsyncIterator[Neo4jGraph]:
         yield graph
     finally:
         await driver.execute_query(
-            "MATCH (n) WHERE n.uid STARTS WITH $prefix DETACH DELETE n",
+            "MATCH (n) WHERE n.uid STARTS WITH $prefix OR n.act = $prefix DETACH DELETE n",
             prefix=f"eqanun:{TEST_SOURCE}",
         )
         await driver.close()
@@ -225,3 +226,25 @@ async def test_neo4j_answers_like_the_in_memory_graph(neo4j: Neo4jGraph) -> None
             got = await neo4j.neighbours(TEST_SOURCE, keys, as_of=as_of, direction=direction)
             want = await memory.neighbours(TEST_SOURCE, keys, as_of=as_of, direction=direction)
             assert sorted(got, key=repr) == sorted(want, key=repr), (as_of, direction)
+
+
+@integration
+@pytest.mark.integration
+async def test_neo4j_decisions_match_the_in_memory_store(neo4j: Neo4jGraph) -> None:
+    decisions = [
+        Decision(999_000_101, "t1", D2, "interpretation", "op1", ("art:172", "art:296")),
+        Decision(999_000_102, "t2", D3, "unconstitutional", "op2", ("art:144",)),
+    ]
+    memory = InMemoryGraph(TEST_SOURCE, [], decisions)
+    await neo4j.replace_decisions(TEST_SOURCE, decisions)
+    await neo4j.replace_decisions(TEST_SOURCE, decisions)  # idempotent
+
+    for as_of in (D1, D2, D3):
+        for keys in (["art:296"], ["art:144", "art:172"], ["art:1"]):
+            got = await neo4j.decisions_for(TEST_SOURCE, keys, as_of=as_of)
+            want = await memory.decisions_for(TEST_SOURCE, keys, as_of=as_of)
+            assert _ids(got) == _ids(want), (as_of, keys)
+
+
+def _ids(decisions: list[Decision]) -> list[tuple[int, list[str]]]:
+    return sorted((d.eqanun_id, sorted(d.interprets)) for d in decisions)

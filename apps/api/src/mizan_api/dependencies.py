@@ -25,9 +25,12 @@ from redis.asyncio import Redis
 from mizan_core.config import Settings
 from mizan_core.health import DependencyCheck
 from mizan_core.logging import get_logger
+from mizan_graph.decisions import attach_decisions
 from mizan_graph.search import SERVING_POLICY, GraphSearcher
 from mizan_graph.store import Neo4jGraph
 from mizan_ingestion.chunking import Strategy
+from mizan_ingestion.db.session import create_engine, session_factory
+from mizan_ingestion.diff import DiffBackend, PostgresDiff
 from mizan_retrieval.answer import AnswerBackend, ClaudeAnswerer, GroqAnswerer
 from mizan_retrieval.embeddings import MODELS, Embedder, EmbeddingCache
 from mizan_retrieval.index import alias_for
@@ -81,6 +84,16 @@ class Neo4jCheck:
 
     async def check(self) -> None:
         await self.driver.verify_connectivity()
+
+
+def _with_decisions(expand: ArticleExpander, graph: Neo4jGraph) -> ArticleExpander:
+    """Whole articles, then the Constitutional Court decisions interpreting them."""
+
+    async def expand_and_attach(hits: Sequence[Hit], source_id: int, as_of: date) -> list[Hit]:
+        articles = await expand(hits, source_id, as_of)
+        return await attach_decisions(articles, graph, source_id=source_id, as_of=as_of)
+
+    return expand_and_attach
 
 
 def _neo4j_driver(settings: Settings) -> AsyncDriver:
@@ -150,6 +163,7 @@ class LegalServices:
     rewriter: QueryRewriter | None = None
     # Parent-child retrieval: replace part-level hits by their whole articles before answering.
     expand: ArticleExpander | None = None
+    diff: DiffBackend | None = None
 
 
 def search_config(settings: Settings) -> SearchConfig:
@@ -225,12 +239,22 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
     answerer = _build_answerer(settings, stack)
     rewriter = _build_rewriter(settings, stack)
 
-    async def expand(hits: Sequence[Hit], source_id: int, as_of: date) -> list[Hit]:
+    async def to_articles(hits: Sequence[Hit], source_id: int, as_of: date) -> list[Hit]:
         return await expand_to_articles(qdrant, hits, source_id=source_id, as_of=as_of)
 
+    expand: ArticleExpander = to_articles
+
     searcher: SearchBackend = Searcher(qdrant, {config.dense_model: embedder}, reranker)
-    if settings.retrieval.graph and config.mode is Mode.DENSE:
+    graph: Neo4jGraph | None = None
+    if settings.retrieval.graph or settings.retrieval.court_decisions:
         driver = _neo4j_driver(settings)
         stack.push_async_callback(driver.close)
-        searcher = GraphSearcher(searcher, Neo4jGraph(driver), SERVING_POLICY)
-    return LegalServices(searcher, config, answerer, checks, rewriter, expand)
+        graph = Neo4jGraph(driver)
+    if graph is not None and settings.retrieval.graph and config.mode is Mode.DENSE:
+        searcher = GraphSearcher(searcher, graph, SERVING_POLICY)
+    if graph is not None and settings.retrieval.court_decisions:
+        expand = _with_decisions(expand, graph)
+    engine = create_engine(settings.postgres)
+    stack.push_async_callback(engine.dispose)
+    diff = PostgresDiff(session_factory(engine))
+    return LegalServices(searcher, config, answerer, checks, rewriter, expand, diff)

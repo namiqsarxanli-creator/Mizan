@@ -33,6 +33,13 @@ RULES = {
         "The question contains a FALSE premise. The answer is correct only if it explicitly "
         "rejects the premise and states the correct rule from the gold provisions."
     ),
+    "court_decision": (
+        "The gold includes the Constitutional Court decisions in force on the date and the "
+        "expected conclusion. A decision controls how the provisions apply: it may suspend part "
+        "of an article or fix its interpretation. The answer is correct only if its conclusion "
+        "agrees with the expected conclusion; applying an article's literal text where a "
+        "decision changes it is incorrect."
+    ),
     "default": (
         "The answer is correct if its legal conclusion agrees with the gold provisions in force "
         "on the given date and it does not omit a condition that changes the conclusion. Extra "

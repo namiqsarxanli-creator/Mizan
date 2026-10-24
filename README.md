@@ -140,7 +140,15 @@ Neo4j, valid while the citing text is in force ([ADR-0006](docs/adr/0006-knowled
 Search keeps the dense ranking and gives the 5th place to the most similar article the best hit
 cites. If Neo4j is down, search falls back to dense results.
 
+Constitutional Court decisions are part of the law in force. They are ingested with the acts
+the Code links to, linked to the articles they rule on, and added to the context of `/v1/ask`.
+The consolidated text can lag behind them: Art. 144(3) was suspended on 2026-02-18 and still
+reads the same. Conflicts between norms are resolved by the collision rules of the
+Constitutional Law "Normativ hüquqi aktlar haqqında" (`mizan_graph.conflicts`).
+
 ```bash
+uv run mizan-ingest linked                        # register linked acts, store court decisions
+uv run mizan-ingest diff 46943 art:69 2020-01-01 2026-10-01   # also GET /v1/diff
 uv run mizan-graph build                          # extract citations, rewrite the graph
 uv run mizan-graph neighbours art:70              # who cites Art. 70, what it cites
 uv run mizan-graph eval                           # dense vs graph policies on v1 + multi-hop sets

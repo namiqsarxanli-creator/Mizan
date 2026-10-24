@@ -41,5 +41,27 @@ def parse_amending_act(text: str) -> AmendingAct | None:
     return AmendingAct(number=match.group("number"), adopted_on=adopted)
 
 
+def split_amendments(text: str) -> list[tuple[AmendingAct, str]]:
+    """One endnote can record several amendments, each starting with its act's date.
+
+    "28 iyun 2024-cü il tarixli 1195-VIQD ... əlavə edilmişdir. 30 dekabr 2025-ci il tarixli
+    332-VIIQD ... əvəz edilmişdir." -> two (act, sentence) pairs.
+    """
+    starts = [m for m in _ACT.finditer(text) if _is_act_start(text, m.start())]
+    out = []
+    for m, nxt in zip(starts, [*starts[1:], None], strict=True):
+        segment = text[m.start() : nxt.start() if nxt else len(text)].strip()
+        if act := parse_amending_act(segment):
+            out.append((act, segment))
+    return out
+
+
+def _is_act_start(text: str, at: int) -> bool:
+    """A date opens a new amendment at the start or after a sentence; other dates are
+    publication details ("rəsmi internet saytı, 12 avqust 2024-cü il")."""
+    before = text[:at].rstrip()
+    return not before or before.endswith((".", ";"))
+
+
 def parse_endnotes(raw: dict[int, str]) -> dict[int, Endnote]:
     return {n: Endnote(n, text, parse_amending_act(text)) for n, text in sorted(raw.items())}

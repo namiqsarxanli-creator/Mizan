@@ -34,3 +34,28 @@ def test_worker_settings() -> None:
     assert main.WorkerSettings.functions == [main.sync_document]
     assert main.WorkerSettings.max_tries == 3
     assert len(main.WorkerSettings.cron_jobs) == 1
+
+
+async def test_sync_document_also_syncs_linked_acts(monkeypatch: pytest.MonkeyPatch) -> None:
+    from collections import Counter
+
+    from mizan_ingestion.decisions import LinkedActsReport
+    from mizan_ingestion.pipeline import SyncReport
+
+    calls: list[str] = []
+
+    async def fake_sync(*_: Any, **__: Any) -> SyncReport:
+        calls.append("versions")
+        return SyncReport(source_id=46943)
+
+    async def fake_linked(*_: Any, **__: Any) -> LinkedActsReport:
+        calls.append("linked")
+        return LinkedActsReport(acts=39, by_type=Counter(), decisions_stored=11)
+
+    monkeypatch.setattr(main, "run_sync", fake_sync)
+    monkeypatch.setattr(main, "sync_linked_acts", fake_linked)
+
+    result = await main.sync_document({"client": None, "sessions": None}, 46943)
+
+    assert calls == ["versions", "linked"]
+    assert (result["linked_acts"], result["court_decisions"]) == (39, 11)

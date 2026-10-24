@@ -18,10 +18,12 @@ from datetime import date
 from pathlib import Path
 
 from neo4j import AsyncDriver, AsyncGraphDatabase
+from sqlalchemy import select
 
 from mizan_core.config import Settings, get_settings
 from mizan_core.logging import configure_logging
 from mizan_graph.build import BuildStats, Reference, build_references
+from mizan_graph.decisions import Decision, act_name, load_decisions
 from mizan_graph.evaluate import (
     BASELINE,
     LABOUR_CODE,
@@ -34,6 +36,7 @@ from mizan_graph.evaluate import (
 from mizan_graph.search import SERVING_POLICY, GraphSearcher
 from mizan_graph.store import Direction, GraphStore, InMemoryGraph, Neo4jGraph
 from mizan_ingestion.chunking import Strategy
+from mizan_ingestion.db.schema import LegalDocument
 from mizan_ingestion.db.session import create_engine, session_factory
 from mizan_retrieval import snapshot
 from mizan_retrieval.cli import (
@@ -54,6 +57,7 @@ from mizan_retrieval.search import Mode, SearchConfig, Searcher
 
 NL = chr(10)
 TITLE = "Azərbaycan Respublikasının Əmək Məcəlləsi"
+SELF_NAMES = frozenset({"əmək məcəllə"})
 # v1 (written without the graph: no-harm check), the multi-hop set the slot policy was found
 # on, and the pre-registered test set (see evals/results/f4_graph/PREREGISTRATION.md).
 DEFAULT_DATASETS = [
@@ -87,17 +91,39 @@ async def _references(from_snapshot: Path | None) -> tuple[list[Reference], Buil
     return references, stats
 
 
+async def _registry() -> tuple[list[tuple[int, str, str | None]], list[Decision]]:
+    """Acts registered by `mizan-ingest linked`, and the decisions interpreting the Code."""
+    engine = create_engine(get_settings().postgres)
+    try:
+        sessions = session_factory(engine)
+        async with sessions() as session:
+            rows = await session.execute(
+                select(LegalDocument.source_id, LegalDocument.title, LegalDocument.doc_type)
+            )
+            acts = [(i, t, k) for i, t, k in rows.tuples()]
+        decisions = await load_decisions(sessions, SELF_NAMES)
+    finally:
+        await engine.dispose()
+    return acts, decisions
+
+
 async def _build(from_snapshot: Path | None) -> int:
     references, stats = await _references(from_snapshot)
+    acts, decisions = await _registry()
+    registry = {
+        name: i for i, title, kind in acts if (name := act_name(title, kind)) and i != LABOUR_CODE
+    }
     driver = _driver(get_settings())
     try:
         graph = Neo4jGraph(driver)
         await graph.ensure_schema()
-        await graph.replace_references(LABOUR_CODE, TITLE, references)
+        await graph.replace_acts(acts)
+        await graph.replace_references(LABOUR_CODE, TITLE, references, registry=registry)
+        await graph.replace_decisions(LABOUR_CODE, decisions)
         counts = await graph.counts()
     finally:
         await driver.close()
-    acts = Counter(r.act for r in references)
+    by_act = Counter(r.act for r in references)
     print(
         json.dumps(
             {
@@ -105,7 +131,12 @@ async def _build(from_snapshot: Path | None) -> int:
                 "self_citations_skipped": stats.self_loops,
                 "unresolved": stats.unresolved,
                 "edges": len(references),
-                "edges_by_act": dict(acts.most_common()),
+                "exception_edges": sum(r.exception for r in references),
+                "edges_by_act": {
+                    act: {"edges": n, "resolved_to": registry.get(act)}
+                    for act, n in by_act.most_common()
+                },
+                "decisions": {d.eqanun_id: d.interprets for d in decisions},
                 "neo4j": counts,
             },
             ensure_ascii=False,

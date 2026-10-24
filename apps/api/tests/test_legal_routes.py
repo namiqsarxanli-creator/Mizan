@@ -106,3 +106,37 @@ def test_provider_outage_is_a_503_with_retry_after(searcher: FakeSearcher) -> No
     assert response.status_code == 503
     assert response.headers["Retry-After"] == "7"
     assert "/v1/search still works" in response.json()["detail"]
+
+
+# ------------------------------------------------------------------ diff
+
+
+def test_diff_lists_changes_and_amending_acts(client: TestClient) -> None:
+    response = client.get(
+        "/v1/diff", params={"key": "art:69", "from": "2020-01-01", "to": "2026-10-01"}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["start_text_in_force_since"] == "2021-05-27"
+    assert body["amendments"][0]["act_number"] == "332-VIIQD"
+    assert body["changes"][0]["kind"] == "changed"
+    assert "{+xitam+}" in body["changes"][0]["marked"]
+
+
+def test_diff_to_defaults_to_today(client: TestClient) -> None:
+    response = client.get("/v1/diff", params={"key": "art:69", "from": "2020-01-01"})
+    assert response.json()["end"] == today_in_baku().isoformat()
+
+
+@pytest.mark.parametrize(
+    ("params", "code"),
+    [
+        ({"key": "art:69", "from": "1990-01-01", "to": "2000-01-01"}, 404),
+        ({"key": "art:69", "from": "2025-01-01", "to": "2020-01-01"}, 422),
+        ({"key": "DROP TABLE", "from": "2020-01-01"}, 422),
+        ({"key": "art:69"}, 422),
+    ],
+)
+def test_diff_rejects_bad_requests(client: TestClient, params: dict[str, str], code: int) -> None:
+    assert client.get("/v1/diff", params=params).status_code == code

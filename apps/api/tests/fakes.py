@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from mizan_api.dependencies import LegalServices
+from mizan_ingestion.diff import Amendment, ArticleDiff, ChangeKind, ProvisionChange
 from mizan_retrieval.answer import GroqAnswerer
 from mizan_retrieval.search import Hit, SearchConfig
 
@@ -79,6 +80,27 @@ async def expand_to_fake_articles(hits: Sequence[Hit], source_id: int, as_of: da
     ]
 
 
+class FakeDiff:
+    def __init__(self) -> None:
+        self.calls: list[tuple[int, str, date, date]] = []
+
+    async def diff(self, source_id: int, key: str, start: date, end: date) -> ArticleDiff | None:
+        self.calls.append((source_id, key, start, end))
+        if start.year < 1999:  # before the Code existed
+            return None
+        change = ProvisionChange(
+            "art:69/part:1",
+            ChangeKind.CHANGED,
+            "müqaviləsini ləğv edə",
+            "müqaviləsinə xitam verə",
+            "[-müqaviləsini-]{+müqaviləsinə+} [-ləğv-]{+xitam+} [-edə-]{+verə+}",
+        )
+        amendment = Amendment("332-VIIQD", date(2025, 12, 30), "... əvəz edilmişdir.")
+        return ArticleDiff(
+            key, start, end, date(2021, 5, 27), date(2026, 7, 14), [change], [amendment]
+        )
+
+
 def fake_legal_services(
     searcher: FakeSearcher | None = None, *, with_llm: bool = False
 ) -> LegalServices:
@@ -89,4 +111,5 @@ def fake_legal_services(
         checks=[],
         rewriter=PrefixRewriter() if with_llm else None,
         expand=expand_to_fake_articles,
+        diff=FakeDiff(),
     )

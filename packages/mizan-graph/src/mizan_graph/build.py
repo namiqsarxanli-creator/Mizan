@@ -25,6 +25,8 @@ class Reference:
     numbers: tuple[str, ...]  # as cited, e.g. ("70",) or ("10-1.2", "10-1.3")
     valid_from: date
     valid_to: date  # exclusive
+    # The citing text makes the target an exception to itself: the target is the special norm.
+    exception: bool = False
 
     @property
     def internal(self) -> bool:
@@ -64,8 +66,8 @@ def build_references(
     for r in records:
         present[r.article_key].append((r.valid_from, r.valid_to))
 
-    spans: dict[tuple[str, str, str], list[tuple[date, date]]] = defaultdict(list)
-    numbers: dict[tuple[str, str, str], dict[str, None]] = defaultdict(dict)
+    spans: dict[tuple[str, str, str, bool], list[tuple[date, date]]] = defaultdict(list)
+    numbers: dict[tuple[str, str, str, bool], dict[str, None]] = defaultdict(dict)
     for r in records:
         for c in extract(_body(r.text)):
             stats.citations += 1
@@ -75,13 +77,14 @@ def build_references(
                 continue
             if c.internal and not any(s <= r.valid_from < e for s, e in present[target]):
                 stats.unresolved.append((r.article_key, c.number, r.valid_from))
-            identity = (r.article_key, c.act, target)
+            identity = (r.article_key, c.act, target, c.exception)
             spans[identity].append((r.valid_from, r.valid_to))
             numbers[identity][c.number] = None
 
     references = [
-        Reference(source, act, target, tuple(numbers[(source, act, target)]), start, end)
-        for (source, act, target), intervals in spans.items()
+        Reference(source, act, target, tuple(numbers[key]), start, end, exception)
+        for key, intervals in spans.items()
+        for source, act, target, exception in [key]
         for start, end in _merge(intervals)
     ]
     return sorted(references, key=lambda ref: (ref.source, ref.act, ref.target, ref.valid_from))

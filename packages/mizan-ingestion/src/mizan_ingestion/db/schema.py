@@ -5,6 +5,7 @@ document_versions    one row per consolidated text, valid on [valid_from, valid_
 provisions           the structure of one version: key, kind, number, position
 provision_texts      content-addressed text, shared by every version where it is unchanged
 endnotes             amendment history as printed in each version
+court_decisions      rulings on provisions (Constitutional Court), one per decision document
 
 "Article 69 as of 2020-01-01" is a join on the version whose interval contains the date.
 """
@@ -137,3 +138,25 @@ class Endnote(Base):
     text: Mapped[str] = mapped_column(Text)
     act_number: Mapped[str | None] = mapped_column(String(64), index=True)
     act_adopted_on: Mapped[date | None] = mapped_column(Date)
+
+
+class CourtDecision(Base):
+    """A ruling on provisions. Its act metadata (title, dates) lives in ``legal_documents``."""
+
+    __tablename__ = "court_decisions"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    document_id: Mapped[int] = mapped_column(
+        ForeignKey("legal_documents.id", ondelete="CASCADE"), unique=True
+    )
+    court: Mapped[str] = mapped_column(String(32))  # "constitutional"
+    adopted_on: Mapped[date] = mapped_column(Date)
+    # "interpretation" | "unconstitutional" | "constitutional" | "other" (see decisions.py)
+    outcome: Mapped[str] = mapped_column(String(32))
+    reasoning: Mapped[str] = mapped_column(Text)  # "MÜƏYYƏN ETDİ:" part
+    operative: Mapped[str] = mapped_column(Text)  # "QƏRARA ALDI:" part
+    raw_sha256: Mapped[str] = mapped_column(String(64))
+    parser_version: Mapped[int] = mapped_column(SmallInteger)
+    ingested_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

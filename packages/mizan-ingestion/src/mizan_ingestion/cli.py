@@ -2,6 +2,8 @@
 
 mizan-ingest sync [ID ...] [--force-reparse]   sync documents (default: tracked ones)
 mizan-ingest as-of ID DATE [--key art:69]       print a provision as it stood on DATE
+mizan-ingest linked [ID ...]                     register linked acts, store court decisions
+mizan-ingest diff ID KEY FROM TO                 how a provision changed between two dates
 mizan-ingest inspect FILE.html                  parse a local file and print statistics
 """
 
@@ -20,6 +22,8 @@ from mizan_core.config import get_settings
 from mizan_core.logging import configure_logging
 from mizan_ingestion.db import repository as repo
 from mizan_ingestion.db.session import create_engine, session_factory
+from mizan_ingestion.decisions import sync_linked_acts
+from mizan_ingestion.diff import PostgresDiff
 from mizan_ingestion.parsing import parse_document
 from mizan_ingestion.parsing.structure import flatten
 from mizan_ingestion.pipeline import sync_document
@@ -76,6 +80,47 @@ async def _as_of(source_id: int, on: date, key: str | None) -> int:
     return 0
 
 
+async def _linked(ids: list[int]) -> int:
+    settings = get_settings()
+    engine = create_engine(settings.postgres)
+    try:
+        async with EQanunClient(settings.ingestion) as client:
+            for source_id in ids or settings.ingestion.tracked_documents:
+                report = await sync_linked_acts(client, session_factory(engine), source_id)
+                summary = {
+                    "source_id": source_id,
+                    "acts": report.acts,
+                    "by_type": dict(report.by_type.most_common()),
+                    "decisions_stored": report.decisions_stored,
+                    "failed": report.failed,
+                }
+                print(json.dumps(summary, ensure_ascii=False, indent=2))
+    finally:
+        await engine.dispose()
+    return 0
+
+
+async def _diff(source_id: int, key: str, start: date, end: date) -> int:
+    engine = create_engine(get_settings().postgres)
+    try:
+        result = await PostgresDiff(session_factory(engine)).diff(source_id, key, start, end)
+    finally:
+        await engine.dispose()
+    if result is None:
+        print(f"no version of {source_id} in force on {start} or {end}", file=sys.stderr)
+        return 1
+    print(f"# {key}: text of {result.start_version_from} vs text of {result.end_version_from}")
+    for a in result.amendments:
+        print(f"- {a.adopted_on} {a.number or '(no number)'}: {a.note}")
+    if result.unchanged:
+        print("no change")
+    for c in result.changes:
+        print()
+        print(f"[{c.kind.value}] {c.key}")
+        print(c.marked)
+    return 0
+
+
 def _inspect(path: Path) -> int:
     parsed = parse_document(path.read_bytes())
     provisions, warnings = flatten(parsed.root)
@@ -102,6 +147,15 @@ def main(argv: list[str] | None = None) -> int:
     p_asof.add_argument("date", type=date.fromisoformat)
     p_asof.add_argument("--key", help="provision key prefix, e.g. art:69")
 
+    p_linked = sub.add_parser("linked", help="register linked acts, store court decisions")
+    p_linked.add_argument("ids", nargs="*", type=int, help="e-qanun ids of tracked documents")
+
+    p_diff = sub.add_parser("diff", help="how a provision changed between two dates")
+    p_diff.add_argument("id", type=int)
+    p_diff.add_argument("key", help="provision key, e.g. art:69")
+    p_diff.add_argument("start", type=date.fromisoformat)
+    p_diff.add_argument("end", type=date.fromisoformat)
+
     p_inspect = sub.add_parser("inspect", help="parse a local HTML file")
     p_inspect.add_argument("path", type=Path)
 
@@ -116,6 +170,10 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(_sync(args.ids, args.force_reparse))
     if args.command == "as-of":
         return asyncio.run(_as_of(args.id, args.date, args.key))
+    if args.command == "linked":
+        return asyncio.run(_linked(args.ids))
+    if args.command == "diff":
+        return asyncio.run(_diff(args.id, args.key, args.start, args.end))
     return _inspect(args.path)
 
 

@@ -66,6 +66,22 @@ LABELLED = [
     ),
 ]
 
+MORE_LABELLED = [
+    (
+        # The act is named earlier in the sentence, not right before the number.
+        "Azərbaycan Respublikası Konstitusiyasının əmək müqaviləsinin məcburi qaydada "
+        "bağlanılmasının yolverilməzliyini təsbit edən 35-ci maddəsi Azərbaycan Respublikası "
+        "Əmək Məcəlləsinin 7-ci maddəsinin 2-3 və 2-4-cü hissələrinə əsasən",
+        [("konstitusiya", "35"), (SELF, "7")],
+    ),
+    (
+        # The court is not the act.
+        "Konstitusiya Məhkəməsinin Plenumu bu Qərarın 4-cü maddəsini tətbiq edir",
+        [(SELF, "4")],
+    ),
+]
+LABELLED += MORE_LABELLED
+
 NOT_CITATIONS = [
     "2. Bu maddənin birinci hissəsində nəzərdə tutulmuş hallarda",  # intra-article
     "(Azərbaycan Respublikasının Qanunvericilik Toplusu, 1999-cu il, № 4, maddə 213)",
