@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 
+from mizan_api.budget import TenantBudget, tenant_of
 from mizan_ingestion.diff import DiffBackend
 from mizan_retrieval.answer import AnswerBackend, AnswerUnavailableError, source_title
 from mizan_retrieval.search import Hit, SearchBackend, SearchConfig
@@ -100,6 +101,10 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
         )
     searcher, config, source_id = _searcher(request)
     state = request.app.state
+    tenant = tenant_of(request.headers.get("X-Tenant-Id"))
+    budget: TenantBudget | None = getattr(state, "budget", None)
+    if budget is not None:
+        await budget.check(tenant)
     on = body.as_of or today_in_baku()
     query = await state.rewriter.expand(body.question) if state.rewriter else body.question
     hits = await searcher.search(query, source_id=source_id, as_of=on, config=config, k=body.k)
@@ -114,6 +119,8 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
             f"Answering is temporarily unavailable: {exc}. /v1/search still works.",
             headers=headers,
         ) from exc
+    if budget is not None:
+        await budget.charge(tenant, sum(answer.usage.values()))
     return AskResponse(
         answer=answer.text,
         citations=[CitationOut(key=c.key, title=c.title, quote=c.quote) for c in answer.citations],

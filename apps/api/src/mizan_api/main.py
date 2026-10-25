@@ -8,10 +8,12 @@ from __future__ import annotations
 from collections.abc import AsyncIterator, Sequence
 from contextlib import AsyncExitStack, asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from mizan_api import __version__
+from mizan_api.budget import BudgetExhaustedError
 from mizan_api.dependencies import LegalServices, build_dependency_checks, build_legal_services
 from mizan_api.middleware import TraceIdHeaderMiddleware
 from mizan_api.routes import agent as agent_routes
@@ -61,6 +63,7 @@ def create_app(
             app.state.expand = services.expand
             app.state.diff = services.diff
             app.state.agent = services.agent
+            app.state.budget = services.budget
             app.state.checks = (
                 list(checks)
                 if checks is not None
@@ -74,6 +77,15 @@ def create_app(
     app = FastAPI(title="Mizan API", version=__version__, lifespan=lifespan)
     app.state.settings = settings
     app.add_middleware(TraceIdHeaderMiddleware)
+
+    @app.exception_handler(BudgetExhaustedError)
+    async def budget_exhausted(_: Request, exc: BudgetExhaustedError) -> JSONResponse:
+        return JSONResponse(
+            {"detail": "Daily token budget is spent; try again tomorrow."},
+            status_code=429,
+            headers={"Retry-After": str(exc.retry_after_s)},
+        )
+
     app.include_router(health.router)
     app.include_router(legal_routes.router)
     app.include_router(agent_routes.router)

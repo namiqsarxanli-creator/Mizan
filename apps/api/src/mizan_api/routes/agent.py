@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 
 from mizan_agents.orchestrator import Event, Orchestrator
 from mizan_agents.schemas import AgentAnswer
+from mizan_api.budget import TenantBudget, tenant_of
 from mizan_api.routes.legal import today_in_baku
 from mizan_core.logging import get_logger
 
@@ -43,9 +44,22 @@ def _agent(request: Request) -> Orchestrator:
     return agent
 
 
+async def _check_budget(request: Request) -> tuple[TenantBudget | None, str]:
+    budget: TenantBudget | None = getattr(request.app.state, "budget", None)
+    tenant = tenant_of(request.headers.get("X-Tenant-Id"))
+    if budget is not None:
+        await budget.check(tenant)
+    return budget, tenant
+
+
 @router.post("/ask", responses={503: {"description": "Agent not configured"}})
 async def ask(request: Request, body: AgentRequest) -> AgentAnswer:
-    return await _agent(request).run(body.question, as_of=body.as_of or today_in_baku())
+    agent = _agent(request)
+    budget, tenant = await _check_budget(request)
+    result = await agent.run(body.question, as_of=body.as_of or today_in_baku())
+    if budget is not None:
+        await budget.charge(tenant, result.usage.get("total", 0))
+    return result
 
 
 def _sse(event: str, data: object) -> str:
@@ -55,6 +69,7 @@ def _sse(event: str, data: object) -> str:
 @router.post("/ask/stream", responses={503: {"description": "Agent not configured"}})
 async def ask_stream(request: Request, body: AgentRequest) -> StreamingResponse:
     agent = _agent(request)
+    budget, tenant = await _check_budget(request)
     on = body.as_of or today_in_baku()
     queue: asyncio.Queue[str | None] = asyncio.Queue()
 
@@ -68,6 +83,8 @@ async def ask_stream(request: Request, body: AgentRequest) -> StreamingResponse:
     async def run() -> None:
         try:
             result = await agent.run(body.question, as_of=on, on_event=on_event)
+            if budget is not None:
+                await budget.charge(tenant, result.usage.get("total", 0))
             await queue.put(_sse("result", result.model_dump(mode="json")))
         except Exception:
             log.exception("agent_run_failed")

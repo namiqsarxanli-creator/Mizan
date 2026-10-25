@@ -25,6 +25,7 @@ from redis.asyncio import Redis
 from mizan_agents.gateway import LLMGateway
 from mizan_agents.orchestrator import Orchestrator
 from mizan_agents.tools import LegalTools
+from mizan_api.budget import TenantBudget
 from mizan_core.config import Settings
 from mizan_core.health import DependencyCheck
 from mizan_core.logging import get_logger
@@ -187,6 +188,7 @@ class LegalServices:
     diff: DiffBackend | None = None
     # Multi-agent research (F5); None without an LLM key or without the graph.
     agent: Orchestrator | None = None
+    budget: TenantBudget | None = None
 
 
 def search_config(settings: Settings) -> SearchConfig:
@@ -281,4 +283,7 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
     engine = create_engine(settings.postgres)
     stack.push_async_callback(engine.dispose)
     diff = PostgresDiff(session_factory(engine))
-    return LegalServices(searcher, config, answerer, checks, rewriter, expand, diff, agent)
+    redis = Redis.from_url(settings.redis.url)
+    stack.push_async_callback(redis.aclose)
+    budget = TenantBudget(redis, settings.llm.daily_tokens_per_tenant)
+    return LegalServices(searcher, config, answerer, checks, rewriter, expand, diff, agent, budget)

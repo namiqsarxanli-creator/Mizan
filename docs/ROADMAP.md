@@ -176,26 +176,26 @@ query rewriting statistik fayda vermir. Hamısı konfiqurasiya ilə açıla bili
 
 **Məqsəd:** mürəkkəb hüquqi sualları planlaşdıran, araşdıran və özünü yoxlayan sistem.
 
-### Həftə 10 — Orkestrasiya
-- [ ] State machine: `Planner → Researcher(s) → Drafter → Verifier → Judge`
-- [ ] Agentlər arası məlumat ötürülməsi yalnız Pydantic sxemləri ilə
-- [ ] Hər addım üçün limitlər: max iterasiya, timeout, token büdcəsi
-- [ ] **ADR-007:** LangGraph vs öz orkestratorun
+### Həftə 10 — Orkestrasiya ✅
+- [x] State machine: `Planner → Researcher(s) → Drafter → Verifier → Judge`, "yenidən axtar" döngüsü ilə
+- [x] Agentlər arası məlumat ötürülməsi yalnız Pydantic sxemləri ilə (`extra="forbid"`; hər çağırışa bir "təmir" cəhdi)
+- [x] Hər addım üçün limitlər: maksimum iterasiya, timeout, run başına token büdcəsi, paralel researcher limiti
+- [x] **ADR-0007:** öz tipli state machine (LangGraph yox); LLM yalnız mühakimə tələb edən addımlarda
 
-### Həftə 11 — Tool-lar və agentlər
-- [ ] Tool-lar: `search_law`, `get_article`, `get_related_articles` (qraf), `get_court_decisions`, `check_conflicts`
-- [ ] Researcher-lərin paralel işləməsi (`asyncio.gather` + semaphore)
-- [ ] Verifier: claim → evidence uyğunlaşdırması, `supported / contradicted / not_enough_info`
-- [ ] Judge: cavab vermək, imtina etmək ("əmin deyiləm") və ya yenidən axtarış
+### Həftə 11 — Tool-lar və agentlər ✅
+- [x] Tool-lar: `search_law`, `get_article`, `get_related_articles` (qraf), `get_court_decisions`, `check_conflicts`
+- [x] Researcher-lərin paralel işləməsi (`asyncio.gather` + semaphore); orijinal sual həmişə araşdırılır
+- [x] Verifier: əvvəl mexaniki sitat yoxlaması, sonra `supported / contradicted / not_enough_info` (tək batch çağırış)
+- [x] Judge: cavab vermək, imtina etmək ("əmin deyiləm") və ya daha geniş yenidən axtarış
 
 ### Həftə 12 — LLM Gateway və etibarlılıq
-- [ ] Model routing: Haiku (planner, verifier), Sonnet (drafter), Opus (çətin hallar)
-- [ ] Prompt caching
-- [ ] Retry + exponential backoff + jitter, circuit breaker
-- [ ] Graceful degradation: komponent çöksə, sistem azaldılmış rejimdə işləməyə davam edir
-- [ ] Sorğu və tenant başına xərc büdcəsi
-- [ ] SSE ilə addım-addım streaming ("Maddələr axtarılır..." → "Yoxlanılır...")
-- [ ] **Kalibrə olunmuş inam:** confidence score + selective prediction (imtina həddi)
+- [x] Model routing: `gpt-oss-20b` (planner, verifier), `gpt-oss-120b` (drafter) *(Claude əvəzinə Groq: istifadəçinin seçimi)*
+- [~] Prompt caching: dəyişməyən sistem promptu hər zaman əvvəldə gəlir (prefix caching üçün); Groq tərəfində ölçülməyib
+- [x] Retry + exponential backoff + jitter (`retry-after` üstündür), circuit breaker
+- [x] Graceful degradation: planner, verifier, qraf və drafter çökəndə sistemin davranışı müəyyəndir (ADR-0007 §6)
+- [x] Tenant başına gündəlik xərc büdcəsi (Redis, 429 + `Retry-After`); run başına token büdcəsi
+- [x] SSE ilə addım-addım streaming (`/v1/agent/ask/stream`); müştəri ayrılanda run dayandırılır
+- [ ] **Kalibrə olunmuş inam:** confidence score + imtina həddi (0.5) var; kalibrasiya eval nəticəsinə bağlıdır
 
 **✅ DoD:** Faithfulness ≥ 0.90, citation accuracy ≥ 0.90. Agent versiyası baseline RAG ilə müqayisə cədvəlində statistik əhəmiyyətli şəkildə üstündür.
 
