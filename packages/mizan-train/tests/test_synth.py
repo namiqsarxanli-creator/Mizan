@@ -38,7 +38,7 @@ async def test_questions_are_generated_checked_and_checkpointed(tmp_path: Path) 
     out = tmp_path / "pairs.jsonl"
     articles = [("art:51", "Sınaq müddəti üç aydan çox ola bilməz.")]
 
-    pairs = await synthesise((llm, llm), articles, out, generator="big", judge="small", n=3)
+    pairs = await synthesise([(llm, "big")], (llm, "small"), articles, out, n=3)
 
     assert [(p.question, p.kept) for p in pairs] == [
         ("Sınaq müddəti ən çox nə qədərdir?", True),
@@ -49,6 +49,6 @@ async def test_questions_are_generated_checked_and_checkpointed(tmp_path: Path) 
     assert llm.calls == ["generate:big", "judge:small", "judge:small", "judge:small"]
     assert load_pairs(out) == pairs
 
-    again = await synthesise((llm, llm), articles, out, generator="big", judge="small", n=3)
+    again = await synthesise([(llm, "big")], (llm, "small"), articles, out, n=3)
     assert again == pairs
     assert len(llm.calls) == 4  # resumed: nothing regenerated

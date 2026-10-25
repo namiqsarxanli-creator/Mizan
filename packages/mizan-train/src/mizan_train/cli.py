@@ -18,7 +18,7 @@ from datetime import date
 from pathlib import Path
 
 from mizan_core.config import get_settings
-from mizan_core.llm_clients import client_for, split_model
+from mizan_core.llm_clients import OpenAICompatible, client_for, split_model
 from mizan_core.logging import configure_logging
 from mizan_graph.build import build_references
 from mizan_graph.store import Direction, InMemoryGraph
@@ -71,28 +71,32 @@ def protected_questions() -> list[str]:
     return out
 
 
-async def _synth(limit: int | None, generator: str, judge: str, pace_s: float) -> int:
+async def _synth(limit: int | None, generators: list[str], judge: str, pace_s: float) -> int:
     settings = get_settings()
-    gen_provider, gen_model = split_model(generator)
-    judge_provider, judge_model = split_model(judge)
     articles = current_articles(snapshot.read(DEFAULT_SNAPSHOT))
     articles = [(k, t) for k, t in articles if k.startswith("art:")][:limit]
-    gen_client = client_for(gen_provider, settings.llm)
-    judge_client = client_for(judge_provider, settings.llm)
+    clients: dict[str, OpenAICompatible] = {}
+
+    def resolve(spec: str) -> tuple[OpenAICompatible, str]:
+        provider, model = split_model(spec)
+        if provider not in clients:
+            clients[provider] = client_for(provider, settings.llm)
+        return clients[provider], model
+
     try:
         pairs = await synthesise(
-            (gen_client, judge_client),
+            [resolve(g) for g in generators],
+            resolve(judge),
             articles,
             DATA / "pairs.jsonl",
-            generator=gen_model,
-            judge=judge_model,
             pace_s=pace_s,
         )
     finally:
-        await gen_client.close()
-        await judge_client.close()
+        for client in clients.values():
+            await client.close()
     kept = sum(p.kept for p in pairs)
-    print(json.dumps({"articles": len(articles), "pairs": len(pairs), "kept": kept}))
+    done = len({p.article for p in pairs})
+    print(json.dumps({"articles": len(articles), "done": done, "pairs": len(pairs), "kept": kept}))
     return 0
 
 
@@ -142,9 +146,18 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     p_synth = sub.add_parser("synth", help="synthetic questions per article")
     p_synth.add_argument("--limit", type=int)
-    # provider:model; different model families for writing and checking the questions.
-    p_synth.add_argument("--generator", default="gemini:gemini-2.5-flash")
-    p_synth.add_argument("--judge", default="gemini:gemini-2.5-flash-lite")
+    # provider:model. Generators are used in order as daily free quotas run out; the judge is
+    # another model family, so a model never checks its own questions.
+    p_synth.add_argument(
+        "--generators",
+        nargs="+",
+        default=[
+            "gemini:gemini-3-flash-preview",
+            "gemini:gemini-2.5-flash-lite",
+            "gemini:gemini-2.5-flash",
+        ],
+    )
+    p_synth.add_argument("--judge", default="groq:qwen/qwen3.8-27b")
     p_synth.add_argument("--pace", type=float, default=0.0)
     p_build = sub.add_parser("build", help="split, leakage guard, hard negatives")
     p_build.add_argument("--negatives", type=int, default=5)
@@ -166,7 +179,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return _embed(args.name, cfg)
     if args.command == "synth":
-        return asyncio.run(_synth(args.limit, args.generator, args.judge, args.pace))
+        return asyncio.run(_synth(args.limit, args.generators, args.judge, args.pace))
     return asyncio.run(_build(args.negatives))
 
 

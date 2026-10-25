@@ -91,6 +91,17 @@ def _reasoning(model: str) -> dict[str, str]:
     return {}
 
 
+class QuotaExhaustedError(RuntimeError):
+    """A provider's *daily* quota is spent: waiting minutes will not help, switch models."""
+
+
+def _daily_quota(exc: Exception) -> bool:
+    # The quota details sit deep in the provider's error body, past any truncated message.
+    response = getattr(exc, "response", None)
+    text = f"{exc} {getattr(response, 'text', '')}".lower()
+    return "429" in text and ("per day" in text or "perday" in text or "tokens per day" in text)
+
+
 async def _chat(
     client: Any, model: str, prompt: str, *, max_tokens: int, temperature: float
 ) -> str:
@@ -104,7 +115,9 @@ async def _chat(
                 **_reasoning(model),
             )
             return str(response.choices[0].message.content or "")
-        except Exception as exc:  # noqa: BLE001 - rate limits: back off
+        except Exception as exc:
+            if _daily_quota(exc):
+                raise QuotaExhaustedError(f"{model}: daily quota exhausted") from exc
             wait = 20 * (attempt + 1)
             log.warning("synth_retry", model=model, wait_s=wait, error=str(exc)[:120])
             await asyncio.sleep(wait)
@@ -164,30 +177,45 @@ def load_pairs(path: Path) -> list[Pair]:
 
 
 async def synthesise(
-    clients: tuple[Any, Any],
+    generators: Sequence[tuple[Any, str]],
+    judge: tuple[Any, str],
     articles: Sequence[tuple[str, str]],
     out: Path,
     *,
-    generator: str,
-    judge: str,
     n: int = 4,
     pace_s: float = 0.0,
 ) -> list[Pair]:
     """Resumable: articles already in ``out`` are skipped.
 
-    ``clients`` is (generator client, judge client): the two can be different providers.
-    ``generator`` and ``judge`` are the model names as each provider knows them.
+    ``generators`` are (client, model) pairs used in order: when one model's daily free quota
+    runs out, the next takes over. Mixing generators also varies the questions' style.
+    ``judge`` is the (client, model) of the round-trip check, another model family.
     """
-    gen_client, judge_client = clients
     pairs = load_pairs(out)
     done = {p.article for p in pairs}
     out.parent.mkdir(parents=True, exist_ok=True)
+    judge_client, judge_model = judge
+    current = 0
     for i, (key, text) in enumerate(articles, start=1):
         if key in done:
             continue
-        questions = await generate(gen_client, generator, text, n=n)
-        verdicts = await answerable(judge_client, judge, questions, text)
-        new = [Pair(q, key, generator, ok) for q, ok in zip(questions, verdicts, strict=True)]
+        while True:
+            if current >= len(generators):
+                log.warning("synth_quota_spent", done=i - 1, total=len(articles))
+                return pairs
+            gen_client, gen_model = generators[current]
+            try:
+                questions = await generate(gen_client, gen_model, text, n=n)
+                break
+            except QuotaExhaustedError:
+                log.warning("synth_generator_switch", exhausted=gen_model)
+                current += 1
+        try:
+            verdicts = await answerable(judge_client, judge_model, questions, text)
+        except QuotaExhaustedError:
+            log.warning("synth_judge_quota_spent", done=i - 1, total=len(articles))
+            return pairs
+        new = [Pair(q, key, gen_model, ok) for q, ok in zip(questions, verdicts, strict=True)]
         with out.open("a", encoding="utf-8") as fh:
             for p in new:
                 fh.write(json.dumps(asdict(p), ensure_ascii=False) + "\n")
@@ -197,6 +225,7 @@ async def synthesise(
             done=i,
             total=len(articles),
             article=key,
+            generator=gen_model,
             kept=sum(p.kept for p in new),
         )
         if pace_s:
