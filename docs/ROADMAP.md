@@ -201,26 +201,27 @@ query rewriting statistik fayda vermir. Hamısı konfiqurasiya ilə açıla bili
 
 ---
 
-## F6 — Observability platforması (Həftə 13–14)
+## F6 — Observability platforması (Həftə 13–14) ✅
 
 **Məqsəd:** production-da nə baş verdiyini görmək və keyfiyyət düşüşünü avtomatik aşkarlamaq.
 
-### Həftə 13 — Tracing və saxlama
-- [ ] **OpenTelemetry GenAI semantic conventions** (öz formatın əvəzinə)
-- [ ] Trace → span iyerarxiyası: sorğu → agent addımı → LLM / tool çağırışı
-- [ ] Hər span-da: token, xərc, latency, model, prompt versiyası
-- [ ] ClickHouse-da saxlama + retention siyasəti
-- [ ] PII redaction (loglarda şəxsi məlumat saxlanılmır)
+### Həftə 13 — Tracing və saxlama ✅
+- [x] **OpenTelemetry GenAI semantic conventions:** `invoke_agent`, `execute_tool`, `chat` span-ları, `gen_ai.*` atributları
+- [x] Trace → span iyerarxiyası: sorğu → agent addımı → LLM / tool çağırışı (hər retry ayrıca span)
+- [x] Hər span-da: token, xərc (`mizan.cost.usd`, konfiqurasiya olunan qiymət cədvəli), latency, model, prompt versiyası (SHA-256)
+- [x] OTel Collector → ClickHouse, 30 günlük TTL; health probe span-ları Collector-da atılır
+- [x] PII redaction iki qatda: kodda (`redact`) və Collector-da (`redaction` processor)
 
-### Həftə 14 — Dashboard və online eval
-- [ ] Dashboard: trace explorer, xərc / latency / keyfiyyət qrafikləri
-- [ ] Online eval: trafikin 5%-i LLM-as-judge ilə qiymətləndirilir
-- [ ] İstifadəçi feedback-i (👍/👎 + şərh), data flywheel üçün saxlanılır
-- [ ] Drift alert-ləri (faithfulness həftəlik ortadan 10% aşağı düşərsə)
-- [ ] Prompt versiyalama + A/B test infrastrukturu
-- [ ] SLO dashboard: p95 < 8s, availability 99.5%, faithfulness ≥ 0.9
+### Həftə 14 — Dashboard və online eval ✅
+- [x] Dashboard (kod kimi, Grafana provisioning): trace explorer, xərc / latency / token / nəticə qrafikləri
+- [x] Online eval: cavabların 5%-i (cavab id-sinə görə deterministik) müstəqil modellə faithfulness üzrə qiymətləndirilir, cavabı gecikdirmədən
+- [x] İstifadəçi feedback-i: `POST /v1/feedback` (👍/👎 + şərh), hər cavabda `answer_id`; `answers` cədvəli data flywheel üçündür
+- [x] Drift alert-ləri: 7 günlük orta əvvəlki 28 günlük ortadan 10%-dən çox aşağıdırsa və ya SLO (0.90) pozulursa; `mizan-eval drift` (exit 1 + webhook) və Grafana alert qaydası
+- [~] Prompt versiyalama ✅ (hash hər span-da və hər cavabda); A/B təyinatı → F9
+- [x] SLO panelləri: agent p95 < 8s, availability 99.5%, faithfulness ≥ 0.9
+- [x] **ADR-0008:** Observability
 
-**✅ DoD:** İstənilən sorğunun bütün addımları dashboard-da görünür, sintetik keyfiyyət düşüşü yaradıldıqda alert gəlir.
+**✅ DoD:** İstənilən sorğunun bütün addımları dashboard-da görünür ✅ (trace explorer), sintetik keyfiyyət düşüşü yaradıldıqda alert gəlir ✅ (inteqrasiya testi).
 
 ---
 
@@ -246,7 +247,7 @@ query rewriting statistik fayda vermir. Hamısı konfiqurasiya ilə açıla bili
 - [ ] Student: kiçik cross-encoder
 - [ ] Müqayisə: keyfiyyət / latency / xərc
 - [ ] ONNX export + kvantizasiya (CPU-da inference)
-- [ ] **ADR-008:** Model serving strategiyası
+- [ ] **ADR-009:** Model serving strategiyası
 
 **✅ DoD:** Fine-tuned embedding Recall@5-də base modeldən ≥ 8% yaxşıdır, distilled reranker teacher keyfiyyətinin ≥ 95%-ni saxlayır.
 
@@ -275,7 +276,7 @@ query rewriting statistik fayda vermir. Hamısı konfiqurasiya ilə açıla bili
 - [ ] LLM Gateway-ə əlavə: routing qaydası (`task=verify` → lokal model, fallback → Claude)
 - [ ] Eval: keyfiyyət / xərc / latency (Claude ilə müqayisədə)
 - [ ] Shadow rejimdə test (növbəti fazanın infrastrukturu ilə)
-- [ ] **ADR-009:** Hansı tapşırıqlar lokal modelə, hansılar API-yə gedir
+- [ ] **ADR-010:** Hansı tapşırıqlar lokal modelə, hansılar API-yə gedir
 
 **✅ DoD:** Lokal verifier Claude-un keyfiyyətinin ≥ 95%-ni saxlayır, sorğu başına xərc ≥ 5 dəfə azalır.
 
@@ -359,10 +360,11 @@ query rewriting statistik fayda vermir. Hamısı konfiqurasiya ilə açıla bili
 | 005 | Eval metodologiyası və CI gate |
 | 006 | Qraf DB: Neo4j vs Postgres |
 | 007 | Agent orkestrasiyası: LangGraph vs öz implementasiya |
-| 008 | Model serving strategiyası |
-| 009 | Lokal model vs API routing |
-| 010 | Semantic cache invalidation |
-| 011 | Multi-tenancy və data izolyasiyası |
+| 008 | Observability: OTel GenAI span-ları, ClickHouse, Postgres-də keyfiyyət dövrəsi |
+| 009 | Model serving strategiyası |
+| 010 | Lokal model vs API routing |
+| 011 | Semantic cache invalidation |
+| 012 | Multi-tenancy və data izolyasiyası |
 
 ---
 

@@ -33,7 +33,7 @@ from pydantic import Field
 
 from mizan_agents.schemas import Schema
 from mizan_core.logging import get_logger
-from mizan_evals.judge import Verdict
+from mizan_evals.judge import Verdict, json_object
 from mizan_retrieval.evaluation import Question, bootstrap
 
 log = get_logger(__name__)
@@ -108,17 +108,19 @@ class FaithfulnessJudge:
         rendered = "\n\n".join(f'<source key="{k}">\n{t[:3000]}\n</source>' for k, t in sources)
         prompt = FAITHFULNESS_PROMPT.format(sources=rendered[:14000], answer=answer)
         last: Exception | None = None
+        json_mode = True
         for attempt in range(3):
             try:
                 response = await self._client.chat.completions.create(
                     model=self.model,
                     messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"},
+                    **({"response_format": {"type": "json_object"}} if json_mode else {}),
                     temperature=0.0,
-                    max_completion_tokens=2048,
+                    # Groq caps this model at 1000 output tokens per minute; a statement list fits.
+                    max_completion_tokens=900,
                 )
                 parsed = _Statements.model_validate(
-                    json.loads(response.choices[0].message.content or "")
+                    json_object(response.choices[0].message.content or "")
                 )
                 if not parsed.statements:
                     return 1.0, []  # nothing claimed, nothing unfaithful
@@ -126,6 +128,9 @@ class FaithfulnessJudge:
                 return 1 - len(unsupported) / len(parsed.statements), unsupported
             except Exception as exc:  # noqa: BLE001 - rate limits, malformed JSON: retry
                 last = exc
+                if "json_validate_failed" in str(exc):
+                    json_mode = False  # see GroqJudge: plain mode, then extract the object
+                    continue
                 await asyncio.sleep(10 * (attempt + 1))
         raise RuntimeError(f"faithfulness judge failed: {last!r}")
 

@@ -1,0 +1,16 @@
+apiVersion: 1
+
+# Quality data (answers, feedback, online_evals). Local development credentials; production
+# uses a read-only role.
+datasources:
+  - name: Postgres
+    uid: postgres
+    type: grafana-postgresql-datasource
+    url: postgres:5432
+    user: ${POSTGRES_USER}
+    jsonData:
+      database: ${POSTGRES_DB}
+      sslmode: disable
+      postgresVersion: 1600
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}

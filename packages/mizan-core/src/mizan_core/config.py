@@ -145,6 +145,15 @@ class LLMSettings(BaseModel):
     )
 
 
+class QualitySettings(BaseModel):
+    """Production quality loop (F6): answer log, online evaluation, feedback."""
+
+    enabled: bool = True
+    # Share of answers judged for faithfulness after the response is sent.
+    online_eval_sample_rate: float = Field(default=0.05, ge=0.0, le=1.0)
+    judge_model: str = "qwen/qwen3.8-27b"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="MIZAN_",
@@ -169,6 +178,7 @@ class Settings(BaseSettings):
     ingestion: IngestionSettings = IngestionSettings()
     retrieval: RetrievalSettings = RetrievalSettings()
     llm: LLMSettings = LLMSettings()
+    quality: QualitySettings = QualitySettings()
 
     @model_validator(mode="after")
     def _reject_dev_secrets(self) -> Self:

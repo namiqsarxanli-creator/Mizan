@@ -1,0 +1,67 @@
+# OpenTelemetry Collector: OTLP in, PII redaction, ClickHouse out (ADR-0008).
+#
+#   api / worker ──OTLP/HTTP──▶ collector ──▶ ClickHouse (otel.otel_traces, 30 days)
+#
+# The application already redacts user text before it becomes a span attribute
+# (mizan_core.genai.redact); the collector redacts again, so a missed attribute in code
+# cannot leak an e-mail address or phone number into storage.
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+  # Health probes every few seconds would bury real traffic; responses keep their trace ids.
+  filter/probes:
+    error_mode: ignore
+    traces:
+      span:
+        - 'IsMatch(name, "^GET /health/")'
+  redaction:
+    allow_all_keys: true
+    blocked_values:
+      - "[\\w.+-]+@[\\w-]+\\.[\\w.-]+"                                    # e-mail
+      - "(?:\\+?994|0)[\\s-]?\\(?\\d{2}\\)?[\\s-]?\\d{3}[\\s-]?\\d{2}[\\s-]?\\d{2}"  # phone (AZ)
+      - "(?:\\d[ -]?){13,19}"                                            # card number
+    summary: info
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+
+exporters:
+  clickhouse:
+    endpoint: tcp://clickhouse:9000?dial_timeout=10s
+    database: otel
+    username: ${env:CLICKHOUSE_USER}
+    password: ${env:CLICKHOUSE_PASSWORD}
+    create_schema: true
+    ttl: 720h  # retention: 30 days
+    traces_table_name: otel_traces
+    logs_table_name: otel_logs
+    metrics_table_name: otel_metrics
+    timeout: 10s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, filter/probes, redaction, batch]
+      exporters: [clickhouse]

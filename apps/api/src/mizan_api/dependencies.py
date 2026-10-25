@@ -21,14 +21,17 @@ import httpx
 from neo4j import AsyncDriver, AsyncGraphDatabase
 from qdrant_client import AsyncQdrantClient
 from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from mizan_agents.gateway import LLMGateway
 from mizan_agents.orchestrator import Orchestrator
 from mizan_agents.tools import LegalTools
 from mizan_api.budget import TenantBudget
+from mizan_api.quality import QualityLoop
 from mizan_core.config import Settings
 from mizan_core.health import DependencyCheck
 from mizan_core.logging import get_logger
+from mizan_evals.agent_eval import FaithfulnessJudge
 from mizan_graph.decisions import attach_decisions
 from mizan_graph.search import SERVING_POLICY, GraphSearcher
 from mizan_graph.store import Neo4jGraph
@@ -106,6 +109,22 @@ def _build_agent(
     # Researchers add court decisions themselves, so they get whole articles only.
     tools = LegalTools(searcher, config, to_articles, graph, graph, settings.retrieval.source_id)
     return Orchestrator(LLMGateway(client), tools)
+
+
+def _build_quality(
+    settings: Settings, stack: AsyncExitStack, sessions: async_sessionmaker[AsyncSession]
+) -> QualityLoop | None:
+    q = settings.quality
+    if not q.enabled:
+        return None
+    judge = None
+    if settings.llm.groq_api_key is not None and q.online_eval_sample_rate > 0:
+        client = groq.AsyncGroq(api_key=settings.llm.groq_api_key.get_secret_value())
+        stack.push_async_callback(client.close)
+        judge = FaithfulnessJudge(client, model=q.judge_model)
+    loop = QualityLoop(sessions, judge, sample_rate=q.online_eval_sample_rate)
+    stack.push_async_callback(loop.drain)  # finish sampled evaluations on shutdown
+    return loop
 
 
 def _with_decisions(expand: ArticleExpander, graph: Neo4jGraph) -> ArticleExpander:
@@ -189,6 +208,7 @@ class LegalServices:
     # Multi-agent research (F5); None without an LLM key or without the graph.
     agent: Orchestrator | None = None
     budget: TenantBudget | None = None
+    quality: QualityLoop | None = None
 
 
 def search_config(settings: Settings) -> SearchConfig:
@@ -286,4 +306,7 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
     redis = Redis.from_url(settings.redis.url)
     stack.push_async_callback(redis.aclose)
     budget = TenantBudget(redis, settings.llm.daily_tokens_per_tenant)
-    return LegalServices(searcher, config, answerer, checks, rewriter, expand, diff, agent, budget)
+    quality = _build_quality(settings, stack, session_factory(engine))
+    return LegalServices(
+        searcher, config, answerer, checks, rewriter, expand, diff, agent, budget, quality
+    )

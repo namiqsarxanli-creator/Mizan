@@ -2,18 +2,31 @@
 
 from __future__ import annotations
 
+import time
 from datetime import date, datetime
 from typing import Annotated
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 
 from mizan_api.budget import TenantBudget, tenant_of
+from mizan_api.quality import AnswerRecord, QualityLoop
+from mizan_core.genai import prompt_version
+from mizan_core.tracing import current_trace_id
 from mizan_ingestion.diff import DiffBackend
-from mizan_retrieval.answer import AnswerBackend, AnswerUnavailableError, source_title
+from mizan_retrieval.answer import (
+    JSON_INSTRUCTIONS,
+    SYSTEM_PROMPT,
+    AnswerBackend,
+    AnswerUnavailableError,
+    fit_to_budget,
+    source_title,
+)
 from mizan_retrieval.search import Hit, SearchBackend, SearchConfig
 
+ASK_PROMPT_VERSION = prompt_version(SYSTEM_PROMPT + JSON_INSTRUCTIONS)
 router = APIRouter(prefix="/v1", tags=["legal"])
 
 
@@ -57,6 +70,8 @@ class AskResponse(BaseModel):
     refused: bool
     # Citations the model produced that did not match its sources and were discarded.
     rejected_citations: int = 0
+    # Send it back with POST /v1/feedback; None when the quality loop is off.
+    answer_id: UUID | None = None
     disclaimer: str = "Bu cavab hüquqi məsləhət deyil."
 
 
@@ -106,6 +121,7 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
     if budget is not None:
         await budget.check(tenant)
     on = body.as_of or today_in_baku()
+    started = time.perf_counter()
     query = await state.rewriter.expand(body.question) if state.rewriter else body.question
     hits = await searcher.search(query, source_id=source_id, as_of=on, config=config, k=body.k)
     if state.expand is not None:
@@ -119,9 +135,31 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
             f"Answering is temporarily unavailable: {exc}. /v1/search still works.",
             headers=headers,
         ) from exc
+    tokens = sum(answer.usage.values())
     if budget is not None:
-        await budget.charge(tenant, sum(answer.usage.values()))
+        await budget.charge(tenant, tokens)
+    answer_id = None
+    quality: QualityLoop | None = getattr(state, "quality", None)
+    if quality is not None:
+        given = fit_to_budget(hits, state.settings.llm.max_context_chars)
+        answer_id = await quality.record(
+            AnswerRecord(
+                endpoint="ask",
+                tenant=tenant,
+                question=body.question,
+                as_of=on,
+                answer=answer.text,
+                sources=[(h.key, h.text) for h in given],
+                model=answer.model,
+                prompt_version=ASK_PROMPT_VERSION,
+                tokens=tokens,
+                latency_ms=round((time.perf_counter() - started) * 1000, 1),
+                trace_id=current_trace_id(),
+                abstained=answer.refused,
+            )
+        )
     return AskResponse(
+        answer_id=answer_id,
         answer=answer.text,
         citations=[CitationOut(key=c.key, title=c.title, quote=c.quote) for c in answer.citations],
         sources=[_source(h) for h in hits],

@@ -100,7 +100,7 @@ async def _registry() -> tuple[list[tuple[int, str, str | None]], list[Decision]
             rows = await session.execute(
                 select(LegalDocument.source_id, LegalDocument.title, LegalDocument.doc_type)
             )
-            acts = [(i, t, k) for i, t, k in rows.tuples()]
+            acts = [(i, t, k) for i, t, k in rows]
         decisions = await load_decisions(sessions, SELF_NAMES)
     finally:
         await engine.dispose()

@@ -7,6 +7,7 @@ from alembic import context
 from sqlalchemy.engine import Connection
 
 from mizan_core.config import get_settings
+from mizan_ingestion.db import quality  # noqa: F401 - registers the quality tables
 from mizan_ingestion.db.schema import Base
 from mizan_ingestion.db.session import create_engine
 

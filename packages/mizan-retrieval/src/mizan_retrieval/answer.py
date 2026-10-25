@@ -20,6 +20,7 @@ from dataclasses import dataclass, field, replace
 from datetime import date
 from typing import Any, Protocol
 
+from mizan_core.genai import chat_span, prompt_version, record_usage
 from mizan_ingestion.text import az_lower, normalize
 from mizan_retrieval.search import Hit
 
@@ -208,11 +209,28 @@ class GroqAnswerer:
         hits = fit_to_budget(hits, self._max_context_chars)
         if not hits:
             return _no_sources(self._model)
-        try:
-            response = await self._create(question, hits, as_of)
-        except Exception as exc:
-            raise _provider_error(exc) from exc
-        return parse_groq_response(response, hits)
+        with chat_span(
+            "groq",
+            self._model,
+            temperature=0.1,
+            max_tokens=2048,
+            prompt=prompt_version(SYSTEM_PROMPT + JSON_INSTRUCTIONS),
+        ) as span:
+            try:
+                response = await self._create(question, hits, as_of)
+            except Exception as exc:
+                raise _provider_error(exc) from exc
+            answer = parse_groq_response(response, hits)
+            record_usage(
+                span,
+                model=self._model,
+                input_tokens=answer.usage.get("input_tokens", 0),
+                output_tokens=answer.usage.get("output_tokens", 0),
+                response_model=answer.model,
+                finish_reason=answer.stop_reason,
+            )
+            span.set_attribute("mizan.citations.rejected", answer.rejected_citations)
+            return answer
 
     async def _create(self, question: str, hits: Sequence[Hit], as_of: date) -> Any:
         return await self._client.chat.completions.create(

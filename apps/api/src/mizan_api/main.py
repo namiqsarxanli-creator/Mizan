@@ -17,6 +17,7 @@ from mizan_api.budget import BudgetExhaustedError
 from mizan_api.dependencies import LegalServices, build_dependency_checks, build_legal_services
 from mizan_api.middleware import TraceIdHeaderMiddleware
 from mizan_api.routes import agent as agent_routes
+from mizan_api.routes import feedback as feedback_routes
 from mizan_api.routes import health
 from mizan_api.routes import legal as legal_routes
 from mizan_core.config import Settings, get_settings
@@ -64,6 +65,7 @@ def create_app(
             app.state.diff = services.diff
             app.state.agent = services.agent
             app.state.budget = services.budget
+            app.state.quality = services.quality
             app.state.checks = (
                 list(checks)
                 if checks is not None
@@ -89,8 +91,10 @@ def create_app(
     app.include_router(health.router)
     app.include_router(legal_routes.router)
     app.include_router(agent_routes.router)
+    app.include_router(feedback_routes.router)
 
     # Wraps the whole middleware stack, so every request (including TraceIdHeaderMiddleware)
     # runs inside a server span.
+    # Probes are traced too (their responses carry X-Trace-Id); the collector drops their spans.
     FastAPIInstrumentor.instrument_app(app, tracer_provider=tracer_provider)
     return app

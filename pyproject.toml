@@ -11,6 +11,7 @@ dependencies = [
     "mizan-graph",
     "mizan-ingestion",
     "mizan-retrieval",
+    "mizan-train",
     "mizan-worker",
 ]
 
@@ -29,6 +30,7 @@ mizan-worker = { workspace = true }
 mizan-retrieval = { workspace = true }
 mizan-evals = { workspace = true }
 mizan-graph = { workspace = true }
+mizan-train = { workspace = true }
 torch = { index = "pytorch-cpu" }
 
 [dependency-groups]
@@ -84,6 +86,7 @@ known-first-party = [
     "mizan_graph",
     "mizan_ingestion",
     "mizan_retrieval",
+    "mizan_train",
     "mizan_worker",
 ]
 
@@ -99,15 +102,20 @@ mypy_path = [
     "packages/mizan-ingestion/src",
     "packages/mizan-retrieval/src",
     "packages/mizan-evals/src",
+    "packages/mizan-train/src",
     "packages/mizan-graph/src",
     "apps/api/src",
     "apps/worker/src",
     # Shared test helpers, imported as top-level modules (see pytest `pythonpath`).
+    "packages/mizan-agents/tests",
     "packages/mizan-ingestion/tests",
     "packages/mizan-retrieval/tests",
     "apps/api/tests",
 ]
 explicit_package_bases = true
+# Every package's conftest only re-exports the shared fixtures of db_fixtures.py, and two files
+# called conftest.py on mypy_path would be one module twice.
+exclude = ['(^|/|\\)conftest\.py$']
 
 [[tool.mypy.overrides]]
 module = ["asyncpg", "asyncpg.*"]
@@ -122,7 +130,12 @@ warn_required_dynamic_aliases = true
 [tool.pytest.ini_options]
 testpaths = ["packages", "apps"]
 # Shared test helpers (importable as top-level modules from tests).
-pythonpath = ["packages/mizan-ingestion/tests", "packages/mizan-retrieval/tests", "apps/api/tests"]
+pythonpath = [
+    "packages/mizan-agents/tests",
+    "packages/mizan-ingestion/tests",
+    "packages/mizan-retrieval/tests",
+    "apps/api/tests",
+]
 addopts = ["--import-mode=importlib", "--strict-markers", "-ra"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
@@ -143,6 +156,7 @@ source = [
     "mizan_graph",
     "mizan_ingestion",
     "mizan_retrieval",
+    "mizan_train",
     "mizan_worker",
 ]
 

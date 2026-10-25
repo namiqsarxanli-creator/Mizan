@@ -114,7 +114,67 @@ services:
       qdrant: { condition: service_healthy }
       neo4j: { condition: service_healthy }
 
+  # ---------------------------------------------------------------- observability (F6)
+  # docker compose --profile observability up -d   ->  Grafana on http://127.0.0.1:13000
+  clickhouse:
+    profiles: [observability]
+    restart: unless-stopped
+    image: clickhouse/clickhouse-server:24.8-alpine
+    environment:
+      CLICKHOUSE_USER: ${MIZAN_CLICKHOUSE_USER:-mizan}
+      CLICKHOUSE_PASSWORD: ${MIZAN_CLICKHOUSE_PASSWORD:-mizan-dev-password}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
+      # The collector creates its tables but not the database.
+      CLICKHOUSE_DB: otel
+    ports:
+      - "127.0.0.1:${MIZAN_HOST_PORT_CLICKHOUSE:-18123}:8123"
+    volumes: [clickhouse-data:/var/lib/clickhouse]
+    ulimits:
+      nofile: { soft: 262144, hard: 262144 }
+    healthcheck:
+      <<: *healthcheck
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8123/ping || exit 1"]
+
+  otel-collector:
+    profiles: [observability]
+    restart: unless-stopped
+    image: otel/opentelemetry-collector-contrib:0.115.1
+    command: ["--config=/etc/otelcol/config.yaml"]
+    environment:
+      CLICKHOUSE_USER: ${MIZAN_CLICKHOUSE_USER:-mizan}
+      CLICKHOUSE_PASSWORD: ${MIZAN_CLICKHOUSE_PASSWORD:-mizan-dev-password}
+    volumes:
+      - ./infra/observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "127.0.0.1:${MIZAN_HOST_PORT_OTLP_HTTP:-14318}:4318"
+    depends_on:
+      clickhouse: { condition: service_healthy }
+
+  grafana:
+    profiles: [observability]
+    restart: unless-stopped
+    image: grafana/grafana:11.3.1
+    environment:
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource 4.5.1
+      GF_SECURITY_ADMIN_PASSWORD: ${MIZAN_GRAFANA_PASSWORD:-mizan-dev-password}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      CLICKHOUSE_USER: ${MIZAN_CLICKHOUSE_USER:-mizan}
+      CLICKHOUSE_PASSWORD: ${MIZAN_CLICKHOUSE_PASSWORD:-mizan-dev-password}
+      POSTGRES_USER: ${MIZAN_POSTGRES__USER:-mizan}
+      POSTGRES_PASSWORD: ${MIZAN_POSTGRES__PASSWORD:-mizan-dev-password}
+      POSTGRES_DB: ${MIZAN_POSTGRES__DATABASE:-mizan}
+    volumes:
+      - ./infra/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:${MIZAN_HOST_PORT_GRAFANA:-13000}:3000"
+    depends_on:
+      clickhouse: { condition: service_healthy }
+
 volumes:
+  clickhouse-data:
+  grafana-data:
   postgres-data:
   raw-data:
   # Hugging Face models (~2 GB each): downloaded once, kept across rebuilds.

@@ -30,6 +30,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
+from mizan_core.genai import chat_span, prompt_version, record_usage
 from mizan_core.logging import get_logger
 
 log = get_logger(__name__)
@@ -123,6 +124,11 @@ def _retry_after(exc: BaseException) -> float | None:
         return None
 
 
+def is_invalid_json(exc: BaseException) -> bool:
+    """Groq's 400 ``json_validate_failed``: JSON mode produced output that is not JSON."""
+    return _status(exc) == 400 and "json_validate_failed" in str(exc)
+
+
 def is_transient(exc: BaseException) -> bool:
     status = _status(exc)
     if status is not None:
@@ -164,21 +170,40 @@ class LLMGateway:
         backoff = min(self._max_delay, self._base * 2.0**attempt)
         return backoff * (0.5 + self._jitter() / 2)  # "equal jitter": never zero, never herded
 
-    async def _complete(self, route: Route, messages: list[dict[str, str]]) -> Any:
+    async def _complete(self, route: Route, messages: list[dict[str, str]], prompt: str) -> Any:
+        """One provider call, as one GenAI ``chat`` span (retries are separate spans)."""
         extra = {"reasoning_effort": route.reasoning_effort} if route.reasoning_effort else {}
         if "gpt-oss" not in route.model:
             extra = {}  # only gpt-oss exposes reasoning effort on Groq
-        return await asyncio.wait_for(
-            self._client.chat.completions.create(
+        with chat_span(
+            "groq",
+            route.model,
+            temperature=route.temperature,
+            max_tokens=route.max_completion_tokens,
+            prompt=prompt,
+        ) as span:
+            response = await asyncio.wait_for(
+                self._client.chat.completions.create(
+                    model=route.model,
+                    messages=messages,
+                    response_format={"type": "json_object"},
+                    temperature=route.temperature,
+                    max_completion_tokens=route.max_completion_tokens,
+                    **extra,
+                ),
+                timeout=self._timeout,
+            )
+            usage = getattr(response, "usage", None)
+            choice = response.choices[0] if getattr(response, "choices", None) else None
+            record_usage(
+                span,
                 model=route.model,
-                messages=messages,
-                response_format={"type": "json_object"},
-                temperature=route.temperature,
-                max_completion_tokens=route.max_completion_tokens,
-                **extra,
-            ),
-            timeout=self._timeout,
-        )
+                input_tokens=int(getattr(usage, "prompt_tokens", 0) or 0),
+                output_tokens=int(getattr(usage, "completion_tokens", 0) or 0),
+                response_model=getattr(response, "model", None),
+                finish_reason=getattr(choice, "finish_reason", None),
+            )
+            return response
 
     async def structured(
         self, role: Role, *, system: str, user: str, schema: type[T], budget: TokenBudget
@@ -196,8 +221,22 @@ class LLMGateway:
             prompt_tokens = sum(len(m["content"]) for m in messages) // 3
             budget.reserve(prompt_tokens + route.max_completion_tokens)
             try:
-                response = await self._complete(route, messages)
+                response = await self._complete(route, messages, prompt_version(system))
             except Exception as exc:
+                if is_invalid_json(exc) and not repaired:
+                    # The provider rejected the model's own output as invalid JSON (often
+                    # truncated). The model, not the request, failed: ask once more, briefly.
+                    repaired = True
+                    log.warning("llm_invalid_json", role=role.value, model=route.model)
+                    messages = [
+                        *messages,
+                        {
+                            "role": "user",
+                            "content": "Əvvəlki cavab etibarlı JSON deyildi. Qısa yaz və "
+                            "yalnız düzgün JSON qaytar.",
+                        },
+                    ]
+                    continue
                 breaker.failure()
                 attempt += 1
                 if not is_transient(exc) or attempt >= self._max_attempts:

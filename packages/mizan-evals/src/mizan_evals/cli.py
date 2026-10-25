@@ -5,6 +5,7 @@ mizan-eval report                             metrics with 95% CIs -> report.md 
 mizan-eval label  --labeller NAME             blind human labelling (resumable)
 mizan-eval kappa                              judge vs human agreement (Cohen's kappa)
 mizan-eval agent  [--sample 40] [--extra ...] multi-agent vs baseline RAG (F5, resumable)
+mizan-eval drift  [--webhook URL]             online faithfulness drift / SLO check (exit 1)
 """
 
 from __future__ import annotations
@@ -15,10 +16,11 @@ import io
 import json
 import sys
 from collections.abc import Sequence
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import groq
+import httpx
 from neo4j import AsyncGraphDatabase
 from qdrant_client import AsyncQdrantClient
 
@@ -34,6 +36,7 @@ from mizan_evals.agent_eval import (
     run_agent_eval,
     summarise_agent_eval,
 )
+from mizan_evals.drift import daily_scores, detect_drift
 from mizan_evals.judge import DEFAULT_JUDGE_MODEL, GroqJudge
 from mizan_evals.labels import agreement, label_session, load_labels
 from mizan_evals.run import Record, load_records, run_generation_eval, stratified_sample, summarise
@@ -356,6 +359,23 @@ async def _agent_eval(
     return 0
 
 
+async def _drift(webhook: str | None, today: date | None) -> int:
+    """Exit 1 on an alert (cron and CI friendly); post the message to ``webhook`` if given."""
+    engine = create_engine(get_settings().postgres)
+    on = today or date.today()  # noqa: DTZ011 - the server's date is the day of the check
+    try:
+        scores = await daily_scores(session_factory(engine), since=on - timedelta(days=40))
+    finally:
+        await engine.dispose()
+    report = detect_drift(scores, today=on)
+    print(json.dumps({"status": report.status, "message": report.message()}, ensure_ascii=False))
+    if report.alert and webhook:
+        # Slack-compatible payload; most chat webhooks accept {"text": ...}.
+        async with httpx.AsyncClient(timeout=10) as client:
+            await client.post(webhook, json={"text": f"Mizan: {report.message()}"})
+    return 1 if report.alert else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mizan-eval")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -366,6 +386,10 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument("--pace", type=float, default=45.0, help="seconds between questions")
     p_run.add_argument("--graph", action="store_true", help="graph-aware search (F4)")
     p_run.add_argument("--decisions", action="store_true", help="court decisions in context")
+    p_drift = sub.add_parser("drift", help="alert when online faithfulness drops (exit 1)")
+    p_drift.add_argument("--webhook", help="post alerts to this chat webhook")
+    p_drift.add_argument("--today", type=date.fromisoformat)
+
     p_agent = sub.add_parser("agent", help="multi-agent vs baseline RAG")
     p_agent.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     p_agent.add_argument(
@@ -401,6 +425,8 @@ def main(argv: list[str] | None = None) -> int:
                 decisions=args.decisions,
             )
         )
+    if args.command == "drift":
+        return asyncio.run(_drift(args.webhook, args.today))
     if args.command == "agent":
         return asyncio.run(_agent_eval(args.dataset, args.extra, args.out, args.sample, args.pace))
     if args.command == "report":

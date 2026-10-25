@@ -92,9 +92,20 @@ def build_prompt(*, question: str, qtype: str, as_of: date, gold: str, answer: s
     )
 
 
+def json_object(content: str) -> Any:
+    """The JSON object in a reply: the whole reply, or its outermost ``{...}`` span."""
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        start, end = content.find("{"), content.rfind("}")
+        if start < 0 or end <= start:
+            raise
+        return json.loads(content[start : end + 1])
+
+
 def parse_verdict(content: str, model: str) -> Verdict:
     try:
-        data = json.loads(content)
+        data = json_object(content)
         return Verdict(
             correct=bool(data["correct"]),
             abstained=bool(data.get("abstained", False)),
@@ -123,12 +134,13 @@ class GroqJudge:
     ) -> Verdict:
         prompt = build_prompt(question=question, qtype=qtype, as_of=as_of, gold=gold, answer=answer)
         last: Exception | None = None
+        json_mode = True
         for attempt in range(self._max_attempts):
             try:
                 response = await self._client.chat.completions.create(
                     model=self._model,
                     messages=[{"role": "user", "content": prompt}],
-                    response_format={"type": "json_object"},
+                    **({"response_format": {"type": "json_object"}} if json_mode else {}),
                     temperature=0.0,
                     max_completion_tokens=1024,
                     **({"reasoning_effort": "medium"} if "gpt-oss" in self._model else {}),
@@ -137,6 +149,12 @@ class GroqJudge:
             except JudgeError as exc:  # malformed output: ask again
                 last = exc
             except Exception as exc:  # noqa: BLE001 - rate limits etc.: back off and retry
+                if "json_validate_failed" in str(exc):
+                    # The provider's JSON mode rejected the model's output; plain mode plus
+                    # extraction of the JSON object is the reliable fallback.
+                    json_mode = False
+                    last = exc
+                    continue
                 last = exc
                 await asyncio.sleep(min(60, 10 * (attempt + 1)))
         raise JudgeError(f"judge failed after {self._max_attempts} attempts: {last!r}")

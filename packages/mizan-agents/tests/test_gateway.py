@@ -112,6 +112,19 @@ async def test_invalid_output_gets_one_repair_turn() -> None:
     assert "sxemə uyğun deyil" in repair[-1]["content"]
 
 
+async def test_provider_json_validation_errors_get_one_repair_turn() -> None:
+    invalid = ProviderError(400)
+    invalid.args = ("Error code: 400 - {'code': 'json_validate_failed'}",)
+    llm = ScriptedLLM(invalid, reply(PLAN))
+    plan = await ask(gateway(llm))
+    assert len(plan.sub_questions) == 1
+    assert "etibarlı JSON deyildi" in llm.requests[1]["messages"][-1]["content"]
+
+    twice = ScriptedLLM(invalid, invalid)
+    with pytest.raises(GatewayError):
+        await ask(gateway(twice))
+
+
 async def test_still_invalid_after_repair_fails() -> None:
     llm = ScriptedLLM(reply("not json"), reply("still not json"))
     with pytest.raises(GatewayError, match="invalid Plan"):

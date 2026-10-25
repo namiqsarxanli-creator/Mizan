@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from mizan_agents.schemas import Evidence, EvidenceKind
+from mizan_core.genai import tool_span
 from mizan_graph.conflicts import Force, Norm, Relation, Resolution, resolve, specialis_pairs
 from mizan_graph.decisions import Decision, decision_hit
 from mizan_graph.store import DecisionStore, Direction, GraphStore, act_uid
@@ -58,13 +59,19 @@ class LegalTools:
     source_id: int = 46943
 
     async def search_law(self, query: str, *, as_of: date, k: int = 5) -> list[Evidence]:
-        hits = await self.searcher.search(
-            query, source_id=self.source_id, as_of=as_of, config=self.config, k=k
-        )
-        articles = await self.expand(hits, self.source_id, as_of)
-        return [evidence(h, via="search") for h in articles]
+        with tool_span("search_law", **{"mizan.k": k}) as span:
+            hits = await self.searcher.search(
+                query, source_id=self.source_id, as_of=as_of, config=self.config, k=k
+            )
+            articles = await self.expand(hits, self.source_id, as_of)
+            span.set_attribute("mizan.results", [h.article_key for h in articles])
+            return [evidence(h, via="search") for h in articles]
 
     async def get_article(self, key: str, *, as_of: date) -> Evidence | None:
+        with tool_span("get_article", **{"mizan.key": key}):
+            return await self._get_article(key, as_of=as_of)
+
+    async def _get_article(self, key: str, *, as_of: date) -> Evidence | None:
         found = await self.expand([_stub(key, as_of)], self.source_id, as_of)
         texts = [h for h in found if h.text]
         return evidence(texts[0], via="cited") if texts else None
@@ -72,17 +79,31 @@ class LegalTools:
     async def get_related_articles(
         self, key: str, *, as_of: date, direction: Direction = Direction.OUT
     ) -> list[str]:
-        found = await self.graph.neighbours(self.source_id, [key], as_of=as_of, direction=direction)
-        return sorted({n.key for n in found})
+        with tool_span("get_related_articles", **{"mizan.key": key}):
+            found = await self.graph.neighbours(
+                self.source_id, [key], as_of=as_of, direction=direction
+            )
+            return sorted({n.key for n in found})
 
     async def get_court_decisions(self, keys: Sequence[str], *, as_of: date) -> list[Decision]:
-        return await self.decisions.decisions_for(self.source_id, keys, as_of=as_of)
+        with tool_span("get_court_decisions") as span:
+            found = await self.decisions.decisions_for(self.source_id, keys, as_of=as_of)
+            span.set_attribute("mizan.results", [d.key for d in found])
+            return found
 
     async def check_conflicts(
         self, keys: Sequence[str], decisions: Sequence[Decision], *, as_of: date
     ) -> list[Resolution]:
         """Collisions the graph can see among ``keys``: explicit exceptions inside the Code
         (lex specialis) and provisions the Constitutional Court suspended or voided."""
+        with tool_span("check_conflicts") as span:
+            results = await self._conflicts(keys, decisions, as_of=as_of)
+            span.set_attribute("mizan.results", [r.rule.value for r in results])
+            return results
+
+    async def _conflicts(
+        self, keys: Sequence[str], decisions: Sequence[Decision], *, as_of: date
+    ) -> list[Resolution]:
         pairs = await self.graph.exceptions(self.source_id, keys, as_of=as_of)
         voided = {
             key: d

@@ -97,7 +97,7 @@ async def load_decisions(
                     )
                 ),
             )
-            for doc, decision in rows.tuples()
+            for doc, decision in rows
         ]
 
 

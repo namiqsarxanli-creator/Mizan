@@ -1,0 +1,79 @@
+"""Quality data from production (F6): what was answered, what users said, what the judge found.
+
+answers         one row per /v1/ask or agent answer: redacted question, answer, sources, cost
+feedback        thumbs up/down (+ comment) on an answer, from the user
+online_evals    faithfulness of a sampled answer against its own sources (LLM judge)
+
+These rows are the data flywheel: drift detection reads online_evals, and F7/F8 fine-tuning
+reads answers with feedback. Questions are stored redacted (``mizan_core.genai.redact``).
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import date, datetime
+
+from sqlalchemy import (
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    SmallInteger,
+    String,
+    Text,
+    Uuid,
+    func,
+)
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.orm import Mapped, mapped_column
+
+from mizan_ingestion.db.schema import Base
+
+
+class AnswerLog(Base):
+    __tablename__ = "answers"
+    __table_args__ = (Index("ix_answers_created_at", "created_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    trace_id: Mapped[str | None] = mapped_column(String(32))
+    endpoint: Mapped[str] = mapped_column(String(32))  # "ask" | "agent"
+    tenant: Mapped[str] = mapped_column(String(64))
+    question: Mapped[str] = mapped_column(Text)  # redacted
+    as_of: Mapped[date]
+    answer: Mapped[str] = mapped_column(Text)
+    sources: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
+    model: Mapped[str | None] = mapped_column(String(128))
+    prompt_version: Mapped[str | None] = mapped_column(String(32))
+    variant: Mapped[str | None] = mapped_column(String(16))  # A/B arm
+    verdict: Mapped[str | None] = mapped_column(String(32))  # agent: answer / abstain
+    confidence: Mapped[float | None] = mapped_column(Float)
+    tokens: Mapped[int] = mapped_column(Integer, default=0)
+    latency_ms: Mapped[float] = mapped_column(Float, default=0.0)
+
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    answer_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("answers.id", ondelete="CASCADE"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    rating: Mapped[int] = mapped_column(SmallInteger)  # +1 / -1
+    comment: Mapped[str | None] = mapped_column(Text)  # redacted
+
+
+class OnlineEval(Base):
+    __tablename__ = "online_evals"
+    __table_args__ = (Index("ix_online_evals_created_at", "created_at"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    answer_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("answers.id", ondelete="CASCADE"), unique=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    faithfulness: Mapped[float] = mapped_column(Float)
+    unsupported: Mapped[list[str]] = mapped_column(JSONB, default=list)
+    judge_model: Mapped[str] = mapped_column(String(128))

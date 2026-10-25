@@ -156,6 +156,39 @@ uv run mizan-graph eval                           # dense vs graph policies on v
 uv run mizan-graph gate                           # what CI runs: the serving path vs baseline
 ```
 
+## Agents (F5)
+
+`POST /v1/agent/ask` (and `/v1/agent/ask/stream`, SSE) runs a typed state machine
+([ADR-0007](docs/adr/0007-agent-orchestration.md)):
+
+1. A planner rewrites the question into the Code's terms.
+2. Researchers search, follow exceptions in the citation graph, add court decisions, and apply
+   the collision rules. They are deterministic tools, with no LLM.
+3. A drafter answers claim by claim, each claim with a verbatim quote.
+4. A verifier checks every quote mechanically and every claim against its source.
+5. A judge answers, abstains, or researches again.
+
+An LLM gateway handles routing, retries with backoff, a circuit breaker, a token budget per run
+and per tenant per day.
+
+## Observability (F6)
+
+```bash
+docker compose --profile observability up -d     # ClickHouse, OTel Collector, Grafana :13000
+MIZAN_TELEMETRY__OTLP_ENDPOINT=http://127.0.0.1:14318 uv run uvicorn mizan_api.main:create_app --factory
+uv run mizan-eval drift                           # exit 1 on faithfulness drift / SLO breach
+```
+
+Every request is one trace, built from OpenTelemetry GenAI spans:
+- `invoke_agent` for agent steps;
+- `execute_tool` for tool calls;
+- `chat` for LLM calls, with tokens, estimated cost and prompt version.
+
+Spans are stored in ClickHouse for 30 days, and PII is redacted in code and again in the
+Collector. Every answer is logged with an `answer_id` for `POST /v1/feedback`. 5% of answers
+are judged for faithfulness online by an independent model. Drift and SLO alerts run both in
+code and in Grafana ([ADR-0008](docs/adr/0008-observability.md)).
+
 ## Quality gates
 
 | Command | What it checks |
@@ -192,6 +225,8 @@ Docker image build. Install the git hooks once with `uv run pre-commit install`.
 | [0004](docs/adr/0004-retrieval-configuration.md) | Dense bge-m3, article chunks; hybrid, reranking and rewriting measured and left off |
 | [0005](docs/adr/0005-evaluation-methodology.md) | Versioned datasets, mechanical metrics first, calibrated judge, CI retrieval gate |
 | [0006](docs/adr/0006-knowledge-graph.md) | Grammar-extracted temporal citation graph in Neo4j (derived, rebuildable); one reserved top-5 slot, pre-registered test |
+| [0007](docs/adr/0007-agent-orchestration.md) | Own typed state machine; LLMs only for planning, drafting, verification; gateway owns reliability |
+| [0008](docs/adr/0008-observability.md) | OTel GenAI spans → Collector → ClickHouse; quality loop (answers, feedback, online evals) in Postgres |
 
 ## Disclaimer
 

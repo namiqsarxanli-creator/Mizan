@@ -1,0 +1,58 @@
+apiVersion: 1
+
+# Same rule as `mizan-eval drift`: the last 7 days' online faithfulness is more than 10% below
+# the previous 28 days', with at least 20 samples on each side, or below the 0.90 SLO.
+groups:
+  - orgId: 1
+    name: quality
+    folder: Mizan
+    interval: 1h
+    rules:
+      - uid: mizan-faithfulness-drift
+        title: Faithfulness drift or SLO breach
+        condition: C
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: Online faithfulness dropped (see the Mizan dashboard, Quality row).
+        labels:
+          severity: page
+        data:
+          - refId: A
+            datasourceUid: postgres
+            relativeTimeRange: { from: 3024000, to: 0 }
+            model:
+              refId: A
+              format: table
+              rawQuery: true
+              rawSql: |
+                WITH recent AS (
+                  SELECT avg(faithfulness) AS m, count(*) AS n FROM online_evals
+                  WHERE created_at >= now() - interval '7 days'
+                ), base AS (
+                  SELECT avg(faithfulness) AS m, count(*) AS n FROM online_evals
+                  WHERE created_at < now() - interval '7 days'
+                    AND created_at >= now() - interval '35 days'
+                )
+                SELECT CASE
+                  WHEN recent.n < 20 THEN 0
+                  WHEN recent.m < 0.90 THEN 1
+                  WHEN base.n >= 20 AND (recent.m - base.m) / base.m < -0.10 THEN 1
+                  ELSE 0 END AS alerting
+                FROM recent, base
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }

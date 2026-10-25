@@ -1,0 +1,29 @@
+[project]
+name = "mizan-train"
+version = "0.1.0"
+description = "Training data and fine-tuning for Mizan's retrieval and language models (F7, F8)."
+requires-python = ">=3.12"
+dependencies = [
+    "groq>=0.30",
+    "mizan-core",
+    "mizan-graph",
+    "mizan-ingestion",
+    "mizan-retrieval",
+    "pydantic>=2.9",
+]
+
+[project.scripts]
+mizan-train = "mizan_train.cli:main"
+
+[tool.uv.sources]
+mizan-core = { workspace = true }
+mizan-graph = { workspace = true }
+mizan-ingestion = { workspace = true }
+mizan-retrieval = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mizan_train"]

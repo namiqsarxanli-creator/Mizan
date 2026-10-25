@@ -35,6 +35,7 @@ from mizan_agents.schemas import (
     Verdict,
 )
 from mizan_agents.tools import LegalTools
+from mizan_core.genai import agent_span, redact
 from mizan_core.logging import get_logger
 
 log = get_logger(__name__)
@@ -89,12 +90,17 @@ class Orchestrator:
         self.limits = limits or Limits()
 
     async def _plan(self, question: str, as_of: date, budget: TokenBudget) -> Plan:
-        try:
-            async with asyncio.timeout(self.limits.step_timeout_s):
-                return await plan(self._gateway, question, as_of=as_of, budget=budget)
-        except (GatewayError, TimeoutError):
-            log.warning("planner_degraded", exc_info=True)
-            return Plan(sub_questions=[SubQuestion(text=question)])
+        with agent_span("planner") as span:
+            try:
+                async with asyncio.timeout(self.limits.step_timeout_s):
+                    result = await plan(self._gateway, question, as_of=as_of, budget=budget)
+            except (GatewayError, TimeoutError):
+                log.warning("planner_degraded", exc_info=True)
+                span.set_attribute("mizan.degraded", True)
+                result = Plan(sub_questions=[SubQuestion(text=question)])
+            span.set_attribute("mizan.plan.sub_questions", len(result.sub_questions))
+            span.set_attribute("mizan.plan.in_scope", result.in_scope)
+            return result
 
     async def _research(self, question: str, p: Plan, as_of: date, k: int) -> list[ResearchNote]:
         """Research the question as asked and each planned sub-question, in parallel.
@@ -108,25 +114,45 @@ class Orchestrator:
         subs = [SubQuestion(text=question), *planned]
 
         async def one(sub: SubQuestion) -> ResearchNote:
-            async with gate, asyncio.timeout(self.limits.step_timeout_s):
-                return await research(self._tools, sub, as_of=as_of, k=k)
+            with agent_span("researcher", **{"mizan.sub_question": redact(sub.text)}) as span:
+                async with gate, asyncio.timeout(self.limits.step_timeout_s):
+                    note = await research(self._tools, sub, as_of=as_of, k=k)
+                span.set_attribute("mizan.evidence", [e.key for e in note.evidence])
+                return note
 
         return list(await asyncio.gather(*(one(s) for s in subs)))
 
     async def _verify(
         self, d: Draft, evidence: list[Evidence], budget: TokenBudget
     ) -> list[ClaimCheck]:
-        try:
-            async with asyncio.timeout(self.limits.step_timeout_s):
-                return await verify(self._gateway, d.claims, evidence, budget=budget)
-        except (GatewayError, TimeoutError):
-            log.warning("verifier_degraded", exc_info=True)
-            return [
-                ClaimCheck(claim=c, support=Support.NOT_ENOUGH_INFO, quote_found=False)
-                for c in d.claims
-            ]
+        with agent_span("verifier") as span:
+            try:
+                async with asyncio.timeout(self.limits.step_timeout_s):
+                    checks = await verify(self._gateway, d.claims, evidence, budget=budget)
+            except (GatewayError, TimeoutError):
+                log.warning("verifier_degraded", exc_info=True)
+                span.set_attribute("mizan.degraded", True)
+                checks = [
+                    ClaimCheck(claim=c, support=Support.NOT_ENOUGH_INFO, quote_found=False)
+                    for c in d.claims
+                ]
+            span.set_attribute("mizan.claims", len(checks))
+            span.set_attribute(
+                "mizan.claims.supported", sum(c.support is Support.SUPPORTED for c in checks)
+            )
+            return checks
 
     async def run(self, question: str, *, as_of: date, on_event: EventSink = _noop) -> AgentAnswer:
+        """One research run, traced as an ``invoke_agent orchestrator`` span."""
+        with agent_span("orchestrator", **{"mizan.as_of": as_of.isoformat()}) as span:
+            result = await self._run(question, as_of=as_of, on_event=on_event)
+            span.set_attribute("mizan.verdict", result.verdict.value)
+            span.set_attribute("mizan.confidence", result.confidence)
+            span.set_attribute("mizan.iterations", result.iterations)
+            span.set_attribute("mizan.tokens", result.usage.get("total", 0))
+            return result
+
+    async def _run(self, question: str, *, as_of: date, on_event: EventSink) -> AgentAnswer:
         budget = TokenBudget(self.limits.token_budget)
         trace: list[str] = []
 
@@ -171,11 +197,12 @@ class Orchestrator:
                 break
             await emit(Step.DRAFT, "Cavab hazırlanır...", sources=[e.key for e in evidence])
             try:
-                async with asyncio.timeout(self.limits.step_timeout_s):
-                    d = await draft(
-                        self._gateway, question, notes, as_of=as_of, budget=budget,
-                        feedback=feedback,
-                    )  # fmt: skip
+                with agent_span("drafter", **{"mizan.iteration": iteration}):
+                    async with asyncio.timeout(self.limits.step_timeout_s):
+                        d = await draft(
+                            self._gateway, question, notes, as_of=as_of, budget=budget,
+                            feedback=feedback,
+                        )  # fmt: skip
             except (GatewayError, TimeoutError):
                 log.warning("drafter_failed", exc_info=True)
                 break
