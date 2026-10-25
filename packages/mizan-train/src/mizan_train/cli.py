@@ -17,9 +17,8 @@ from dataclasses import asdict
 from datetime import date
 from pathlib import Path
 
-import groq
-
 from mizan_core.config import get_settings
+from mizan_core.llm_clients import client_for, split_model
 from mizan_core.logging import configure_logging
 from mizan_graph.build import build_references
 from mizan_graph.store import Direction, InMemoryGraph
@@ -74,18 +73,24 @@ def protected_questions() -> list[str]:
 
 async def _synth(limit: int | None, generator: str, judge: str, pace_s: float) -> int:
     settings = get_settings()
-    if settings.llm.groq_api_key is None:
-        print("needs MIZAN_LLM__GROQ_API_KEY", file=sys.stderr)
-        return 2
+    gen_provider, gen_model = split_model(generator)
+    judge_provider, judge_model = split_model(judge)
     articles = current_articles(snapshot.read(DEFAULT_SNAPSHOT))
     articles = [(k, t) for k, t in articles if k.startswith("art:")][:limit]
-    client = groq.AsyncGroq(api_key=settings.llm.groq_api_key.get_secret_value())
+    gen_client = client_for(gen_provider, settings.llm)
+    judge_client = client_for(judge_provider, settings.llm)
     try:
         pairs = await synthesise(
-            client, articles, DATA / "pairs.jsonl", generator=generator, judge=judge, pace_s=pace_s
+            (gen_client, judge_client),
+            articles,
+            DATA / "pairs.jsonl",
+            generator=gen_model,
+            judge=judge_model,
+            pace_s=pace_s,
         )
     finally:
-        await client.close()
+        await gen_client.close()
+        await judge_client.close()
     kept = sum(p.kept for p in pairs)
     print(json.dumps({"articles": len(articles), "pairs": len(pairs), "kept": kept}))
     return 0
@@ -137,8 +142,9 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     p_synth = sub.add_parser("synth", help="synthetic questions per article")
     p_synth.add_argument("--limit", type=int)
-    p_synth.add_argument("--generator", default="openai/gpt-oss-120b")
-    p_synth.add_argument("--judge", default="openai/gpt-oss-20b")
+    # provider:model; different model families for writing and checking the questions.
+    p_synth.add_argument("--generator", default="gemini:gemini-2.5-flash")
+    p_synth.add_argument("--judge", default="gemini:gemini-2.5-flash-lite")
     p_synth.add_argument("--pace", type=float, default=0.0)
     p_build = sub.add_parser("build", help="split, leakage guard, hard negatives")
     p_build.add_argument("--negatives", type=int, default=5)

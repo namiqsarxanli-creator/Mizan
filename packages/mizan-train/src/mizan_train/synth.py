@@ -70,8 +70,25 @@ class Pair:
 
 
 def _json(content: str) -> Any:
+    """The answer's JSON object: after any visible reasoning (Gemma prints ``<thought>``)."""
+    if "</thought>" in content:
+        content = content.rsplit("</thought>", 1)[1]
     start, end = content.find("{"), content.rfind("}")
-    return json.loads(content[start : end + 1]) if start >= 0 and end > start else {}
+    if start < 0 or end <= start:
+        return {}
+    try:
+        return json.loads(content[start : end + 1])
+    except json.JSONDecodeError:
+        return {}
+
+
+def _reasoning(model: str) -> dict[str, str]:
+    """Writing or checking questions needs no long reasoning: keep the budget for the answer."""
+    if "gpt-oss" in model:
+        return {"reasoning_effort": "low"}
+    if model.startswith("gemini"):
+        return {"reasoning_effort": "none"}
+    return {}
 
 
 async def _chat(
@@ -84,7 +101,7 @@ async def _chat(
                 messages=[{"role": "user", "content": prompt}],
                 temperature=temperature,
                 max_completion_tokens=max_tokens,
-                **({"reasoning_effort": "low"} if "gpt-oss" in model else {}),
+                **_reasoning(model),
             )
             return str(response.choices[0].message.content or "")
         except Exception as exc:  # noqa: BLE001 - rate limits: back off
@@ -118,18 +135,23 @@ async def answerable(
     if not questions:
         return []
     numbered = "\n".join(f"{i}. {q}" for i, q in enumerate(questions, start=1))
-    content = await _chat(
-        client,
-        model,
-        JUDGE_PROMPT.format(questions=numbered, article=article[:max_chars]),
-        max_tokens=400,
-        temperature=0.0,
-    )
-    try:
-        verdicts = _Answerable.model_validate(_json(content)).answerable
-    except ValueError:
-        verdicts = []
-    # A missing verdict is a rejection: unverified questions do not enter training.
+    verdicts: list[bool] = []
+    for _ in range(3):  # a truncated or malformed reply is asked again, not read as "no"
+        content = await _chat(
+            client,
+            model,
+            JUDGE_PROMPT.format(questions=numbered, article=article[:max_chars]),
+            max_tokens=4000,  # room for a model that thinks aloud before the JSON
+            temperature=0.0,
+        )
+        try:
+            verdicts = _Answerable.model_validate(_json(content)).answerable
+        except ValueError:
+            verdicts = []
+        if len(verdicts) == len(questions):
+            break
+        log.warning("judge_incomplete", model=model, got=len(verdicts), want=len(questions))
+    # A still-missing verdict is a rejection: unverified questions do not enter training.
     return [bool(verdicts[i]) if i < len(verdicts) else False for i in range(len(questions))]
 
 
@@ -142,7 +164,7 @@ def load_pairs(path: Path) -> list[Pair]:
 
 
 async def synthesise(
-    client: Any,
+    clients: tuple[Any, Any],
     articles: Sequence[tuple[str, str]],
     out: Path,
     *,
@@ -151,15 +173,20 @@ async def synthesise(
     n: int = 4,
     pace_s: float = 0.0,
 ) -> list[Pair]:
-    """Resumable: articles already in ``out`` are skipped."""
+    """Resumable: articles already in ``out`` are skipped.
+
+    ``clients`` is (generator client, judge client): the two can be different providers.
+    ``generator`` and ``judge`` are the model names as each provider knows them.
+    """
+    gen_client, judge_client = clients
     pairs = load_pairs(out)
     done = {p.article for p in pairs}
     out.parent.mkdir(parents=True, exist_ok=True)
     for i, (key, text) in enumerate(articles, start=1):
         if key in done:
             continue
-        questions = await generate(client, generator, text, n=n)
-        verdicts = await answerable(client, judge, questions, text)
+        questions = await generate(gen_client, generator, text, n=n)
+        verdicts = await answerable(judge_client, judge, questions, text)
         new = [Pair(q, key, generator, ok) for q, ok in zip(questions, verdicts, strict=True)]
         with out.open("a", encoding="utf-8") as fh:
             for p in new:

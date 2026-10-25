@@ -38,16 +38,17 @@ async def test_questions_are_generated_checked_and_checkpointed(tmp_path: Path) 
     out = tmp_path / "pairs.jsonl"
     articles = [("art:51", "Sınaq müddəti üç aydan çox ola bilməz.")]
 
-    pairs = await synthesise(llm, articles, out, generator="big", judge="small", n=3)
+    pairs = await synthesise((llm, llm), articles, out, generator="big", judge="small", n=3)
 
     assert [(p.question, p.kept) for p in pairs] == [
         ("Sınaq müddəti ən çox nə qədərdir?", True),
         ("Azyaşlıya sınaq müddəti qoymaq olar?", False),
         ("Sınaq müddəti uzadıla bilərmi?", False),  # unverified -> rejected
     ]
-    assert llm.calls == ["generate:big", "judge:small"]  # one judge call per article
+    # One judge call per article; an incomplete verdict list is asked again (3 attempts).
+    assert llm.calls == ["generate:big", "judge:small", "judge:small", "judge:small"]
     assert load_pairs(out) == pairs
 
-    again = await synthesise(llm, articles, out, generator="big", judge="small", n=3)
+    again = await synthesise((llm, llm), articles, out, generator="big", judge="small", n=3)
     assert again == pairs
-    assert len(llm.calls) == 2  # resumed: nothing regenerated
+    assert len(llm.calls) == 4  # resumed: nothing regenerated

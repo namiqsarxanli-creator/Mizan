@@ -128,6 +128,10 @@ class LLMSettings(BaseModel):
     groq_api_key: SecretStr | None = None
     groq_model: str = "openai/gpt-oss-120b"
     anthropic_api_key: SecretStr | None = None
+    # Other OpenAI-compatible providers (mizan_core.llm_clients), e.g. for offline data work.
+    gemini_api_key: SecretStr | None = None
+    cerebras_api_key: SecretStr | None = None
+    openrouter_api_key: SecretStr | None = None
     anthropic_model: str = "claude-opus-5-5"
     # Reasoning depth: Groq gpt-oss "reasoning_effort" / Claude "effort".
     effort: Literal["low", "medium", "high"] = "medium"
@@ -140,9 +144,14 @@ class LLMSettings(BaseModel):
     # LLM tokens one tenant may spend per day (Baku time) across /v1/ask and the agent.
     daily_tokens_per_tenant: int = Field(default=300_000, ge=0)
 
-    _blank_keys_are_unset = field_validator("groq_api_key", "anthropic_api_key", mode="before")(
-        lambda v: None if isinstance(v, str) and not v.strip() else v
-    )
+    _blank_keys_are_unset = field_validator(
+        "groq_api_key",
+        "anthropic_api_key",
+        "gemini_api_key",
+        "cerebras_api_key",
+        "openrouter_api_key",
+        mode="before",
+    )(lambda v: None if isinstance(v, str) and not v.strip() else v)
 
 
 class QualitySettings(BaseModel):
