@@ -70,9 +70,10 @@ class Pair:
 
 
 def _json(content: str) -> Any:
-    """The answer's JSON object: after any visible reasoning (Gemma prints ``<thought>``)."""
-    if "</thought>" in content:
-        content = content.rsplit("</thought>", 1)[1]
+    """The answer's JSON object, after any visible reasoning (``<thought>``, ``<think>``)."""
+    for closing in ("</thought>", "</think>"):
+        if closing in content:
+            content = content.rsplit(closing, 1)[1]
     start, end = content.find("{"), content.rfind("}")
     if start < 0 or end <= start:
         return {}
@@ -168,6 +169,104 @@ async def answerable(
     return [bool(verdicts[i]) if i < len(verdicts) else False for i in range(len(questions))]
 
 
+BATCH_GENERATOR_PROMPT = """\
+Aşağıda Azərbaycan Respublikası Əmək Məcəlləsinin {k} maddəsi var, hər biri öz id-si ilə. \
+Hər maddə üçün onun cavab verdiyi {n} müxtəlif sual yaz: işçi və ya işəgötürənin real \
+həyatda verəcəyi suallar.
+
+Qaydalar:
+- Danışıq dilində, düzgün Azərbaycan dilində yaz; maddənin sözlərini təkrarlama.
+- Suallar fərqli olsun: biri qayda, biri müddət və ya məbləğ, biri xüsusi hal (istisna).
+- Maddənin nömrəsini çəkmə. Hər sual öz maddəsinin mətnindən cavablandırıla bilməlidir.
+
+{articles}
+
+Yalnız JSON qaytar: {{"items": [{{"id": "A1", "questions": ["...", "..."]}}]}}"""
+
+BATCH_JUDGE_PROMPT = """\
+Hər bölmədə bir hüquqi mətn və suallar var. Hər sual üçün: mətn bu suala birbaşa cavab \
+verirmi? Cavab mətndə açıq yazılıbsa true, yalnız qismən və ya ümumiyyətlə yoxdursa false.
+
+{items}
+
+Yalnız JSON qaytar, hər bölmə üçün sualların sırası ilə: \
+{{"items": [{{"id": "A1", "answerable": [true, false]}}]}}"""
+
+
+class _BatchItem(BaseModel):
+    id: str
+    questions: list[str] = Field(default_factory=list)
+    answerable: list[bool] = Field(default_factory=list)
+
+
+class _Batch(BaseModel):
+    items: list[_BatchItem] = Field(default_factory=list)
+
+
+def _batch_items(content: str) -> dict[str, _BatchItem]:
+    try:
+        return {i.id: i for i in _Batch.model_validate(_json(content)).items}
+    except ValueError:
+        return {}
+
+
+async def generate_batch(
+    client: Any,
+    model: str,
+    articles: Sequence[tuple[str, str]],
+    *,
+    n: int = 4,
+    max_chars: int = 3000,
+) -> dict[str, list[str]]:
+    """Questions for several articles in one request: free tiers count requests, not tokens."""
+    ids = {f"A{i}": key for i, (key, _) in enumerate(articles, start=1)}
+    blocks = "\n\n".join(
+        f"[A{i}]\n{text[:max_chars]}" for i, (_, text) in enumerate(articles, start=1)
+    )
+    content = await _chat(
+        client,
+        model,
+        BATCH_GENERATOR_PROMPT.format(k=len(articles), n=n, articles=blocks),
+        max_tokens=8000,
+        temperature=0.7,
+    )
+    out: dict[str, list[str]] = {}
+    for item_id, item in _batch_items(content).items():
+        if item_id in ids:
+            qs = [q.strip() for q in item.questions if 10 <= len(q.strip()) <= 300][:n]
+            if qs:
+                out[ids[item_id]] = qs
+    return out
+
+
+async def answerable_batch(
+    client: Any,
+    model: str,
+    items: Sequence[tuple[str, str, list[str]]],
+    *,
+    max_chars: int = 3000,
+) -> dict[str, list[bool]]:
+    """Round-trip verdicts for several (article, text, questions) in one request.
+
+    An article whose verdict list does not match its questions gets no entry: it is redone
+    on the next run rather than read as rejected.
+    """
+    ids = {f"A{i}": (key, qs) for i, (key, _, qs) in enumerate(items, start=1)}
+    blocks = "\n\n".join(
+        f"[A{i}]\nMətn:\n{text[:max_chars]}\nSuallar:\n"
+        + "\n".join(f"{j}. {q}" for j, q in enumerate(qs, start=1))
+        for i, (_, text, qs) in enumerate(items, start=1)
+    )
+    content = await _chat(
+        client, model, BATCH_JUDGE_PROMPT.format(items=blocks), max_tokens=8000, temperature=0.0
+    )
+    out: dict[str, list[bool]] = {}
+    for item_id, item in _batch_items(content).items():
+        if item_id in ids and len(item.answerable) == len(ids[item_id][1]):
+            out[ids[item_id][0]] = list(item.answerable)
+    return out
+
+
 def load_pairs(path: Path) -> list[Pair]:
     if not path.exists():
         return []
@@ -183,6 +282,7 @@ async def synthesise(
     out: Path,
     *,
     n: int = 4,
+    batch: int = 1,
     pace_s: float = 0.0,
 ) -> list[Pair]:
     """Resumable: articles already in ``out`` are skipped.
@@ -190,43 +290,65 @@ async def synthesise(
     ``generators`` are (client, model) pairs used in order: when one model's daily free quota
     runs out, the next takes over. Mixing generators also varies the questions' style.
     ``judge`` is the (client, model) of the round-trip check, another model family.
+    ``batch`` articles go into one request each for generation and for judging.
     """
     pairs = load_pairs(out)
     done = {p.article for p in pairs}
+    todo = [(k, t) for k, t in articles if k not in done]
     out.parent.mkdir(parents=True, exist_ok=True)
     judge_client, judge_model = judge
     current = 0
-    for i, (key, text) in enumerate(articles, start=1):
-        if key in done:
-            continue
+    for start in range(0, len(todo), batch):
+        chunk = todo[start : start + batch]
         while True:
             if current >= len(generators):
-                log.warning("synth_quota_spent", done=i - 1, total=len(articles))
+                log.warning("synth_quota_spent", done=len(done), total=len(articles))
                 return pairs
             gen_client, gen_model = generators[current]
             try:
-                questions = await generate(gen_client, gen_model, text, n=n)
+                if batch == 1:
+                    key, text = chunk[0]
+                    questions = {key: await generate(gen_client, gen_model, text, n=n)}
+                else:
+                    questions = await generate_batch(gen_client, gen_model, chunk, n=n)
                 break
             except QuotaExhaustedError:
                 log.warning("synth_generator_switch", exhausted=gen_model)
                 current += 1
+        texts = dict(chunk)
         try:
-            verdicts = await answerable(judge_client, judge_model, questions, text)
+            if batch == 1:
+                verdicts = {
+                    k: await answerable(judge_client, judge_model, qs, texts[k])
+                    for k, qs in questions.items()
+                }
+            else:
+                verdicts = await answerable_batch(
+                    judge_client,
+                    judge_model,
+                    [(k, texts[k], qs) for k, qs in questions.items()],
+                )
         except QuotaExhaustedError:
-            log.warning("synth_judge_quota_spent", done=i - 1, total=len(articles))
+            log.warning("synth_judge_quota_spent", done=len(done), total=len(articles))
             return pairs
-        new = [Pair(q, key, gen_model, ok) for q, ok in zip(questions, verdicts, strict=True)]
+        new = [
+            Pair(q, key, gen_model, ok)
+            for key, qs in questions.items()
+            if key in verdicts
+            for q, ok in zip(qs, verdicts[key], strict=True)
+        ]
         with out.open("a", encoding="utf-8") as fh:
             for p in new:
                 fh.write(json.dumps(asdict(p), ensure_ascii=False) + "\n")
         pairs += new
+        done |= {p.article for p in new}
         log.info(
             "synth_progress",
-            done=i,
+            done=len(done),
             total=len(articles),
-            article=key,
             generator=gen_model,
             kept=sum(p.kept for p in new),
+            missing=len(chunk) - len({p.article for p in new}),
         )
         if pace_s:
             await asyncio.sleep(pace_s)

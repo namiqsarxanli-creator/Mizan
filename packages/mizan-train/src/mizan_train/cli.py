@@ -71,7 +71,9 @@ def protected_questions() -> list[str]:
     return out
 
 
-async def _synth(limit: int | None, generators: list[str], judge: str, pace_s: float) -> int:
+async def _synth(
+    limit: int | None, generators: list[str], judge: str, pace_s: float, batch: int
+) -> int:
     settings = get_settings()
     articles = current_articles(snapshot.read(DEFAULT_SNAPSHOT))
     articles = [(k, t) for k, t in articles if k.startswith("art:")][:limit]
@@ -89,6 +91,7 @@ async def _synth(limit: int | None, generators: list[str], judge: str, pace_s: f
             resolve(judge),
             articles,
             DATA / "pairs.jsonl",
+            batch=batch,
             pace_s=pace_s,
         )
     finally:
@@ -159,6 +162,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_synth.add_argument("--judge", default="groq:qwen/qwen3.8-27b")
     p_synth.add_argument("--pace", type=float, default=0.0)
+    p_synth.add_argument("--batch", type=int, default=1, help="articles per request")
     p_build = sub.add_parser("build", help="split, leakage guard, hard negatives")
     p_build.add_argument("--negatives", type=int, default=5)
     p_embed = sub.add_parser("embed", help="fine-tune the embedding model")
@@ -179,7 +183,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return _embed(args.name, cfg)
     if args.command == "synth":
-        return asyncio.run(_synth(args.limit, args.generators, args.judge, args.pace))
+        return asyncio.run(_synth(args.limit, args.generators, args.judge, args.pace, args.batch))
     return asyncio.run(_build(args.negatives))
 
 
