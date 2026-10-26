@@ -38,7 +38,7 @@ log = get_logger(__name__)
 @dataclass(frozen=True, slots=True)
 class TrainConfig:
     base: str = "BAAI/bge-m3"
-    trainable_layers: int = 6
+    trainable_layers: int = 6  # 0 = all layers (full fine-tuning, for a GPU)
     lr: float = 2e-5
     epochs: int = 3
     batch_size: int = 16
@@ -47,14 +47,23 @@ class TrainConfig:
     scale: float = 20.0  # cosine similarity temperature (1 / 0.05)
     warmup_ratio: float = 0.1
     seed: int = 13
+    device: str = "auto"  # "auto" -> CUDA when available, else CPU
+    gradient_checkpointing: bool = False  # trade compute for memory on smaller GPUs
 
 
 def freeze_lower_layers(model: Any, trainable_layers: int) -> int:
-    """Freeze embeddings and all but the top ``trainable_layers``; return trainable params."""
+    """Freeze embeddings and all but the top ``trainable_layers``; return trainable params.
+
+    ``trainable_layers <= 0`` trains everything (full fine-tuning).
+    """
     transformer = model[0].auto_model
+    layers = transformer.encoder.layer
+    if trainable_layers <= 0 or trainable_layers >= len(layers):
+        for p in transformer.parameters():
+            p.requires_grad = True
+        return sum(p.numel() for p in model.parameters() if p.requires_grad)
     for p in transformer.parameters():
         p.requires_grad = False
-    layers = transformer.encoder.layer
     for layer in layers[len(layers) - trainable_layers :]:
         for p in layer.parameters():
             p.requires_grad = True
@@ -105,8 +114,16 @@ def train(
     train_set = [e for e in examples if e.split == "train" and e.positive in articles]
     val_set = [e for e in examples if e.split == "val" and e.positive in articles]
 
-    model = SentenceTransformer(cfg.base, device="cpu")
+    device = (
+        cfg.device if cfg.device != "auto" else ("cuda" if torch.cuda.is_available() else "cpu")
+    )
+    model = SentenceTransformer(cfg.base, device=device)
     model.max_seq_length = cfg.max_seq_length
+    if cfg.gradient_checkpointing:
+        transformer: Any = model[0].auto_model
+        transformer.gradient_checkpointing_enable()
+    # bf16 autocast on GPU: half the activation memory, no loss scaling needed (unlike fp16).
+    autocast = torch.autocast("cuda", dtype=torch.bfloat16, enabled=device == "cuda")
     trainable = freeze_lower_layers(model, cfg.trainable_layers)
     params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(params, lr=cfg.lr, weight_decay=0.01)
@@ -117,14 +134,15 @@ def train(
     )
 
     def embed(texts: list[str]) -> torch.Tensor:
-        features = model.tokenize(texts)
-        out = model(features)["sentence_embedding"]
-        return torch.nn.functional.normalize(out, dim=-1)
+        features = {k: v.to(device) for k, v in model.tokenize(texts).items()}
+        with autocast:
+            out = model(features)["sentence_embedding"]
+        return torch.nn.functional.normalize(out.float(), dim=-1)
 
     history: list[dict[str, Any]] = []
     base_val = evaluate(model, val_set, articles)
     history.append({"epoch": 0, "val": base_val})
-    log.info("embed_val", epoch=0, trainable=trainable, **base_val)
+    log.info("embed_val", epoch=0, trainable=trainable, device=device, **base_val)
     best = (base_val["MRR@10"], 0)
     started = time.perf_counter()
     for epoch in range(1, cfg.epochs + 1):
@@ -143,10 +161,13 @@ def train(
             # Another question's copy of my article is not a negative for me.
             mask = torch.tensor(
                 [[k == e.positive and j != i for j, k in enumerate(passage_keys)]
-                 for i, e in enumerate(batch)]
+                 for i, e in enumerate(batch)],
+                device=device,
             )  # fmt: skip
             scores = scores.masked_fill(mask, float("-inf"))
-            loss = torch.nn.functional.cross_entropy(scores, torch.arange(len(batch)))
+            loss = torch.nn.functional.cross_entropy(
+                scores, torch.arange(len(batch), device=device)
+            )
             loss.backward()  # type: ignore[no-untyped-call]
             torch.nn.utils.clip_grad_norm_(params, 1.0)
             optimizer.step()
@@ -165,6 +186,7 @@ def train(
         "train_examples": len(train_set),
         "val_examples": len(val_set),
         "trainable_params": trainable,
+        "device": device,
         "best_epoch": best[1],
         "minutes": round((time.perf_counter() - started) / 60, 1),
         "history": history,
