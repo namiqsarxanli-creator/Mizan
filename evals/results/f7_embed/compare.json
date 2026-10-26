@@ -1,0 +1,123 @@
+{
+ "base": "bge-m3",
+ "candidate": "bge-m3-mizan",
+ "evals\\datasets\\v0\\retrieval.jsonl": {
+  "n": 70,
+  "Recall@5": {
+   "base": 0.929,
+   "candidate": 0.933,
+   "delta": [
+    0.005,
+    -0.052,
+    0.062
+   ],
+   "significant": false
+  },
+  "MRR@10": {
+   "base": 0.831,
+   "candidate": 0.835,
+   "delta": [
+    0.003,
+    -0.069,
+    0.076
+   ],
+   "significant": false
+  }
+ },
+ "evals\\datasets\\v1\\questions.jsonl": {
+  "n": 185,
+  "Recall@5": {
+   "base": 0.946,
+   "candidate": 0.95,
+   "delta": [
+    0.005,
+    -0.023,
+    0.03
+   ],
+   "significant": false
+  },
+  "MRR@10": {
+   "base": 0.894,
+   "candidate": 0.852,
+   "delta": [
+    -0.042,
+    -0.08,
+    -0.005
+   ],
+   "significant": true
+  }
+ },
+ "evals\\datasets\\v1\\multihop.jsonl": {
+  "n": 40,
+  "Recall@5": {
+   "base": 0.838,
+   "candidate": 0.787,
+   "delta": [
+    -0.05,
+    -0.125,
+    0.025
+   ],
+   "significant": false
+  },
+  "MRR@10": {
+   "base": 0.911,
+   "candidate": 0.901,
+   "delta": [
+    -0.01,
+    -0.063,
+    0.041
+   ],
+   "significant": false
+  }
+ },
+ "evals\\datasets\\v1\\multihop_b.jsonl": {
+  "n": 30,
+  "Recall@5": {
+   "base": 0.7,
+   "candidate": 0.8,
+   "delta": [
+    0.1,
+    0.017,
+    0.183
+   ],
+   "significant": true
+  },
+  "MRR@10": {
+   "base": 0.836,
+   "candidate": 0.928,
+   "delta": [
+    0.092,
+    -0.014,
+    0.208
+   ],
+   "significant": false
+  }
+ },
+ "evals\\datasets\\v1\\court_decisions.jsonl": {
+  "n": 11,
+  "Recall@5": {
+   "base": 0.955,
+   "candidate": 0.955,
+   "delta": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "significant": false
+  },
+  "MRR@10": {
+   "base": 0.848,
+   "candidate": 0.909,
+   "delta": [
+    0.061,
+    -0.091,
+    0.227
+   ],
+   "significant": false
+  }
+ },
+ "gate": {
+  "relative_recall5_gain": 0.004,
+  "passed": false
+ }
+}

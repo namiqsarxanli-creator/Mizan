@@ -1,0 +1,59 @@
+{
+ "config": {
+  "base": "BAAI/bge-m3",
+  "trainable_layers": 0,
+  "lr": 2e-05,
+  "epochs": 3,
+  "batch_size": 32,
+  "hard_negatives": 1,
+  "max_seq_length": 384,
+  "scale": 20.0,
+  "warmup_ratio": 0.1,
+  "seed": 13,
+  "device": "auto",
+  "gradient_checkpointing": true
+ },
+ "train_examples": 603,
+ "val_examples": 111,
+ "trainable_params": 567754752,
+ "device": "cuda",
+ "best_epoch": 3,
+ "minutes": 1.8,
+ "history": [
+  {
+   "epoch": 0,
+   "val": {
+    "R@1": 0.5945945945945946,
+    "R@5": 0.9009009009009009,
+    "MRR@10": 0.7261976261976262
+   }
+  },
+  {
+   "epoch": 1,
+   "loss": 1.1378809809684753,
+   "val": {
+    "R@1": 0.6666666666666666,
+    "R@5": 0.9099099099099099,
+    "MRR@10": 0.7757614757614756
+   }
+  },
+  {
+   "epoch": 2,
+   "loss": 0.4612731436888377,
+   "val": {
+    "R@1": 0.6486486486486487,
+    "R@5": 0.9459459459459459,
+    "MRR@10": 0.78013013013013
+   }
+  },
+  {
+   "epoch": 3,
+   "loss": 0.2794861238863733,
+   "val": {
+    "R@1": 0.6576576576576577,
+    "R@5": 0.954954954954955,
+    "MRR@10": 0.7805555555555556
+   }
+  }
+ ]
+}

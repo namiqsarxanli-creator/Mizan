@@ -43,7 +43,7 @@
 | F4 | 8–9 | Knowledge Graph + məhkəmə qərarları |
 | F5 | 10–12 | Multi-agent sistemi |
 | F6 | 13–14 | Observability platforması |
-| F7 | 15–17 | Embedding fine-tune + reranker distillation |
+| F7 | 15–17 | Embedding fine-tune + reranker distillation (embedding: ❌ gate, sənədləşdirilib) |
 | F8 | 18–20 | LLM fine-tune (verifier, citation extractor, query rewriter) |
 | F9 | 21–22 | Platforma: MCP, durable execution, cache, shadow deploy |
 | F10 | 23 | Müqavilə analizi + təhlükəsizlik |
@@ -230,17 +230,19 @@ query rewriting statistik fayda vermir. Hamısı konfiqurasiya ilə açıla bili
 **Məqsəd:** Azərbaycan hüquqi domain-i üçün öz retrieval modellərin.
 
 ### Həftə 15 — Data
-- [ ] Hər maddə üçün Claude ilə 3–5 sintetik sual → (sual, maddə) cütləri
-- [ ] Keyfiyyət filtri: hər sintetik sual round-trip yoxlamasından keçir
-- [ ] **Hard negative mining:** base model ilə tapılan, amma yanlış olan maddələr
-- [ ] Train / val / test bölgüsü (**data leakage yoxdur:** golden eval dataset-dən heç nə train-ə düşmür)
+- [x] Hər maddə üçün 4 sintetik sual → (sual, maddə) cütləri (Gemini, pulsuz kvota; 329-dan 218 maddə)
+- [x] Keyfiyyət filtri: hər sintetik sual round-trip yoxlamasından keçir (başqa model ailəsi)
+- [x] **Hard negative mining:** base model ilə tapılan, amma yanlış olan maddələr (sitat qonşuları istisna)
+- [x] Train / val / test bölgüsü maddə səviyyəsində (**data leakage yoxdur:** char 3-gram Jaccard guard)
 - [ ] Production feedback datası da əlavə olunur (F6 flywheel)
 
 ### Həftə 16 — Embedding fine-tune
-- [ ] `bge-m3` + `MultipleNegativesRankingLoss` (sentence-transformers)
-- [ ] Hiperparametr axtarışı, W&B-də izləmə
-- [ ] Base vs fine-tuned: Recall@5, MRR, multi-hop ayrıca
-- [ ] Bütün korpusun yeni model ilə yenidən indekslənməsi (blue-green index)
+- [x] `bge-m3` + MNRL (same-article masking, hard negative), RunPod RTX 3090, ~$0.14
+- [x] Hiperparametr axtarışı (iki run, seçim val MRR@10 ilə; W&B əvəzinə JSON report)
+- [x] Base vs fine-tuned: Recall@5, MRR, multi-hop ayrıca (`mizan-train compare`)
+- [x] Yenidən indeksləmə (blue-green, `bge-m3-mizan` əlavə vektor)
+- **Nəticə: gate keçmədi** — sintetik test-də MRR@10 +0.09, insan yazdığı eval-də Recall@5 +0.4%,
+  MRR@10 −0.042 (əhəmiyyətli). Model promote olunmadı. Bax `evals/results/f7_embed/README.md`.
 
 ### Həftə 17 — Reranker distillation
 - [ ] Teacher: Claude ilə relevance label-ləri (0–3 şkala)

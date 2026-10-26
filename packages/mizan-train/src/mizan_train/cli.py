@@ -3,6 +3,7 @@
 mizan-train synth [--limit N]        synthetic questions per article (resumable, paced for Groq)
 mizan-train build                    split, leakage guard, hard negatives -> examples.jsonl
 mizan-train embed --name RUN [--layers 6 --lr 2e-5 --epochs 3]   fine-tune the embedding model
+mizan-train compare [--candidate bge-m3-mizan]   base vs fine-tuned retrieval on the eval sets
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from collections import defaultdict
 from dataclasses import asdict
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 from mizan_core.config import get_settings
 from mizan_core.llm_clients import OpenAICompatible, client_for, split_model
@@ -24,8 +26,9 @@ from mizan_graph.build import build_references
 from mizan_graph.store import Direction, InMemoryGraph
 from mizan_ingestion.chunking import Strategy
 from mizan_retrieval import snapshot
-from mizan_retrieval.cli import DEFAULT_SNAPSHOT, _embedders, _qdrant
+from mizan_retrieval.cli import DEFAULT_SNAPSHOT, _embedders, _qdrant, run_variant
 from mizan_retrieval.corpus import ChunkRecord
+from mizan_retrieval.evaluation import load_dataset, paired_bootstrap
 from mizan_retrieval.search import Hit, Mode, SearchConfig, Searcher, merge_article
 from mizan_train.dataset import (
     BuildReport,
@@ -144,6 +147,42 @@ def _embed(name: str, cfg: TrainConfig) -> int:
     return 0
 
 
+# The F7 gate, fixed before the comparison ran: dense article retrieval on the main v1 set,
+# Recall@5 up by at least 8% relative to the base model.
+PRIMARY_SET = Path("evals/datasets/v1/questions.jsonl")
+MIN_GAIN = 0.08
+
+
+async def _compare(base: str, candidate: str) -> dict[str, Any]:
+    settings = get_settings()
+    client = _qdrant(settings)
+    searcher = Searcher(client, _embedders(settings, [base, candidate]))
+    report: dict[str, Any] = {"base": base, "candidate": candidate}
+    try:
+        for path in EVAL_SETS:
+            questions = load_dataset(path)
+            runs = {}
+            for model in (base, candidate):
+                config = SearchConfig(Mode.DENSE, dense_model=model, strategy=Strategy.ARTICLE)
+                runs[model] = (await run_variant(searcher, config, questions)).per_question
+            rows = paired_bootstrap(runs[base], runs[candidate], metrics=("Recall@5", "MRR@10"))
+            report[str(path)] = {"n": len(runs[base])} | {
+                c.metric: {
+                    "base": round(c.baseline, 3),
+                    "candidate": round(c.candidate, 3),
+                    "delta": [round(x, 3) for x in (c.delta.mean, c.delta.low, c.delta.high)],
+                    "significant": c.significantly_better or c.significantly_worse,
+                }
+                for c in rows
+            }
+    finally:
+        await client.close()
+    primary = report[str(PRIMARY_SET)]["Recall@5"]
+    gain = (primary["candidate"] - primary["base"]) / primary["base"]
+    report["gate"] = {"relative_recall5_gain": round(gain, 3), "passed": gain >= MIN_GAIN}
+    return report
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mizan-train")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -171,6 +210,10 @@ def main(argv: list[str] | None = None) -> int:
     p_embed.add_argument("--lr", type=float, default=DEFAULTS.lr)
     p_embed.add_argument("--epochs", type=int, default=DEFAULTS.epochs)
     p_embed.add_argument("--batch-size", type=int, default=DEFAULTS.batch_size)
+    p_compare = sub.add_parser("compare", help="base vs fine-tuned retrieval")
+    p_compare.add_argument("--base", default="bge-m3")
+    p_compare.add_argument("--candidate", default="bge-m3-mizan")
+    p_compare.add_argument("--out", type=Path, default=Path("evals/results/f7_embed/compare.json"))
 
     args = parser.parse_args(argv)
     if isinstance(sys.stdout, io.TextIOWrapper):
@@ -182,6 +225,12 @@ def main(argv: list[str] | None = None) -> int:
             trainable_layers=args.layers, lr=args.lr, epochs=args.epochs, batch_size=args.batch_size
         )
         return _embed(args.name, cfg)
+    if args.command == "compare":
+        report = asyncio.run(_compare(args.base, args.candidate))
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(report, indent=1), encoding="utf-8")
+        print(json.dumps(report, indent=1))
+        return 0 if report["gate"]["passed"] else 1
     if args.command == "synth":
         return asyncio.run(_synth(args.limit, args.generators, args.judge, args.pace, args.batch))
     return asyncio.run(_build(args.negatives))

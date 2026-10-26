@@ -134,7 +134,9 @@ def train(
     )
 
     def embed(texts: list[str]) -> torch.Tensor:
-        features = {k: v.to(device) for k, v in model.tokenize(texts).items()}
+        features = {
+            k: v.to(device) if torch.is_tensor(v) else v for k, v in model.tokenize(texts).items()
+        }
         with autocast:
             out = model(features)["sentence_embedding"]
         return torch.nn.functional.normalize(out.float(), dim=-1)

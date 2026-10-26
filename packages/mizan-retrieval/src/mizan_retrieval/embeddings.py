@@ -56,6 +56,13 @@ MODELS = {
     )
 }
 
+# bge-m3 fine-tuned on synthetic Labour Code questions (F7, mizan-train embed). The weights are
+# a local artefact, not in git: the model is registered only where they exist, so CI and fresh
+# checkouts see the same two public models as before.
+FINETUNED = Path(os.environ.get("MIZAN_FINETUNED_EMBEDDINGS", "data/train/runs/bge-m3-mizan"))
+if (FINETUNED / "model.safetensors").exists():
+    MODELS["bge-m3-mizan"] = ModelSpec("bge-m3-mizan", str(FINETUNED), 1024)
+
 
 class EmbeddingCache:
     def __init__(self, path: Path) -> None:
