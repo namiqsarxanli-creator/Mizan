@@ -1,0 +1,93 @@
+{
+ "baseline": {
+  "questions": 51,
+  "correct": {
+   "mean": 0.843,
+   "low": 0.745,
+   "high": 0.941,
+   "n": 51
+  },
+  "correct_in_scope": {
+   "mean": 0.833,
+   "low": 0.729,
+   "high": 0.938,
+   "n": 48
+  },
+  "coverage": {
+   "mean": 1.0,
+   "low": 1.0,
+   "high": 1.0,
+   "n": 48
+  },
+  "selective_accuracy": {
+   "mean": 0.833,
+   "low": 0.729,
+   "high": 0.938,
+   "n": 48
+  },
+  "faithfulness": {
+   "mean": 0.901,
+   "low": 0.836,
+   "high": 0.959,
+   "n": 48
+  },
+  "citation_accuracy": {
+   "mean": 0.644,
+   "low": 0.531,
+   "high": 0.754,
+   "n": 48
+  },
+  "p50_latency_ms": 2806.0,
+  "mean_tokens": 4238
+ },
+ "agent": {
+  "questions": 51,
+  "correct": {
+   "mean": 0.588,
+   "low": 0.451,
+   "high": 0.725,
+   "n": 51
+  },
+  "correct_in_scope": {
+   "mean": 0.562,
+   "low": 0.417,
+   "high": 0.688,
+   "n": 48
+  },
+  "coverage": {
+   "mean": 0.708,
+   "low": 0.583,
+   "high": 0.833,
+   "n": 48
+  },
+  "selective_accuracy": {
+   "mean": 0.794,
+   "low": 0.647,
+   "high": 0.912,
+   "n": 34
+  },
+  "faithfulness": {
+   "mean": 0.911,
+   "low": 0.833,
+   "high": 0.974,
+   "n": 34
+  },
+  "citation_accuracy": {
+   "mean": 0.933,
+   "low": 0.883,
+   "high": 0.975,
+   "n": 34
+  },
+  "p50_latency_ms": 26347.7,
+  "mean_tokens": 5566
+ },
+ "paired_correct": {
+  "baseline": "baseline",
+  "candidate": "agent",
+  "delta": -0.255,
+  "low": -0.392,
+  "high": -0.118,
+  "n": 51,
+  "significant": true
+ }
+}
