@@ -4,6 +4,7 @@ mizan-train synth [--limit N]        synthetic questions per article (resumable,
 mizan-train build                    split, leakage guard, hard negatives -> examples.jsonl
 mizan-train embed --name RUN [--layers 6 --lr 2e-5 --epochs 3]   fine-tune the embedding model
 mizan-train compare [--candidate bge-m3-mizan]   base vs fine-tuned retrieval on the eval sets
+mizan-train candidates [--k 20]      dense top-k per question, for reranker distillation
 """
 
 from __future__ import annotations
@@ -38,6 +39,7 @@ from mizan_train.dataset import (
     read_examples,
     write_examples,
 )
+from mizan_train.distill import Candidates, write_candidates
 from mizan_train.embed import TrainConfig, train
 from mizan_train.synth import load_pairs, synthesise
 
@@ -63,6 +65,17 @@ def current_articles(records: list[ChunkRecord], on: date = TODAY) -> list[tuple
                 Hit(r.key, r.article_key, r.parent_key, r.text, 0.0, r.valid_from, r.cites)
             )
     return [(key, merge_article(hits)) for key, hits in sorted(by_article.items())]
+
+
+def article_versions(records: list[ChunkRecord]) -> dict[str, str]:
+    """Every version of every article, keyed "article|valid_from" (chunks merged)."""
+    by_version: dict[str, list[Hit]] = defaultdict(list)
+    for r in records:
+        if r.strategy is Strategy.ARTICLE:
+            by_version[f"{r.article_key}|{r.valid_from.isoformat()}"].append(
+                Hit(r.key, r.article_key, r.parent_key, r.text, 0.0, r.valid_from, r.cites)
+            )
+    return {key: merge_article(hits) for key, hits in sorted(by_version.items())}
 
 
 def protected_questions() -> list[str]:
@@ -147,6 +160,46 @@ def _embed(name: str, cfg: TrainConfig) -> int:
     return 0
 
 
+async def _candidates(k: int) -> int:
+    """Dense top-k articles per question: synthetic splits and every eval set."""
+    questions: list[tuple[str, str, str, list[str], date]] = [
+        (f"syn{i}", e.question, e.split, [e.positive], TODAY)
+        for i, e in enumerate(read_examples(DATA / "examples.jsonl"))
+    ]
+    for path in EVAL_SETS:
+        split = f"eval:{path.stem}"
+        questions += [
+            (q.id, q.question, split, sorted(q.relevant), q.as_of)
+            for q in load_dataset(path)
+            if q.relevant
+        ]
+    settings = get_settings()
+    client = _qdrant(settings)
+    searcher = Searcher(client, _embedders(settings, ["bge-m3"]))
+    config = SearchConfig(Mode.DENSE, dense_model="bge-m3", strategy=Strategy.ARTICLE)
+    rows = []
+    try:
+        for qid, text, split, gold, as_of in questions:
+            hits = await searcher.search(
+                text, source_id=LABOUR_CODE, as_of=as_of, config=config, k=2 * k
+            )
+            seen: dict[str, str] = {}
+            for h in hits:
+                seen.setdefault(h.article_key, f"{h.article_key}|{h.valid_from.isoformat()}")
+            top = list(seen.items())[:k]
+            rows.append(
+                Candidates(qid, text, split, gold, [a for a, _ in top], [p for _, p in top])
+            )
+    finally:
+        await client.close()
+    write_candidates(DATA / "rerank_candidates.jsonl", rows)
+    texts = article_versions(snapshot.read(DEFAULT_SNAPSHOT))
+    (DATA / "article_versions.json").write_text(json.dumps(texts, ensure_ascii=False), "utf-8")
+    recall = sum(any(g in r.articles for g in r.gold) for r in rows) / len(rows)
+    print(json.dumps({"questions": len(rows), "texts": len(texts), f"gold_in_top{k}": recall}))
+    return 0
+
+
 # The F7 gate, fixed before the comparison ran: dense article retrieval on the main v1 set,
 # Recall@5 up by at least 8% relative to the base model.
 PRIMARY_SET = Path("evals/datasets/v1/questions.jsonl")
@@ -210,6 +263,8 @@ def main(argv: list[str] | None = None) -> int:
     p_embed.add_argument("--lr", type=float, default=DEFAULTS.lr)
     p_embed.add_argument("--epochs", type=int, default=DEFAULTS.epochs)
     p_embed.add_argument("--batch-size", type=int, default=DEFAULTS.batch_size)
+    p_cand = sub.add_parser("candidates", help="dense top-k per question for distillation")
+    p_cand.add_argument("--k", type=int, default=20)
     p_compare = sub.add_parser("compare", help="base vs fine-tuned retrieval")
     p_compare.add_argument("--base", default="bge-m3")
     p_compare.add_argument("--candidate", default="bge-m3-mizan")
@@ -225,6 +280,8 @@ def main(argv: list[str] | None = None) -> int:
             trainable_layers=args.layers, lr=args.lr, epochs=args.epochs, batch_size=args.batch_size
         )
         return _embed(args.name, cfg)
+    if args.command == "candidates":
+        return asyncio.run(_candidates(args.k))
     if args.command == "compare":
         report = asyncio.run(_compare(args.base, args.candidate))
         args.out.parent.mkdir(parents=True, exist_ok=True)
