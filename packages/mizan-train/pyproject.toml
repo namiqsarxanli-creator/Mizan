@@ -9,6 +9,8 @@ dependencies = [
     "mizan-graph",
     "mizan-ingestion",
     "mizan-retrieval",
+    "onnx>=1.17",
+    "onnxruntime>=1.20",
     "pydantic>=2.9",
 ]
 

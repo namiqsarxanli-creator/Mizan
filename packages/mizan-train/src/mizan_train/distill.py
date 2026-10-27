@@ -60,21 +60,29 @@ def read_candidates(path: Path) -> list[Candidates]:
     return [Candidates(**json.loads(line)) for line in lines if line]
 
 
-def rank_metrics(rows: Sequence[Candidates], scores: Sequence[Sequence[float]]) -> dict[str, float]:
-    """Hit@1, Recall@5 and MRR@10 of the gold articles after sorting each list by ``scores``."""
-    hit1, recall5, mrr = [], [], []
+def per_question(
+    rows: Sequence[Candidates], scores: Sequence[Sequence[float]]
+) -> list[dict[str, float]]:
+    """Hit@1, Recall@5 and MRR@10 of each question after sorting its list by ``scores``."""
+    out = []
     for row, s in zip(rows, scores, strict=True):
         order = [row.articles[i] for i in np.argsort(-np.asarray(s), kind="stable")]
         gold = set(row.gold)
-        hit1.append(float(order[0] in gold))
-        recall5.append(len(gold.intersection(order[:5])) / len(gold))
         first = next((i for i, a in enumerate(order[:10], 1) if a in gold), 0)
-        mrr.append(1 / first if first else 0.0)
-    return {
-        "Hit@1": float(np.mean(hit1)),
-        "Recall@5": float(np.mean(recall5)),
-        "MRR@10": float(np.mean(mrr)),
-    }
+        out.append(
+            {
+                "Hit@1": float(order[0] in gold),
+                "Recall@5": len(gold.intersection(order[:5])) / len(gold),
+                "MRR@10": 1 / first if first else 0.0,
+            }
+        )
+    return out
+
+
+def rank_metrics(rows: Sequence[Candidates], scores: Sequence[Sequence[float]]) -> dict[str, float]:
+    """``per_question`` averaged over the questions."""
+    each = per_question(rows, scores)
+    return {m: float(np.mean([q[m] for q in each])) for m in ("Hit@1", "Recall@5", "MRR@10")}
 
 
 def retriever_order(rows: Sequence[Candidates]) -> list[list[float]]:

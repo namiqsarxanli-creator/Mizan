@@ -5,6 +5,7 @@ mizan-train build                    split, leakage guard, hard negatives -> exa
 mizan-train embed --name RUN [--layers 6 --lr 2e-5 --epochs 3]   fine-tune the embedding model
 mizan-train compare [--candidate bge-m3-mizan]   base vs fine-tuned retrieval on the eval sets
 mizan-train candidates [--k 20]      dense top-k per question, for reranker distillation
+mizan-train rerank-report            dense vs teacher vs student (+ONNX int8): quality, latency
 """
 
 from __future__ import annotations
@@ -13,7 +14,9 @@ import argparse
 import asyncio
 import io
 import json
+import statistics
 import sys
+import time
 from collections import defaultdict
 from dataclasses import asdict
 from datetime import date
@@ -29,7 +32,7 @@ from mizan_ingestion.chunking import Strategy
 from mizan_retrieval import snapshot
 from mizan_retrieval.cli import DEFAULT_SNAPSHOT, _embedders, _qdrant, run_variant
 from mizan_retrieval.corpus import ChunkRecord
-from mizan_retrieval.evaluation import load_dataset, paired_bootstrap
+from mizan_retrieval.evaluation import bootstrap, load_dataset, paired_bootstrap
 from mizan_retrieval.search import Hit, Mode, SearchConfig, Searcher, merge_article
 from mizan_train.dataset import (
     BuildReport,
@@ -39,7 +42,17 @@ from mizan_train.dataset import (
     read_examples,
     write_examples,
 )
-from mizan_train.distill import Candidates, write_candidates
+from mizan_train.distill import (
+    STUDENT,
+    TEACHER,
+    Candidates,
+    per_question,
+    rank_metrics,
+    read_candidates,
+    retriever_order,
+    score,
+    write_candidates,
+)
 from mizan_train.embed import TrainConfig, train
 from mizan_train.synth import load_pairs, synthesise
 
@@ -236,6 +249,93 @@ async def _compare(base: str, candidate: str) -> dict[str, Any]:
     return report
 
 
+RERANK = DATA / "rerank"
+MIN_RETENTION = 0.95  # pre-registered: evals/results/f7_rerank/PREREGISTRATION.md
+
+
+def _latency(model: Any, rows: list[Candidates], texts: dict[str, str]) -> dict[str, float]:
+    """p50 / p95 seconds to rescore one question's candidate list on this CPU."""
+    seconds = []
+    for r in rows:
+        started = time.perf_counter()
+        score(model, [r], texts, batch_size=16)
+        seconds.append(time.perf_counter() - started)
+    ordered = sorted(seconds)
+    return {
+        "p50_s": round(statistics.median(ordered), 3),
+        "p95_s": round(ordered[min(len(ordered) - 1, int(0.95 * len(ordered)))], 3),
+    }
+
+
+def _rerank_report(latency_questions: int) -> dict[str, Any]:
+    from sentence_transformers import CrossEncoder
+
+    from mizan_train.onnx_export import OnnxCrossEncoder, export
+
+    rows = read_candidates(RERANK / "scored_candidates.jsonl")
+    student_scores = {
+        r["split"] + "/" + r["id"]: r["student"]
+        for r in map(json.loads, (RERANK / "all_scores.jsonl").read_text("utf-8").splitlines())
+    }
+    texts = json.loads((DATA / "article_versions.json").read_text(encoding="utf-8"))
+    evals = [r for r in rows if r.split.startswith("eval:")]
+    model_dir = RERANK / "student"
+    onnx_dir = RERANK / "onnx"
+    if not (onnx_dir / "model.int8.onnx").exists():
+        export(model_dir, onnx_dir)
+    int8 = OnnxCrossEncoder(onnx_dir)
+    systems = {
+        "dense": retriever_order(evals),
+        "teacher": [r.teacher for r in evals],
+        "student": [student_scores[f"{r.split}/{r.id}"] for r in evals],
+        "student-int8": score(int8, evals, texts, batch_size=16),
+    }
+    report: dict[str, Any] = {"questions": len(evals), "sets": {}}
+    for split in sorted({r.split for r in evals}):
+        idx = [i for i, r in enumerate(evals) if r.split == split]
+        part = [evals[i] for i in idx]
+        report["sets"][split] = {"n": len(idx)} | {
+            name: {k: round(v, 3) for k, v in rank_metrics(part, [s[i] for i in idx]).items()}
+            for name, s in systems.items()
+        }
+    pooled = {name: per_question(evals, s) for name, s in systems.items()}
+    report["pooled"] = {
+        name: {m: round(statistics.fmean(q[m] for q in each), 3) for m in each[0]}
+        for name, each in pooled.items()
+    }
+    for name in ("teacher", "student", "student-int8"):
+        deltas = [
+            c["MRR@10"] - d["MRR@10"] for c, d in zip(pooled[name], pooled["dense"], strict=True)
+        ]
+        est = bootstrap(deltas)
+        report["pooled"][name]["MRR@10_vs_dense"] = [
+            round(x, 3) for x in (est.mean, est.low, est.high)
+        ]
+    teacher_mrr = statistics.fmean(q["MRR@10"] for q in pooled["teacher"])
+    report["retention"] = {
+        name: round(statistics.fmean(q["MRR@10"] for q in pooled[name]) / teacher_mrr, 3)
+        for name in ("student", "student-int8")
+    }
+    report["gate"] = {
+        "min_retention": MIN_RETENTION,
+        "passed": report["retention"]["student"] >= MIN_RETENTION,
+        "int8_passed": report["retention"]["student-int8"] >= MIN_RETENTION,
+        "teacher_beats_dense": report["pooled"]["teacher"]["MRR@10_vs_dense"][1] > 0,
+    }
+    sample = evals[:: max(len(evals) // latency_questions, 1)][:latency_questions]
+    report["latency_cpu"] = {
+        "questions": len(sample),
+        "candidates": len(sample[0].articles),
+        "student-int8": _latency(int8, sample, texts),
+        "student": _latency(
+            CrossEncoder(str(model_dir), max_length=512, device="cpu"), sample, texts
+        ),
+        "teacher": _latency(CrossEncoder(TEACHER, max_length=512, device="cpu"), sample, texts),
+    }
+    report["models"] = {"teacher": TEACHER, "student_base": STUDENT}
+    return report
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mizan-train")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -265,6 +365,9 @@ def main(argv: list[str] | None = None) -> int:
     p_embed.add_argument("--batch-size", type=int, default=DEFAULTS.batch_size)
     p_cand = sub.add_parser("candidates", help="dense top-k per question for distillation")
     p_cand.add_argument("--k", type=int, default=20)
+    p_rr = sub.add_parser("rerank-report", help="distilled reranker: quality and latency")
+    p_rr.add_argument("--latency-questions", type=int, default=20)
+    p_rr.add_argument("--out", type=Path, default=Path("evals/results/f7_rerank/report.json"))
     p_compare = sub.add_parser("compare", help="base vs fine-tuned retrieval")
     p_compare.add_argument("--base", default="bge-m3")
     p_compare.add_argument("--candidate", default="bge-m3-mizan")
@@ -282,6 +385,12 @@ def main(argv: list[str] | None = None) -> int:
         return _embed(args.name, cfg)
     if args.command == "candidates":
         return asyncio.run(_candidates(args.k))
+    if args.command == "rerank-report":
+        report = _rerank_report(args.latency_questions)
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(report, indent=1), encoding="utf-8")
+        print(json.dumps(report, indent=1))
+        return 0 if report["gate"]["passed"] else 1
     if args.command == "compare":
         report = asyncio.run(_compare(args.base, args.candidate))
         args.out.parent.mkdir(parents=True, exist_ok=True)

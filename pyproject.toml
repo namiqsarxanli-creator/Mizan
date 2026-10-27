@@ -118,7 +118,7 @@ explicit_package_bases = true
 exclude = ['(^|/|\\)conftest\.py$']
 
 [[tool.mypy.overrides]]
-module = ["asyncpg", "asyncpg.*"]
+module = ["asyncpg", "asyncpg.*", "onnxruntime", "onnxruntime.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]
