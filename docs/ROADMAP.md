@@ -41,7 +41,7 @@
 | F2 | 4–5 | Baseline retrieval (hybrid + rerank) |
 | F3 | 6–7 | Eval təməli: golden dataset, CI gate, judge kalibrasiyası |
 | F4 | 8–9 | Knowledge Graph + məhkəmə qərarları |
-| F5 | 10–12 | Multi-agent sistemi |
+| F5 | 10–12 | Multi-agent sistemi (DoD 1–2 ✅, 3 ❌ — sənədləşdirilib) |
 | F6 | 13–14 | Observability platforması |
 | F7 | 15–17 | Embedding fine-tune + reranker distillation (embedding: ❌ gate, sənədləşdirilib) |
 | F8 | 18–20 | LLM fine-tune (verifier, citation extractor, query rewriter) |
@@ -198,6 +198,10 @@ query rewriting statistik fayda vermir. Hamısı konfiqurasiya ilə açıla bili
 - [ ] **Kalibrə olunmuş inam:** confidence score + imtina həddi (0.5) var; kalibrasiya eval nəticəsinə bağlıdır
 
 **✅ DoD:** Faithfulness ≥ 0.90, citation accuracy ≥ 0.90. Agent versiyası baseline RAG ilə müqayisə cədvəlində statistik əhəmiyyətli şəkildə üstündür.
+
+**Nəticə (pre-registered, 51 sual):** faithfulness 0.912 ✅, citation accuracy 0.920 ✅ (baseline 0.644),
+amma `correct` agent − baseline = −0.118 [−0.235, −0.02] ❌. Agent default deyil; `/v1/agent`
+opt-in rejim kimi qalır. Səhv təhlili və növbəti addımlar: `evals/results/f5_agent/README.md`.
 
 ---
 
