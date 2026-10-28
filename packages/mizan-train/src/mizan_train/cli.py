@@ -6,6 +6,7 @@ mizan-train embed --name RUN [--layers 6 --lr 2e-5 --epochs 3]   fine-tune the e
 mizan-train compare [--candidate bge-m3-mizan]   base vs fine-tuned retrieval on the eval sets
 mizan-train candidates [--k 20]      dense top-k per question, for reranker distillation
 mizan-train rerank-report            dense vs teacher vs student (+ONNX int8): quality, latency
+mizan-train tokenizers               token efficiency of candidate base models on Azerbaijani
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ from typing import Any
 
 from mizan_core.config import get_settings
 from mizan_core.llm_clients import OpenAICompatible, client_for, split_model
-from mizan_core.logging import configure_logging
+from mizan_core.logging import configure_logging, get_logger
 from mizan_graph.build import build_references
 from mizan_graph.store import Direction, InMemoryGraph
 from mizan_ingestion.chunking import Strategy
@@ -55,6 +56,8 @@ from mizan_train.distill import (
 )
 from mizan_train.embed import TrainConfig, train
 from mizan_train.synth import load_pairs, synthesise
+
+log = get_logger(__name__)
 
 LABOUR_CODE = 46943
 TODAY = date(2026, 10, 13)  # the corpus snapshot's "today", as in the eval datasets
@@ -336,6 +339,46 @@ def _rerank_report(latency_questions: int) -> dict[str, Any]:
     return report
 
 
+# Candidate base models for F8 (small, open, ungated; Llama and Gemma via unsloth's mirrors),
+# plus the serving LLM and the embedding model as references.
+TOKENIZERS = [
+    "Qwen/Qwen2.5-1.5B-Instruct",
+    "Qwen/Qwen3-1.7B",
+    "Qwen/Qwen3.5-2B",
+    "Qwen/Qwen3.5-4B",
+    "unsloth/Llama-3.2-1B-Instruct",
+    "unsloth/gemma-3-1b-it",
+    "unsloth/gemma-3n-E2B-it",
+    "openai/gpt-oss-20b",
+    "BAAI/bge-m3",
+]
+
+
+def _tokenizers(names: list[str]) -> dict[str, Any]:
+    from transformers import AutoTokenizer
+
+    from mizan_train.tokenizer_stats import corpus_stats
+
+    law = [t for _, t in current_articles(snapshot.read(DEFAULT_SNAPSHOT))]
+    questions = protected_questions()
+    report: dict[str, Any] = {
+        "corpora": {
+            "law": {"texts": len(law), "chars": sum(map(len, law))},
+            "questions": {"texts": len(questions), "chars": sum(map(len, questions))},
+        },
+        "tokenizers": {},
+    }
+    for name in names:
+        tokenizer = AutoTokenizer.from_pretrained(name)
+        report["tokenizers"][name] = {
+            "vocab": len(tokenizer),
+            "law": corpus_stats(tokenizer, law),
+            "questions": corpus_stats(tokenizer, questions),
+        }
+        log.info("tokenizer_stats", tokenizer=name, **report["tokenizers"][name]["law"])
+    return report
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mizan-train")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -365,6 +408,9 @@ def main(argv: list[str] | None = None) -> int:
     p_embed.add_argument("--batch-size", type=int, default=DEFAULTS.batch_size)
     p_cand = sub.add_parser("candidates", help="dense top-k per question for distillation")
     p_cand.add_argument("--k", type=int, default=20)
+    p_tok = sub.add_parser("tokenizers", help="token efficiency on Azerbaijani")
+    p_tok.add_argument("--models", nargs="+", default=TOKENIZERS)
+    p_tok.add_argument("--out", type=Path, default=Path("evals/results/f8_tokenizers/report.json"))
     p_rr = sub.add_parser("rerank-report", help="distilled reranker: quality and latency")
     p_rr.add_argument("--latency-questions", type=int, default=20)
     p_rr.add_argument("--out", type=Path, default=Path("evals/results/f7_rerank/report.json"))
@@ -385,6 +431,12 @@ def main(argv: list[str] | None = None) -> int:
         return _embed(args.name, cfg)
     if args.command == "candidates":
         return asyncio.run(_candidates(args.k))
+    if args.command == "tokenizers":
+        report = _tokenizers(args.models)
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(report, indent=1, ensure_ascii=False), encoding="utf-8")
+        print(json.dumps(report, indent=1, ensure_ascii=False))
+        return 0
     if args.command == "rerank-report":
         report = _rerank_report(args.latency_questions)
         args.out.parent.mkdir(parents=True, exist_ok=True)

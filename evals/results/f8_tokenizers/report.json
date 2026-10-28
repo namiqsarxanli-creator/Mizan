@@ -1,0 +1,149 @@
+{
+ "corpora": {
+  "law": {
+   "texts": 331,
+   "chars": 437892
+  },
+  "questions": {
+   "texts": 351,
+   "chars": 23171
+  }
+ },
+ "tokenizers": {
+  "Qwen/Qwen2.5-1.5B-Instruct": {
+   "vocab": 151665,
+   "law": {
+    "tokens": 223711,
+    "fertility": 4.05,
+    "chars_per_token": 1.957,
+    "fragmented_words": 0.732
+   },
+   "questions": {
+    "tokens": 12147,
+    "fertility": 3.834,
+    "chars_per_token": 1.908,
+    "fragmented_words": 0.785
+   }
+  },
+  "Qwen/Qwen3-1.7B": {
+   "vocab": 151669,
+   "law": {
+    "tokens": 223711,
+    "fertility": 4.05,
+    "chars_per_token": 1.957,
+    "fragmented_words": 0.732
+   },
+   "questions": {
+    "tokens": 12147,
+    "fertility": 3.834,
+    "chars_per_token": 1.908,
+    "fragmented_words": 0.785
+   }
+  },
+  "Qwen/Qwen3.5-2B": {
+   "vocab": 248077,
+   "law": {
+    "tokens": 173543,
+    "fertility": 3.141,
+    "chars_per_token": 2.523,
+    "fragmented_words": 0.622
+   },
+   "questions": {
+    "tokens": 9434,
+    "fertility": 2.978,
+    "chars_per_token": 2.456,
+    "fragmented_words": 0.649
+   }
+  },
+  "Qwen/Qwen3.5-4B": {
+   "vocab": 248077,
+   "law": {
+    "tokens": 173543,
+    "fertility": 3.141,
+    "chars_per_token": 2.523,
+    "fragmented_words": 0.622
+   },
+   "questions": {
+    "tokens": 9434,
+    "fertility": 2.978,
+    "chars_per_token": 2.456,
+    "fragmented_words": 0.649
+   }
+  },
+  "unsloth/Llama-3.2-1B-Instruct": {
+   "vocab": 128256,
+   "law": {
+    "tokens": 215353,
+    "fertility": 3.898,
+    "chars_per_token": 2.033,
+    "fragmented_words": 0.701
+   },
+   "questions": {
+    "tokens": 11762,
+    "fertility": 3.713,
+    "chars_per_token": 1.97,
+    "fragmented_words": 0.719
+   }
+  },
+  "unsloth/gemma-3-1b-it": {
+   "vocab": 262145,
+   "law": {
+    "tokens": 175312,
+    "fertility": 3.173,
+    "chars_per_token": 2.498,
+    "fragmented_words": 0.631
+   },
+   "questions": {
+    "tokens": 9745,
+    "fertility": 3.076,
+    "chars_per_token": 2.378,
+    "fragmented_words": 0.655
+   }
+  },
+  "unsloth/gemma-3n-E2B-it": {
+   "vocab": 262400,
+   "law": {
+    "tokens": 175312,
+    "fertility": 3.173,
+    "chars_per_token": 2.498,
+    "fragmented_words": 0.631
+   },
+   "questions": {
+    "tokens": 9745,
+    "fertility": 3.076,
+    "chars_per_token": 2.378,
+    "fragmented_words": 0.655
+   }
+  },
+  "openai/gpt-oss-20b": {
+   "vocab": 200019,
+   "law": {
+    "tokens": 135888,
+    "fertility": 2.46,
+    "chars_per_token": 3.222,
+    "fragmented_words": 0.575
+   },
+   "questions": {
+    "tokens": 7877,
+    "fertility": 2.486,
+    "chars_per_token": 2.942,
+    "fragmented_words": 0.604
+   }
+  },
+  "BAAI/bge-m3": {
+   "vocab": 250002,
+   "law": {
+    "tokens": 93757,
+    "fertility": 1.697,
+    "chars_per_token": 4.67,
+    "fragmented_words": 0.101
+   },
+   "questions": {
+    "tokens": 5690,
+    "fertility": 1.796,
+    "chars_per_token": 4.072,
+    "fragmented_words": 0.141
+   }
+  }
+ }
+}
