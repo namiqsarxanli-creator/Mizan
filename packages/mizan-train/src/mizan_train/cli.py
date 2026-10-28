@@ -9,6 +9,7 @@ mizan-train rerank-report            dense vs teacher vs student (+ONNX int8): q
 mizan-train tokenizers               token efficiency of candidate base models on Azerbaijani
 mizan-train verify-synth [--batch 8] constructed verification claims (F8 verifier data)
 mizan-train verify-api [--split test] the production (API) verifier on the constructed claims
+mizan-train verifier-report --gpu-usd-per-hour 0.22   local vs API verifier: quality and cost
 """
 
 from __future__ import annotations
@@ -505,6 +506,71 @@ def _tokenizers(names: list[str]) -> dict[str, Any]:
     return report
 
 
+VERIFIER = DATA / "verifier"
+MIN_QUALITY = 0.95  # pre-registered: evals/results/f8_verifier/PREREGISTRATION.md
+MIN_COST_RATIO = 5.0
+
+
+def _verifier_report(gpu_usd_per_hour: float) -> dict[str, Any]:
+    from mizan_core.genai import cost_usd
+    from mizan_train.verifier import confusion, macro_f1
+
+    def read(path: Path) -> dict[str, dict[str, Any]]:
+        rows = [json.loads(line) for line in path.read_text("utf-8").splitlines() if line]
+        return {r["key"]: r for r in rows}
+
+    api = read(DATA / "verify_api_test.jsonl")
+    local = read(VERIFIER / "verifier_test.jsonl")
+    keys = sorted(api.keys() & local.keys())
+    if len(keys) != len(local):
+        raise SystemExit(f"API scored {len(api)} of {len(local)} test claims; run verify-api")
+    gold = [local[k]["label"] for k in keys]
+    report: dict[str, Any] = {"test_claims": len(keys)}
+    for name, rows in (("api", api), ("local", local)):
+        pred = [rows[k]["pred"] for k in keys]
+        kinds = sorted({local[k]["kind"] for k in keys})
+        report[name] = macro_f1(gold, pred) | {
+            "confusion": confusion(gold, pred),
+            "accuracy_by_kind": {
+                kind: round(
+                    statistics.fmean(
+                        rows[k]["pred"] == local[k]["label"]
+                        for k in keys
+                        if local[k]["kind"] == kind
+                    ),
+                    4,
+                )
+                for kind in kinds
+            },
+        }
+    api_cost = statistics.fmean(
+        cost_usd(api[k]["model"], api[k]["input_tokens"], api[k]["output_tokens"]) or 0.0
+        for k in keys
+    )
+    throughput = json.loads((VERIFIER / "verifier_throughput.json").read_text("utf-8"))
+    best = max(throughput["throughput"].values(), key=lambda t: t["claims_per_s"])
+    local_cost = gpu_usd_per_hour / (best["claims_per_s"] * 3600)
+    quality = report["local"]["macro_f1"] / report["api"]["macro_f1"]
+    report["cost_per_claim_usd"] = {
+        "api": round(api_cost, 8),
+        "local": round(local_cost, 8),
+        "local_basis": f"{gpu_usd_per_hour} USD/h, {best['claims_per_s']} claims/s "
+        f"({throughput['gpu']}, {throughput['base']})",
+        "ratio": round(api_cost / local_cost, 1),
+    }
+    report["latency"] = {
+        "api_p50_s": round(statistics.median(api[k]["latency_s"] for k in keys), 3),
+        "local_batch1_ms": throughput["throughput"]["1"]["p_claim_ms"],
+    }
+    report["gate"] = {
+        "quality_retention": round(quality, 3),
+        "quality_passed": quality >= MIN_QUALITY,
+        "cost_passed": api_cost / local_cost >= MIN_COST_RATIO,
+    }
+    report["base"] = throughput["base"]
+    return report
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mizan-train")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -534,6 +600,9 @@ def main(argv: list[str] | None = None) -> int:
     p_embed.add_argument("--batch-size", type=int, default=DEFAULTS.batch_size)
     p_cand = sub.add_parser("candidates", help="dense top-k per question for distillation")
     p_cand.add_argument("--k", type=int, default=20)
+    p_vr = sub.add_parser("verifier-report", help="local vs API verifier")
+    p_vr.add_argument("--gpu-usd-per-hour", type=float, default=0.22)
+    p_vr.add_argument("--out", type=Path, default=Path("evals/results/f8_verifier/report.json"))
     p_va = sub.add_parser("verify-api", help="the API verifier on constructed claims")
     p_va.add_argument("--split", default="test")
     p_va.add_argument("--pace", type=float, default=2.5)
@@ -575,6 +644,12 @@ def main(argv: list[str] | None = None) -> int:
         return _embed(args.name, cfg)
     if args.command == "candidates":
         return asyncio.run(_candidates(args.k))
+    if args.command == "verifier-report":
+        report = _verifier_report(args.gpu_usd_per_hour)
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(report, indent=1), encoding="utf-8")
+        print(json.dumps(report, indent=1))
+        return 0 if report["gate"]["quality_passed"] and report["gate"]["cost_passed"] else 1
     if args.command == "verify-api":
         return asyncio.run(_verify_api(args.split, args.pace))
     if args.command == "verify-synth":
