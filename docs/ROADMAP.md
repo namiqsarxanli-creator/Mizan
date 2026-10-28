@@ -43,7 +43,7 @@
 | F4 | 8–9 | Knowledge Graph + məhkəmə qərarları |
 | F5 | 10–12 | Multi-agent sistemi (DoD 1–2 ✅, 3 ❌ — sənədləşdirilib) |
 | F6 | 13–14 | Observability platforması |
-| F7 | 15–17 | Embedding fine-tune + reranker distillation (embedding: ❌ gate, sənədləşdirilib) |
+| F7 | 15–17 | Embedding fine-tune + reranker distillation (hər iki gate ❌ — sənədləşdirilib, ADR-0009) |
 | F8 | 18–20 | LLM fine-tune (verifier, citation extractor, query rewriter) |
 | F9 | 21–22 | Platforma: MCP, durable execution, cache, shadow deploy |
 | F10 | 23 | Müqavilə analizi + təhlükəsizlik |
@@ -249,13 +249,17 @@ opt-in rejim kimi qalır. Səhv təhlili və növbəti addımlar: `evals/results
   MRR@10 −0.042 (əhəmiyyətli). Model promote olunmadı. Bax `evals/results/f7_embed/README.md`.
 
 ### Həftə 17 — Reranker distillation
-- [ ] Teacher: Claude ilə relevance label-ləri (0–3 şkala)
-- [ ] Student: kiçik cross-encoder
-- [ ] Müqayisə: keyfiyyət / latency / xərc
-- [ ] ONNX export + kvantizasiya (CPU-da inference)
-- [ ] **ADR-009:** Model serving strategiyası
+- [x] Teacher: `bge-reranker-v2-m3` *(LLM label-ləri əvəzinə: pulsuz kvota darboğazdır, distillation-ın məqsədi zatən bu modeli ucuzlaşdırmaqdır)*
+- [x] Student: `mmarco-mMiniLMv2-L12` (118M), dense top-20 üzərində listwise KL; RunPod RTX 3090, ~$0.10
+- [x] Müqayisə: keyfiyyət / latency / xərc (`mizan-train rerank-report`, pre-registered)
+- [x] ONNX export + dinamik int8 kvantizasiya (CPU-da inference)
+- [x] **ADR-009:** Model serving strategiyası
 
 **✅ DoD:** Fine-tuned embedding Recall@5-də base modeldən ≥ 8% yaxşıdır, distilled reranker teacher keyfiyyətinin ≥ 95%-ni saxlayır.
+
+**Nəticə: hər iki gate keçmədi** — embedding (yuxarıda); reranker student teacher-in 93%-ni saxlayır
+və dense-dən əhəmiyyətli dərəcədə pisdir, teacher-in özünün qazancı da əhəmiyyətli deyil. Serving:
+dense `bge-m3`, reranker-siz (ADR-0009). Bax `evals/results/f7_rerank/README.md`.
 
 ---
 

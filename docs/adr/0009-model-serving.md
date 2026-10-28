@@ -12,7 +12,7 @@ articles), and both failed:
 | Candidate | Gate | Result |
 |---|---|---|
 | `bge-m3-mizan`: bge-m3 fine-tuned on 603 synthetic questions | Recall@5 +8% relative on v1 | +0.4%; MRR@10 −0.042 (significant) |
-| Distilled reranker: MiniLM-L12, 118M, student of bge-reranker-v2-m3 | MRR@10 ≥ 95% of the teacher | 93% (int8: 92%); −0.040 vs dense (significant) |
+| Distilled reranker: MiniLM-L12, 118M, student of bge-reranker-v2-m3 | MRR@10 ≥ 95% of the teacher | 93% (int8: 93.5%); −0.040 vs dense (significant) |
 
 The serving machine is a laptop-class CPU: 8 cores and 16 GB of RAM, shared with Postgres,
 Qdrant and Neo4j. The F7 measurements on this CPU, rescoring 20 candidates per question:
@@ -20,15 +20,18 @@ Qdrant and Neo4j. The F7 measurements on this CPU, rescoring 20 candidates per q
 | Scorer | MRR@10 (pooled) | vs dense | p50 latency |
 |---|---|---|---|
 | bge-m3 dense, no rerank (serving) | 0.876 | – | ~0.2 s (whole search) |
-| bge-reranker-v2-m3 (teacher) | 0.900 | +0.023 [−0.001, 0.049] | 19 s |
-| student, PyTorch fp32 | 0.837 | −0.040 [−0.07, −0.01] | 1.8 s |
-| student, ONNX dynamic int8 | 0.825 | −0.052 [−0.08, −0.02] | ~2.5 s |
+| bge-reranker-v2-m3 (teacher) | 0.900 | +0.023 [−0.001, 0.049] | 19–31 s |
+| student, PyTorch fp32 | 0.837 | −0.040 [−0.07, −0.01] | 1.8–3.2 s |
+| student, ONNX dynamic int8 | 0.841 | −0.036 [−0.066, −0.004] | 2.5–4.0 s |
+
+Latency ranges span two runs on different days, because the machine's load differs. The order of
+the scorers was the same in both runs.
 
 ## Options considered
 | Option | Pros | Cons |
 |---|---|---|
 | A. Dense bge-m3 only (current) | best measured quality per second; nothing to host | leaves the teacher's small, non-significant gain on the table |
-| B. Teacher reranker | +0.023 MRR@10 (CI touches 0) | 19 s per question on CPU: unusable interactively |
+| B. Teacher reranker | +0.023 MRR@10 (CI touches 0) | 19–31 s per question on CPU: unusable interactively |
 | C. Distilled student (fp32 or int8) | 10x faster than the teacher | significantly *worse* than not reranking |
 | D. Fine-tuned bge-m3 | in-domain synthetic gains | worse ranking on human questions |
 | E. GPU inference service for the teacher | teacher quality at ~0.2 s | an always-on GPU for a gain we cannot show is real |
@@ -47,8 +50,12 @@ Trained models stay **local, gated artefacts**:
   swap of ADR-0002.
 
 ONNX int8 is not adopted. On this CPU it was slower than PyTorch fp32 even after padding-aware
-batching and thread tuning, and it lost a further 0.012 MRR@10. Dynamic int8 pays off on CPUs
-with VNNI and for small batches; neither describes our workload.
+batching and thread tuning. Quality was on par: 0.841 vs 0.837 MRR@10.
+
+Its scores also depend on batch composition. Dynamic quantisation derives activation scales per
+batch, padding included, and reordering the batches moved pooled MRR@10 from 0.825 to 0.841.
+That non-determinism is a further reason not to serve it without a fixed batching policy.
+Dynamic int8 pays off on CPUs with VNNI; this one does not appear to benefit.
 
 ## Consequences
 - **Easier:** no model hosting, no extra latency, nothing to keep in sync with the index.

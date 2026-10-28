@@ -1,0 +1,187 @@
+{
+ "questions": 336,
+ "sets": {
+  "eval:court_decisions": {
+   "n": 11,
+   "dense": {
+    "Hit@1": 0.727,
+    "Recall@5": 0.955,
+    "MRR@10": 0.848
+   },
+   "teacher": {
+    "Hit@1": 0.727,
+    "Recall@5": 0.955,
+    "MRR@10": 0.864
+   },
+   "student": {
+    "Hit@1": 0.636,
+    "Recall@5": 0.818,
+    "MRR@10": 0.758
+   },
+   "student-int8": {
+    "Hit@1": 0.636,
+    "Recall@5": 0.909,
+    "MRR@10": 0.768
+   }
+  },
+  "eval:multihop": {
+   "n": 40,
+   "dense": {
+    "Hit@1": 0.85,
+    "Recall@5": 0.838,
+    "MRR@10": 0.911
+   },
+   "teacher": {
+    "Hit@1": 0.875,
+    "Recall@5": 0.838,
+    "MRR@10": 0.922
+   },
+   "student": {
+    "Hit@1": 0.75,
+    "Recall@5": 0.812,
+    "MRR@10": 0.852
+   },
+   "student-int8": {
+    "Hit@1": 0.8,
+    "Recall@5": 0.825,
+    "MRR@10": 0.869
+   }
+  },
+  "eval:multihop_b": {
+   "n": 30,
+   "dense": {
+    "Hit@1": 0.767,
+    "Recall@5": 0.7,
+    "MRR@10": 0.836
+   },
+   "teacher": {
+    "Hit@1": 0.767,
+    "Recall@5": 0.8,
+    "MRR@10": 0.867
+   },
+   "student": {
+    "Hit@1": 0.767,
+    "Recall@5": 0.767,
+    "MRR@10": 0.858
+   },
+   "student-int8": {
+    "Hit@1": 0.833,
+    "Recall@5": 0.75,
+    "MRR@10": 0.892
+   }
+  },
+  "eval:questions": {
+   "n": 185,
+   "dense": {
+    "Hit@1": 0.832,
+    "Recall@5": 0.948,
+    "MRR@10": 0.894
+   },
+   "teacher": {
+    "Hit@1": 0.849,
+    "Recall@5": 0.952,
+    "MRR@10": 0.913
+   },
+   "student": {
+    "Hit@1": 0.773,
+    "Recall@5": 0.918,
+    "MRR@10": 0.854
+   },
+   "student-int8": {
+    "Hit@1": 0.768,
+    "Recall@5": 0.907,
+    "MRR@10": 0.85
+   }
+  },
+  "eval:retrieval": {
+   "n": 70,
+   "dense": {
+    "Hit@1": 0.743,
+    "Recall@5": 0.933,
+    "MRR@10": 0.831
+   },
+   "teacher": {
+    "Hit@1": 0.786,
+    "Recall@5": 0.924,
+    "MRR@10": 0.872
+   },
+   "student": {
+    "Hit@1": 0.686,
+    "Recall@5": 0.876,
+    "MRR@10": 0.784
+   },
+   "student-int8": {
+    "Hit@1": 0.7,
+    "Recall@5": 0.862,
+    "MRR@10": 0.791
+   }
+  }
+ },
+ "pooled": {
+  "dense": {
+   "Hit@1": 0.807,
+   "Recall@5": 0.91,
+   "MRR@10": 0.876
+  },
+  "teacher": {
+   "Hit@1": 0.827,
+   "Recall@5": 0.919,
+   "MRR@10": 0.9,
+   "MRR@10_vs_dense": [
+    0.023,
+    -0.001,
+    0.049
+   ]
+  },
+  "student": {
+   "Hit@1": 0.747,
+   "Recall@5": 0.88,
+   "MRR@10": 0.837,
+   "MRR@10_vs_dense": [
+    -0.04,
+    -0.07,
+    -0.009
+   ]
+  },
+  "student-int8": {
+   "Hit@1": 0.759,
+   "Recall@5": 0.874,
+   "MRR@10": 0.841,
+   "MRR@10_vs_dense": [
+    -0.036,
+    -0.066,
+    -0.004
+   ]
+  }
+ },
+ "retention": {
+  "student": 0.93,
+  "student-int8": 0.935
+ },
+ "gate": {
+  "min_retention": 0.95,
+  "passed": false,
+  "int8_passed": false,
+  "teacher_beats_dense": false
+ },
+ "latency_cpu": {
+  "questions": 20,
+  "candidates": 20,
+  "student-int8": {
+   "p50_s": 4.021,
+   "p95_s": 4.315
+  },
+  "student": {
+   "p50_s": 3.215,
+   "p95_s": 3.511
+  },
+  "teacher": {
+   "p50_s": 30.797,
+   "p95_s": 34.622
+  }
+ },
+ "models": {
+  "teacher": "BAAI/bge-reranker-v2-m3",
+  "student_base": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
+ }
+}
