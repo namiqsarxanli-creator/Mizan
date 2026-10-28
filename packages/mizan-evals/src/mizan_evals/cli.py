@@ -6,6 +6,7 @@ mizan-eval label  --labeller NAME             blind human labelling (resumable)
 mizan-eval kappa                              judge vs human agreement (Cohen's kappa)
 mizan-eval agent  [--sample 40] [--extra ...] multi-agent vs baseline RAG (F5, resumable)
 mizan-eval drift  [--webhook URL]             online faithfulness drift / SLO check (exit 1)
+mizan-eval cache                              semantic cache threshold and saving (F9)
 """
 
 from __future__ import annotations
@@ -18,6 +19,7 @@ import sys
 from collections.abc import Sequence
 from datetime import date, timedelta
 from pathlib import Path
+from typing import Any
 
 import groq
 import httpx
@@ -35,6 +37,16 @@ from mizan_evals.agent_eval import (
     SystemOutput,
     run_agent_eval,
     summarise_agent_eval,
+)
+from mizan_evals.cache_eval import (
+    PARAPHRASE_PROMPT,
+    Pair,
+    half,
+    near_misses,
+    parse_paraphrases,
+    pick_threshold,
+    rates,
+    simulate,
 )
 from mizan_evals.drift import daily_scores, detect_drift
 from mizan_evals.judge import DEFAULT_JUDGE_MODEL, GroqJudge
@@ -376,6 +388,132 @@ async def _drift(webhook: str | None, today: date | None) -> int:
     return 1 if report.alert else 0
 
 
+PARAPHRASES = Path("evals/datasets/v1/paraphrases.jsonl")
+
+
+def _read_paraphrases() -> dict[str, list[str]]:
+    if not PARAPHRASES.exists():
+        return {}
+    rows = [json.loads(line) for line in PARAPHRASES.read_text(encoding="utf-8").splitlines()]
+    return {r["id"]: r["paraphrases"] for r in rows}
+
+
+def _append_paraphrases(rows: list[dict[str, Any]]) -> None:
+    with PARAPHRASES.open("a", encoding="utf-8") as fh:
+        for row in rows:
+            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+
+
+async def _paraphrases(
+    questions: list[Question], n: int = 2, batch: int = 20
+) -> dict[str, list[str]]:
+    """Two paraphrases per question, generated once and kept as a dataset file."""
+    done = await asyncio.to_thread(_read_paraphrases)
+    todo = [q for q in questions if q.id not in done]
+    if not todo:
+        return done
+    settings = get_settings()
+    if settings.llm.groq_api_key is None:
+        raise SystemExit("paraphrases need MIZAN_LLM__GROQ_API_KEY")
+    client = groq.AsyncGroq(api_key=settings.llm.groq_api_key.get_secret_value())
+    try:
+        for start in range(0, len(todo), batch):
+            chunk = todo[start : start + batch]
+            listing = "\n".join(f"[{q.id}] {q.question}" for q in chunk)
+            response = await client.chat.completions.create(
+                model="openai/gpt-oss-120b",
+                messages=[
+                    {"role": "user", "content": PARAPHRASE_PROMPT.format(n=n, questions=listing)}
+                ],
+                temperature=0.7,
+                max_completion_tokens=6000,
+                reasoning_effort="low",
+            )
+            got = parse_paraphrases(response.choices[0].message.content or "")
+            rows: list[dict[str, Any]] = [
+                {"id": q.id, "question": q.question, "paraphrases": got[q.id][:n]}
+                for q in chunk
+                if q.id in got
+            ]
+            await asyncio.to_thread(_append_paraphrases, rows)
+            done |= {r["id"]: r["paraphrases"] for r in rows}
+            await asyncio.sleep(3)
+    finally:
+        await client.close()
+    return done
+
+
+async def _cache() -> dict[str, Any]:
+    settings = get_settings()
+    questions = [q for q in load_dataset(DEFAULT_DATASET) if q.relevant]
+    paraphrases = await _paraphrases(questions)
+    questions = [q for q in questions if q.id in paraphrases]
+    gold = {q.id: q.relevant for q in questions}
+    texts = {q.id: q.question for q in questions}
+    phrasings: dict[str, list[str]] = {}
+    for q in questions:
+        phrasings[q.id] = [q.id]
+        for i, text in enumerate(paraphrases[q.id], start=1):
+            texts[f"{q.id}#{i}"] = text
+            phrasings[q.id].append(f"{q.id}#{i}")
+    owner = {p: qid for qid, ps in phrasings.items() for p in ps}
+
+    config = serving_variant()
+    embedder = Embedder(
+        MODELS[config.dense_model], EmbeddingCache(Path(settings.retrieval.embeddings_cache))
+    )
+    vectors = {k: embedder.embed_query(t) for k, t in texts.items()}
+
+    def pairs(part: str) -> list[Pair]:
+        mine = {q.id for q in questions if half(q.id) == part}
+        positive = [
+            Pair(qid, p, float(vectors[qid] @ vectors[p]), True)
+            for qid in sorted(mine)
+            for p in phrasings[qid][1:]
+        ]
+        negative = [
+            Pair(a, b, float(vectors[a] @ vectors[b]), False)
+            for a, b in near_misses({k: v for k, v in gold.items() if k in mine})
+        ]
+        return positive + negative
+
+    calib, evaluation = pairs("calib"), pairs("eval")
+    threshold = pick_threshold(calib)
+
+    # The workload: every evaluation question in its three phrasings. "Retrieved again" is the
+    # proxy for the evidence fingerprint: the earlier phrasing's gold articles are in this
+    # phrasing's top-6 (the /v1/ask default k).
+    eval_phrasings = {qid: ps for qid, ps in phrasings.items() if half(qid) == "eval"}
+    key = settings.qdrant.api_key.get_secret_value() if settings.qdrant.api_key else None
+    qdrant = AsyncQdrantClient(url=settings.qdrant.url, api_key=key, timeout=120)
+    retrieved: dict[str, set[str]] = {}
+    try:
+        searcher = Searcher(qdrant, {config.dense_model: embedder})
+        for ps in eval_phrasings.values():
+            for p in ps:
+                hits = await searcher.search(
+                    texts[p], source_id=settings.retrieval.source_id, as_of=date(2026, 10, 13),
+                    config=config, k=6,
+                )  # fmt: skip
+                retrieved[p] = {h.article_key for h in hits}
+    finally:
+        await qdrant.close()
+
+    def still_retrieved(earlier: str, now: str) -> bool:
+        return gold[owner[earlier]] <= retrieved[now]
+
+    report: dict[str, Any] = {
+        "questions": len(questions),
+        "threshold": round(threshold, 4),
+        "calibration": rates(calib, threshold),
+        "evaluation": rates(evaluation, threshold),
+        "workload": simulate(eval_phrasings, vectors, still_retrieved, threshold),
+        "workload_similarity_only": simulate(eval_phrasings, vectors, lambda a, b: True, threshold),
+    }
+    report["gate"] = {"min_saving": 0.25, "passed": report["workload"]["saving"] >= 0.25}
+    return report
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mizan-eval")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -399,6 +537,8 @@ def main(argv: list[str] | None = None) -> int:
     p_agent.add_argument("--sample", type=int, default=40)
     p_agent.add_argument("--pace", type=float, default=20.0)
 
+    p_cache = sub.add_parser("cache", help="semantic cache threshold and saving")
+    p_cache.add_argument("--out", type=Path, default=Path("evals/results/f9_cache/report.json"))
     p_report = sub.add_parser("report")
     p_report.add_argument("--out", type=Path, default=DEFAULT_OUT)
     p_label = sub.add_parser("label")
@@ -429,6 +569,12 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(_drift(args.webhook, args.today))
     if args.command == "agent":
         return asyncio.run(_agent_eval(args.dataset, args.extra, args.out, args.sample, args.pace))
+    if args.command == "cache":
+        report = asyncio.run(_cache())
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(report, indent=1), encoding="utf-8")
+        print(json.dumps(report, indent=1))
+        return 0 if report["gate"]["passed"] else 1
     if args.command == "report":
         _report(args.out, list(load_records(args.out / "records.jsonl").values()))
         return 0
