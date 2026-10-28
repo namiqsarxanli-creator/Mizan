@@ -218,7 +218,7 @@ def train_verifier(
             optimizer.step()
             schedule.step()
             optimizer.zero_grad()
-            losses.append(float(out.loss))
+            losses.append(out.loss.item())
         val = evaluate()
         history.append({"epoch": epoch, "loss": sum(losses) / len(losses), "val": val})
         log.info("verifier_epoch", epoch=epoch, loss=history[-1]["loss"], **val)

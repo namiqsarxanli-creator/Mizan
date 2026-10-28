@@ -26,9 +26,14 @@ for pkg, mod in [
 articles = dict(current_articles(snapshot.read(DEFAULT_SNAPSHOT)))
 (out / "articles.json").write_text(json.dumps(articles, ensure_ascii=False), encoding="utf-8")
 # Embedding fine-tune inputs, plus the reranker distillation ones once `candidates` has run.
-for name in ("examples.jsonl", "rerank_candidates.jsonl", "article_versions.json"):
+for name in (
+    "examples.jsonl",
+    "rerank_candidates.jsonl",
+    "article_versions.json",
+    "verify_claims.jsonl",
+):
     if (DATA / name).exists():
         shutil.copy(DATA / name, out / name)
-for script in ("pod_train.py", "pod_test.py", "pod_distill.py"):
+for script in ("pod_train.py", "pod_test.py", "pod_distill.py", "pod_verifier.py"):
     shutil.copy(Path(__file__).parent / script, out / script)
 print(len(articles), "articles")
