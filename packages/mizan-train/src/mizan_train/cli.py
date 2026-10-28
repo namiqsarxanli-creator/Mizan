@@ -7,6 +7,7 @@ mizan-train compare [--candidate bge-m3-mizan]   base vs fine-tuned retrieval on
 mizan-train candidates [--k 20]      dense top-k per question, for reranker distillation
 mizan-train rerank-report            dense vs teacher vs student (+ONNX int8): quality, latency
 mizan-train tokenizers               token efficiency of candidate base models on Azerbaijani
+mizan-train verify-synth [--batch 8] constructed verification claims (F8 verifier data)
 """
 
 from __future__ import annotations
@@ -56,6 +57,7 @@ from mizan_train.distill import (
 )
 from mizan_train.embed import TrainConfig, train
 from mizan_train.synth import load_pairs, synthesise
+from mizan_train.verify_data import synthesise_claims
 
 log = get_logger(__name__)
 
@@ -132,6 +134,50 @@ async def _synth(
     kept = sum(p.kept for p in pairs)
     done = len({p.article for p in pairs})
     print(json.dumps({"articles": len(articles), "done": done, "pairs": len(pairs), "kept": kept}))
+    return 0
+
+
+async def _verify_synth(
+    limit: int | None, generators: list[str], judge: str, pace_s: float, batch: int
+) -> int:
+    settings = get_settings()
+    articles = current_articles(snapshot.read(DEFAULT_SNAPSHOT))
+    articles = [(k, t) for k, t in articles if k.startswith("art:")][:limit]
+    clients: dict[str, OpenAICompatible] = {}
+
+    def resolve(spec: str) -> tuple[OpenAICompatible, str]:
+        provider, model = split_model(spec)
+        if provider not in clients:
+            clients[provider] = client_for(provider, settings.llm)
+        return clients[provider], model
+
+    try:
+        claims = await synthesise_claims(
+            [resolve(g) for g in generators],
+            resolve(judge),
+            articles,
+            DATA / "verify_claims.jsonl",
+            batch=batch,
+            pace_s=pace_s,
+        )
+    finally:
+        for client in clients.values():
+            await client.close()
+    by_kind: dict[str, list[int]] = defaultdict(lambda: [0, 0])
+    for c in claims:
+        by_kind[c.kind][0] += c.kept
+        by_kind[c.kind][1] += 1
+    print(
+        json.dumps(
+            {
+                "articles": len(articles),
+                "done": len({c.article for c in claims}),
+                "claims": len(claims),
+                "kept": sum(c.kept for c in claims),
+                "kept_by_kind": {k: f"{a}/{n}" for k, (a, n) in sorted(by_kind.items())},
+            }
+        )
+    )
     return 0
 
 
@@ -408,6 +454,21 @@ def main(argv: list[str] | None = None) -> int:
     p_embed.add_argument("--batch-size", type=int, default=DEFAULTS.batch_size)
     p_cand = sub.add_parser("candidates", help="dense top-k per question for distillation")
     p_cand.add_argument("--k", type=int, default=20)
+    p_vs = sub.add_parser("verify-synth", help="constructed verification claims")
+    p_vs.add_argument("--limit", type=int)
+    p_vs.add_argument(
+        "--generators",
+        nargs="+",
+        default=[
+            "gemini:gemini-3-flash-preview",
+            "gemini:gemini-2.5-flash",
+            "gemini:gemini-2.5-flash-lite",
+        ],
+    )
+    # Another family than the generator, and than gpt-oss (the API verifier under test).
+    p_vs.add_argument("--judge", default="groq:qwen/qwen3.8-27b")
+    p_vs.add_argument("--pace", type=float, default=0.0)
+    p_vs.add_argument("--batch", type=int, default=8)
     p_tok = sub.add_parser("tokenizers", help="token efficiency on Azerbaijani")
     p_tok.add_argument("--models", nargs="+", default=TOKENIZERS)
     p_tok.add_argument("--out", type=Path, default=Path("evals/results/f8_tokenizers/report.json"))
@@ -431,6 +492,10 @@ def main(argv: list[str] | None = None) -> int:
         return _embed(args.name, cfg)
     if args.command == "candidates":
         return asyncio.run(_candidates(args.k))
+    if args.command == "verify-synth":
+        return asyncio.run(
+            _verify_synth(args.limit, args.generators, args.judge, args.pace, args.batch)
+        )
     if args.command == "tokenizers":
         report = _tokenizers(args.models)
         args.out.parent.mkdir(parents=True, exist_ok=True)
