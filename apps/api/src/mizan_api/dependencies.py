@@ -209,6 +209,8 @@ class LegalServices:
     agent: Orchestrator | None = None
     budget: TenantBudget | None = None
     quality: QualityLoop | None = None
+    # The agent's tools without the agent (no LLM needed): articles, decisions, collisions.
+    tools: LegalTools | None = None
 
 
 def search_config(settings: Settings) -> SearchConfig:
@@ -298,6 +300,11 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
     if graph is not None and settings.retrieval.graph and config.mode is Mode.DENSE:
         searcher = GraphSearcher(searcher, graph, SERVING_POLICY)
     agent = _build_agent(settings, stack, searcher, config, to_articles, graph)
+    tools = (
+        LegalTools(searcher, config, to_articles, graph, graph, settings.retrieval.source_id)
+        if graph is not None
+        else None
+    )
     if graph is not None and settings.retrieval.court_decisions:
         expand = _with_decisions(expand, graph)
     engine = create_engine(settings.postgres)
@@ -308,5 +315,5 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
     budget = TenantBudget(redis, settings.llm.daily_tokens_per_tenant)
     quality = _build_quality(settings, stack, session_factory(engine))
     return LegalServices(
-        searcher, config, answerer, checks, rewriter, expand, diff, agent, budget, quality
+        searcher, config, answerer, checks, rewriter, expand, diff, agent, budget, quality, tools
     )

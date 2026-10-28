@@ -19,6 +19,7 @@ from mizan_api.middleware import TraceIdHeaderMiddleware
 from mizan_api.routes import agent as agent_routes
 from mizan_api.routes import feedback as feedback_routes
 from mizan_api.routes import health
+from mizan_api.routes import law as law_routes
 from mizan_api.routes import legal as legal_routes
 from mizan_core.config import Settings, get_settings
 from mizan_core.health import DependencyCheck
@@ -66,6 +67,7 @@ def create_app(
             app.state.agent = services.agent
             app.state.budget = services.budget
             app.state.quality = services.quality
+            app.state.tools = services.tools
             app.state.checks = (
                 list(checks)
                 if checks is not None
@@ -90,6 +92,7 @@ def create_app(
 
     app.include_router(health.router)
     app.include_router(legal_routes.router)
+    app.include_router(law_routes.router)
     app.include_router(agent_routes.router)
     app.include_router(feedback_routes.router)
 
