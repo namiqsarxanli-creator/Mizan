@@ -5,12 +5,14 @@ description = "Training data and fine-tuning for Mizan's retrieval and language 
 requires-python = ">=3.12"
 dependencies = [
     "groq>=0.30",
+    "mizan-agents",
     "mizan-core",
     "mizan-graph",
     "mizan-ingestion",
     "mizan-retrieval",
     "onnx>=1.17",
     "onnxruntime>=1.20",
+    "peft>=0.15",
     "pydantic>=2.9",
 ]
 
@@ -22,6 +24,7 @@ mizan-core = { workspace = true }
 mizan-graph = { workspace = true }
 mizan-ingestion = { workspace = true }
 mizan-retrieval = { workspace = true }
+mizan-agents = { workspace = true }
 
 [build-system]
 requires = ["hatchling>=1.25"]

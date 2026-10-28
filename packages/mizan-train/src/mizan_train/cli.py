@@ -8,6 +8,7 @@ mizan-train candidates [--k 20]      dense top-k per question, for reranker dist
 mizan-train rerank-report            dense vs teacher vs student (+ONNX int8): quality, latency
 mizan-train tokenizers               token efficiency of candidate base models on Azerbaijani
 mizan-train verify-synth [--batch 8] constructed verification claims (F8 verifier data)
+mizan-train verify-api [--split test] the production (API) verifier on the constructed claims
 """
 
 from __future__ import annotations
@@ -178,6 +179,85 @@ async def _verify_synth(
             }
         )
     )
+    return 0
+
+
+class _UsageClient:
+    """Wraps the Groq client and keeps the last response's token usage."""
+
+    def __init__(self, client: Any) -> None:
+        self._client = client
+        self.chat = self
+        self.completions = self
+        self.last: Any = None
+
+    async def create(self, **request: Any) -> Any:
+        response = await self._client.chat.completions.create(**request)
+        self.last = getattr(response, "usage", None)
+        return response
+
+
+async def _verify_api(split: str, pace_s: float) -> int:
+    """Score claims with ``mizan_agents.agents.verify`` exactly as production calls it."""
+    import groq
+
+    from mizan_agents.agents import verify
+    from mizan_agents.gateway import DEFAULT_ROUTES, GatewayError, LLMGateway, Role, TokenBudget
+    from mizan_agents.schemas import Claim, Evidence
+    from mizan_train.verify_data import load_claims
+
+    settings = get_settings()
+    if settings.llm.groq_api_key is None:
+        raise SystemExit("verify-api needs MIZAN_LLM__GROQ_API_KEY")
+    texts = dict(current_articles(snapshot.read(DEFAULT_SNAPSHOT)))
+    claims = [c for c in load_claims(DATA / "verify_claims.jsonl") if c.kept and c.split == split]
+    out = DATA / f"verify_api_{split}.jsonl"
+    done = (
+        {json.loads(line)["key"] for line in out.read_text("utf-8").splitlines() if line}
+        if out.exists()
+        else set()
+    )
+    client = _UsageClient(groq.AsyncGroq(api_key=settings.llm.groq_api_key.get_secret_value()))
+    gateway = LLMGateway(client)
+    model = DEFAULT_ROUTES[Role.VERIFIER].model
+    try:
+        for c in claims:
+            key = f"{c.article}|{c.kind}"
+            if key in done:
+                continue
+            evidence = Evidence(
+                key=c.article, title="", text=texts[c.article], in_force_since=TODAY
+            )
+            started = time.perf_counter()
+            try:
+                checks = await verify(
+                    gateway,
+                    [Claim(text=c.claim, source=c.article, quote=c.claim)],
+                    [evidence],
+                    budget=TokenBudget(100_000),
+                )
+            except GatewayError as exc:
+                log.warning("verify_api_failed", key=key, error=str(exc)[:160])
+                continue  # not recorded: the next run retries it
+            usage = client.last
+            row = {
+                "key": key,
+                "kind": c.kind,
+                "label": c.label,
+                "pred": checks[0].support.value,
+                "model": model,
+                "input_tokens": getattr(usage, "prompt_tokens", 0),
+                "output_tokens": getattr(usage, "completion_tokens", 0),
+                "latency_s": round(time.perf_counter() - started, 3),
+            }
+            with out.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(row) + "\n")
+            done.add(key)
+            if pace_s:
+                await asyncio.sleep(pace_s)
+    finally:
+        await client._client.close()
+    print(json.dumps({"split": split, "claims": len(claims), "scored": len(done)}))
     return 0
 
 
@@ -454,6 +534,9 @@ def main(argv: list[str] | None = None) -> int:
     p_embed.add_argument("--batch-size", type=int, default=DEFAULTS.batch_size)
     p_cand = sub.add_parser("candidates", help="dense top-k per question for distillation")
     p_cand.add_argument("--k", type=int, default=20)
+    p_va = sub.add_parser("verify-api", help="the API verifier on constructed claims")
+    p_va.add_argument("--split", default="test")
+    p_va.add_argument("--pace", type=float, default=2.5)
     p_vs = sub.add_parser("verify-synth", help="constructed verification claims")
     p_vs.add_argument("--limit", type=int)
     p_vs.add_argument(
@@ -492,6 +575,8 @@ def main(argv: list[str] | None = None) -> int:
         return _embed(args.name, cfg)
     if args.command == "candidates":
         return asyncio.run(_candidates(args.k))
+    if args.command == "verify-api":
+        return asyncio.run(_verify_api(args.split, args.pace))
     if args.command == "verify-synth":
         return asyncio.run(
             _verify_synth(args.limit, args.generators, args.judge, args.pace, args.batch)

@@ -155,8 +155,9 @@ async def judge_claims(
         + "\n".join(f"{j}. {c}" for j, c in enumerate(claims, start=1))
         for i, (_, text, claims) in enumerate(items, start=1)
     )
+    # A small completion budget: providers count it against tokens-per-minute limits up front.
     content = await _chat(
-        client, model, JUDGE_PROMPT.format(items=blocks), max_tokens=4000, temperature=0.0
+        client, model, JUDGE_PROMPT.format(items=blocks), max_tokens=1500, temperature=0.0
     )
     out: dict[str, list[str]] = {}
     for raw in _items(content):
@@ -184,9 +185,14 @@ async def synthesise_claims(
     out: Path,
     *,
     batch: int = 8,
+    judge_batch: int = 2,
     pace_s: float = 0.0,
 ) -> list[VerifyClaim]:
-    """Resumable: articles already in ``out`` are skipped. Generators rotate on daily quotas."""
+    """Resumable: articles already in ``out`` are skipped. Generators rotate on daily quotas.
+
+    Generation sends ``batch`` articles per request (free tiers count requests); the judge gets
+    ``judge_batch`` per request (its provider counts tokens per minute).
+    """
     claims = load_claims(out)
     done = {c.article for c in claims}
     todo = [(k, t) for k, t in articles if k not in done]
@@ -207,12 +213,12 @@ async def synthesise_claims(
                 log.warning("verify_synth_generator_switch", exhausted=gen_model)
                 current += 1
         texts = dict(chunk)
+        pending = [(k, texts[k], list(c.values())) for k, c in generated.items()]
+        labels: dict[str, list[str]] = {}
         try:
-            labels = await judge_claims(
-                judge_client,
-                judge_model,
-                [(k, texts[k], list(c.values())) for k, c in generated.items()],
-            )
+            for i in range(0, len(pending), judge_batch):
+                part = pending[i : i + judge_batch]
+                labels |= await judge_claims(judge_client, judge_model, part)
         except QuotaExhaustedError:
             log.warning("verify_synth_judge_quota_spent", done=len(done), total=len(articles))
             return claims
