@@ -26,6 +26,7 @@ continuously. See [docs/ROADMAP.md](docs/ROADMAP.md) for the full 24-week plan.
 apps/
   api/                 FastAPI gateway (deployable)
   worker/              Arq worker: scheduled ingestion (deployable; also runs migrations)
+  mcp/                 MCP server for Claude Desktop and other agents (a thin API client)
 packages/
   mizan-core/          settings, structured logging, tracing, health primitives
   mizan-ingestion/     e-qanun client, Word-HTML parser, temporal storage, chunking
@@ -33,11 +34,13 @@ packages/
   mizan-retrieval/     embeddings, BM25 analyser, Qdrant index, search, answering, retrieval eval
   mizan-evals/         generation eval: LLM judge, blind human labelling, Cohen's kappa
   mizan-graph/         citation extraction, temporal knowledge graph (Neo4j), graph-aware search
+  mizan-agents/        multi-agent research: planner, researchers, drafter, verifier, judge
+  mizan-train/         synthetic data, embedding / reranker / verifier fine-tuning, comparisons
 docs/
   adr/                 architecture decision records
   ROADMAP.md
 evals/                 datasets (v0: 70, v1: 200 questions), corpus snapshot, baselines, results
-infra/                 deployment manifests (from F9)
+infra/                 observability stack config, GPU training bundle scripts
 compose.yaml           local stack: Postgres, Redis, Qdrant, Neo4j, migrate, worker, API
 ```
 
@@ -188,6 +191,33 @@ Spans are stored in ClickHouse for 30 days, and PII is redacted in code and agai
 Collector. Every answer is logged with an `answer_id` for `POST /v1/feedback`. 5% of answers
 are judged for faithfulness online by an independent model. Drift and SLO alerts run both in
 code and in Grafana ([ADR-0008](docs/adr/0008-observability.md)).
+
+## MCP server (F9)
+
+`mizan-mcp` exposes Mizan to MCP clients over stdio:
+
+- `search_law`: provisions relevant to a question, in force on a date;
+- `get_article`: a whole article on a date, with the Constitutional Court decisions that
+  interpret it;
+- `check_conflicts`: which of several articles prevails, under lex specialis and voided provisions;
+- `ask_mizan`: a sourced answer, with every quote checked against its source.
+
+The server is a thin client of the HTTP API. It holds no models, databases or LLM keys, so every
+call goes through the API's tenant budget, tracing and quality loop.
+
+Claude Desktop (`claude_desktop_config.json`), with the API running:
+
+```json
+{
+  "mcpServers": {
+    "mizan": {
+      "command": "uv",
+      "args": ["--directory", "C:/path/to/Mizan", "run", "mizan-mcp"],
+      "env": { "MIZAN_API_URL": "http://127.0.0.1:18000", "MIZAN_TENANT_ID": "desktop" }
+    }
+  }
+}
+```
 
 ## Quality gates
 

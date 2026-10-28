@@ -106,6 +106,7 @@ mypy_path = [
     "packages/mizan-graph/src",
     "apps/api/src",
     "apps/worker/src",
+    "apps/mcp/src",
     # Shared test helpers, imported as top-level modules (see pytest `pythonpath`).
     "packages/mizan-agents/tests",
     "packages/mizan-ingestion/tests",
