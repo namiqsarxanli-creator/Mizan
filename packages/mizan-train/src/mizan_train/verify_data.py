@@ -49,7 +49,8 @@ Hər maddə üçün bir hüquqi iddia cümləsinin dörd variantını yaz:
 maddə ona zidd olsun;
 - "absent": əmək hüququna aid inandırıcı iddia, amma bu maddə bu barədə heç nə demir;
 - "extended": "restated" iddiası + maddədə olmayan əlavə tələb və ya şərt (məsələn, staj, \
-yazılı ərizə, məbləğ həddi).
+yazılı ərizə, məbləğ həddi). Əlavə maddəyə zidd olmamalıdır: maddə onu nə təsdiqləyir, nə də \
+inkar edir, sadəcə bu barədə heç nə demir.
 
 Qaydalar: hər iddia bir cümlədir, düzgün Azərbaycan dilində; maddənin nömrəsini çəkmə; \
 maddənin cümlələrini hərfi köçürmə.
