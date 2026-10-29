@@ -140,7 +140,12 @@ async def _synth(
 
 
 async def _verify_synth(
-    limit: int | None, generators: list[str], judge: str, pace_s: float, batch: int
+    limit: int | None,
+    generators: list[str],
+    judge: str,
+    pace_s: float,
+    batch: int,
+    judge_batch: int,
 ) -> int:
     settings = get_settings()
     articles = current_articles(snapshot.read(DEFAULT_SNAPSHOT))
@@ -160,6 +165,7 @@ async def _verify_synth(
             articles,
             DATA / "verify_claims.jsonl",
             batch=batch,
+            judge_batch=judge_batch,
             pace_s=pace_s,
         )
     finally:
@@ -621,6 +627,8 @@ def main(argv: list[str] | None = None) -> int:
     p_vs.add_argument("--judge", default="groq:qwen/qwen3.8-27b")
     p_vs.add_argument("--pace", type=float, default=0.0)
     p_vs.add_argument("--batch", type=int, default=8)
+    # Groq caps the judge at 7k input tokens a minute; Azerbaijani costs ~2 chars a token.
+    p_vs.add_argument("--judge-batch", type=int, default=1)
     p_tok = sub.add_parser("tokenizers", help="token efficiency on Azerbaijani")
     p_tok.add_argument("--models", nargs="+", default=TOKENIZERS)
     p_tok.add_argument("--out", type=Path, default=Path("evals/results/f8_tokenizers/report.json"))
@@ -654,7 +662,9 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(_verify_api(args.split, args.pace))
     if args.command == "verify-synth":
         return asyncio.run(
-            _verify_synth(args.limit, args.generators, args.judge, args.pace, args.batch)
+            _verify_synth(
+                args.limit, args.generators, args.judge, args.pace, args.batch, args.judge_batch
+            )
         )
     if args.command == "tokenizers":
         report = _tokenizers(args.models)
