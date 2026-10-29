@@ -133,3 +133,6 @@ class ShadowRun(Base):
     # Jaccard overlap of cited provisions, primary vs candidate; 1.0 when both cite nothing.
     citation_overlap: Mapped[float] = mapped_column(Float)
     refusal_agrees: Mapped[bool]
+    # Set when the candidate failed (provider error, invalid JSON): the other fields are empty.
+    # A candidate that fails where the primary answers is a result, not noise.
+    error: Mapped[str | None] = mapped_column(Text)

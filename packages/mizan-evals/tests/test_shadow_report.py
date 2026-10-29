@@ -1,5 +1,6 @@
 """Shadow report: per-candidate agreement, latency and cost from shadow rows."""
 
+from dataclasses import replace
 from datetime import date
 
 from mizan_evals.shadow import Row, render, summarise
@@ -29,6 +30,17 @@ def test_summary_counts_agreement_latency_and_cost() -> None:
     assert c["latency_ms"]["candidate_p50"] == 900.0
     # 20b is half the price of 120b per token and uses fewer tokens here.
     assert 0 < c["cost_per_request"]["ratio"] < 0.5
+
+
+def test_failures_are_a_rate_and_excluded_from_agreement() -> None:
+    failed = Row("c", "openai/gpt-oss-120b", 0, 4000, 300.0, 2800.0, 0.0, False, failed=True)
+    s = summarise([failed])["c"]
+    assert s["failure_rate"] == 1.0
+    mixed = summarise([row(1.0, True), row(1.0, True), replace(row(0.0, False), failed=True)])
+    c = mixed["openai/gpt-oss-20b"]
+    assert c["failure_rate"] == round(1 / 3, 3)
+    assert c["citation_overlap"][0] == 1.0  # the failure does not count as disagreement
+    assert "failed on all" in render({"c": s}, date(2026, 10, 29))
 
 
 def test_report_renders_and_handles_no_data() -> None:

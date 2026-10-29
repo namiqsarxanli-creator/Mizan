@@ -1,0 +1,33 @@
+{
+ "openai/gpt-oss-20b": {
+  "requests": 33,
+  "failure_rate": 0.152,
+  "primary_model": "openai/gpt-oss-120b",
+  "citation_overlap": [
+   0.637,
+   0.47,
+   0.792
+  ],
+  "same_citations": 0.536,
+  "refusal_agreement": [
+   0.964,
+   0.893,
+   1.0
+  ],
+  "latency_ms": {
+   "primary_p50": 23632.0,
+   "candidate_p50": 10488.2,
+   "primary_p95": 33022.7,
+   "candidate_p95": 29437.6
+  },
+  "tokens_mean": {
+   "primary": 4041,
+   "candidate": 4223
+  },
+  "cost_per_request": {
+   "primary_usd": 0.001515,
+   "candidate_usd": 0.000792,
+   "ratio": 0.522
+  }
+ }
+}

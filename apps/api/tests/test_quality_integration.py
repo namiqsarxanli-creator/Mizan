@@ -165,7 +165,11 @@ async def test_shadow_runs_store_the_comparison_and_swallow_failures(
     assert not off.submit(answer_id, "sual", hits, date(2026, 10, 29), primary, 2800.0)
 
     async with sessions() as session:
-        (run,) = (await session.scalars(select(ShadowRun))).all()
+        runs = {r.candidate: r for r in (await session.scalars(select(ShadowRun))).all()}
+    assert set(runs) == {"openai/gpt-oss-20b", "x"}  # the failure is a row too
+    assert runs["x"].error == "RuntimeError: candidate down"
+    run = runs["openai/gpt-oss-20b"]
+    assert run.error is None
     assert run.candidate == "openai/gpt-oss-20b"
     assert run.citation_overlap == 0.5  # {69} vs {69, 70}
     assert run.refusal_agrees

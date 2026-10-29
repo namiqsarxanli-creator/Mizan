@@ -85,28 +85,42 @@ class ShadowRunner:
                 span.set_attribute("mizan.answer_id", str(answer_id))
                 span.set_attribute("mizan.shadow.candidate", self.label)
                 started = time.perf_counter()
+                common = {
+                    "answer_id": answer_id,
+                    "candidate": self.label,
+                    "primary_tokens": sum(primary.usage.values()),
+                    "primary_latency_ms": primary_latency_ms,
+                }
                 try:
                     shadow = await self.candidate.answer(question, hits, as_of=as_of)
-                except Exception:  # a shadow failure must never reach users
+                except Exception as exc:  # a shadow failure must never reach users
                     log.warning("shadow_failed", answer_id=str(answer_id), exc_info=True)
-                    return
-                latency_ms = round((time.perf_counter() - started) * 1000, 1)
-                async with self.sessions.begin() as session:
-                    session.add(
-                        ShadowRun(
-                            answer_id=answer_id,
-                            candidate=self.label,
-                            answer=shadow.text,
-                            refused=shadow.refused,
-                            citations=[c.key for c in shadow.citations],
-                            tokens=sum(shadow.usage.values()),
-                            latency_ms=latency_ms,
-                            primary_tokens=sum(primary.usage.values()),
-                            primary_latency_ms=primary_latency_ms,
-                            citation_overlap=citation_overlap(primary, shadow),
-                            refusal_agrees=primary.refused == shadow.refused,
-                        )
+                    # ...but it is recorded: the candidate failing where the primary answered
+                    # is exactly what a shadow test is for.
+                    row = ShadowRun(
+                        **common,
+                        answer="",
+                        refused=False,
+                        citations=[],
+                        tokens=0,
+                        latency_ms=round((time.perf_counter() - started) * 1000, 1),
+                        citation_overlap=0.0,
+                        refusal_agrees=False,
+                        error=f"{type(exc).__name__}: {exc}"[:500],
                     )
+                else:
+                    row = ShadowRun(
+                        **common,
+                        answer=shadow.text,
+                        refused=shadow.refused,
+                        citations=[c.key for c in shadow.citations],
+                        tokens=sum(shadow.usage.values()),
+                        latency_ms=round((time.perf_counter() - started) * 1000, 1),
+                        citation_overlap=citation_overlap(primary, shadow),
+                        refusal_agrees=primary.refused == shadow.refused,
+                    )
+                async with self.sessions.begin() as session:
+                    session.add(row)
 
     async def drain(self) -> None:
         if self._pending:

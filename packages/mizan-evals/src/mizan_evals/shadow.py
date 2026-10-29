@@ -31,6 +31,7 @@ class Row:
     primary_latency_ms: float
     citation_overlap: float
     refusal_agrees: bool
+    failed: bool = False
 
 
 async def load_rows(session: AsyncSession, since: datetime | None = None) -> list[Row]:
@@ -47,6 +48,7 @@ async def load_rows(session: AsyncSession, since: datetime | None = None) -> lis
             s.primary_latency_ms,
             s.citation_overlap,
             s.refusal_agrees,
+            s.error is not None,
         )
         for s, model in (await session.execute(query)).all()
     ]
@@ -68,7 +70,12 @@ def summarise(rows: Sequence[Row]) -> dict[str, Any]:
     for r in rows:
         by_candidate[r.candidate].append(r)
     out: dict[str, Any] = {}
-    for candidate, rs in sorted(by_candidate.items()):
+    for candidate, every in sorted(by_candidate.items()):
+        failure_rate = statistics.fmean(r.failed for r in every)
+        rs = [r for r in every if not r.failed]  # agreement and cost: answered requests only
+        if not rs:
+            out[candidate] = {"requests": len(every), "failure_rate": 1.0}
+            continue
         overlap = bootstrap([r.citation_overlap for r in rs])
         agree = bootstrap([float(r.refusal_agrees) for r in rs])
         primary_price = _blended_price(rs[0].primary_model)
@@ -83,7 +90,8 @@ def summarise(rows: Sequence[Row]) -> dict[str, Any]:
                 "ratio": round(shadow / primary, 3) if primary else 0.0,
             }
         out[candidate] = {
-            "requests": len(rs),
+            "requests": len(every),
+            "failure_rate": round(failure_rate, 3),
             "primary_model": rs[0].primary_model,
             "citation_overlap": [
                 round(overlap.mean, 3),
@@ -112,6 +120,9 @@ def render(summary: dict[str, Any], today: date) -> str:
     if not summary:
         return "\n".join([*lines, "No shadow runs in the window.", ""])
     for candidate, s in summary.items():
+        if "latency_ms" not in s:
+            lines += [f"## `{candidate}`: failed on all {s['requests']} requests", ""]
+            continue
         lat, tok, cost = s["latency_ms"], s["tokens_mean"], s["cost_per_request"]
         lines += [
             f"## `{candidate}` vs `{s['primary_model']}` ({s['requests']} requests)",
@@ -133,6 +144,7 @@ def render(summary: dict[str, Any], today: date) -> str:
             f"- Citation overlap (Jaccard): **{ov[0]}** [{ov[1]}, {ov[2]}]; identical citation "
             f"sets: {s['same_citations']:.0%}",
             f"- Refusal agreement: **{ag[0]}** [{ag[1]}, {ag[2]}]",
+            f"- Candidate failures (provider error, invalid output): **{s['failure_rate']:.0%}**",
             "",
             "Agreement is not correctness: disagreements are where to look. The candidate's "
             "faithfulness comes from the online judge on its own sample.",
