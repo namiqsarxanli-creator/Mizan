@@ -116,7 +116,8 @@ def classify(model: Any, tokenizer: Any, items: Sequence[Item], batch_size: int 
                 padding=True,
                 add_special_tokens=False,
             ).to(model.device)
-            logits = model(**enc).logits[:, -1, :]
+            # Only the last position: full logits are batch x length x 248k-token vocabulary.
+            logits = model(**enc, logits_to_keep=1).logits[:, -1, :]
             best = logits[:, columns.to(logits.device)].argmax(dim=-1).tolist()
             out.extend(order[b] for b in best)
     return out
@@ -196,7 +197,6 @@ def train_verifier(
     log.info("verifier_val", epoch=0, trainable=trainable, **history[0]["val"])
     best = (history[0]["val"]["macro_f1"], 0)
     started = time.perf_counter()
-    pad = tokenizer.pad_token_id
     for epoch in range(1, cfg.epochs + 1):
         model.train()
         order = encoded[:]
@@ -204,21 +204,25 @@ def train_verifier(
         losses = []
         for start in range(0, len(order), cfg.batch_size):
             batch = order[start : start + cfg.batch_size]
-            width = max(len(ids) for ids, _ in batch)
-            input_ids = torch.tensor([ids + [pad] * (width - len(ids)) for ids, _ in batch])
-            labels = torch.tensor([lab + [-100] * (width - len(lab)) for _, lab in batch])
-            mask = torch.tensor([[1] * len(ids) + [0] * (width - len(ids)) for ids, _ in batch])
-            out = model(
-                input_ids=input_ids.to(device),
-                attention_mask=mask.to(device),
-                labels=labels.to(device),
-            )
-            out.loss.backward()
+            # One example per forward pass, gradients accumulated over the batch: no padding,
+            # and the answer is always the last tokens, so logits are needed only there.
+            # Full-sequence logits over a 248k vocabulary would not fit in 24 GB.
+            batch_loss = 0.0
+            for ids, labels in batch:
+                answer = sum(label != -100 for label in labels)
+                out = model(input_ids=torch.tensor([ids], device=device), logits_to_keep=answer + 1)
+                # Position t predicts token t+1: the kept logits minus the last predict the
+                # answer tokens.
+                logits = out.logits[0, :-1].float()
+                target = torch.tensor(ids[-answer:], device=device)
+                loss = torch.nn.functional.cross_entropy(logits, target) / len(batch)
+                loss.backward()  # type: ignore[no-untyped-call]
+                batch_loss += loss.item()
             torch.nn.utils.clip_grad_norm_(params, 1.0)
             optimizer.step()
             schedule.step()
             optimizer.zero_grad()
-            losses.append(out.loss.item())
+            losses.append(batch_loss)
         val = evaluate()
         history.append({"epoch": epoch, "loss": sum(losses) / len(losses), "val": val})
         log.info("verifier_epoch", epoch=epoch, loss=history[-1]["loss"], **val)
