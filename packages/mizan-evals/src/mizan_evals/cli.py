@@ -7,6 +7,7 @@ mizan-eval kappa                              judge vs human agreement (Cohen's 
 mizan-eval agent  [--sample 40] [--extra ...] multi-agent vs baseline RAG (F5, resumable)
 mizan-eval drift  [--webhook URL]             online faithfulness drift / SLO check (exit 1)
 mizan-eval cache                              semantic cache threshold and saving (F9)
+mizan-eval shadow [--days 7]                  shadow candidate vs primary report (F9)
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ import io
 import json
 import sys
 from collections.abc import Sequence
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,7 @@ from mizan_agents.schemas import Verdict
 from mizan_agents.tools import LegalTools
 from mizan_core.config import get_settings
 from mizan_core.logging import configure_logging
+from mizan_evals import shadow as shadow_report
 from mizan_evals.agent_eval import (
     FaithfulnessJudge,
     SystemOutput,
@@ -388,6 +390,19 @@ async def _drift(webhook: str | None, today: date | None) -> int:
     return 1 if report.alert else 0
 
 
+async def _shadow(days: int) -> tuple[dict[str, Any], str]:
+    engine = create_engine(get_settings().postgres)
+    today = date.today()  # noqa: DTZ011 - the server's date names the report
+    since = datetime.combine(today - timedelta(days=days), time.min, tzinfo=UTC)
+    try:
+        async with session_factory(engine)() as session:
+            rows = await shadow_report.load_rows(session, since=since)
+    finally:
+        await engine.dispose()
+    summary = shadow_report.summarise(rows)
+    return summary, shadow_report.render(summary, today)
+
+
 PARAPHRASES = Path("evals/datasets/v1/paraphrases.jsonl")
 
 
@@ -537,6 +552,9 @@ def main(argv: list[str] | None = None) -> int:
     p_agent.add_argument("--sample", type=int, default=40)
     p_agent.add_argument("--pace", type=float, default=20.0)
 
+    p_shadow = sub.add_parser("shadow", help="shadow candidate vs primary report")
+    p_shadow.add_argument("--days", type=int, default=7)
+    p_shadow.add_argument("--out", type=Path, default=Path("evals/results/shadow"))
     p_cache = sub.add_parser("cache", help="semantic cache threshold and saving")
     p_cache.add_argument("--out", type=Path, default=Path("evals/results/f9_cache/report.json"))
     p_report = sub.add_parser("report")
@@ -569,6 +587,14 @@ def main(argv: list[str] | None = None) -> int:
         return asyncio.run(_drift(args.webhook, args.today))
     if args.command == "agent":
         return asyncio.run(_agent_eval(args.dataset, args.extra, args.out, args.sample, args.pace))
+    if args.command == "shadow":
+        summary, markdown = asyncio.run(_shadow(args.days))
+        args.out.mkdir(parents=True, exist_ok=True)
+        stem = f"shadow-{date.today().isoformat()}"  # noqa: DTZ011
+        (args.out / f"{stem}.md").write_text(markdown, encoding="utf-8")
+        (args.out / f"{stem}.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
+        print(markdown)
+        return 0
     if args.command == "cache":
         report = asyncio.run(_cache())
         args.out.parent.mkdir(parents=True, exist_ok=True)

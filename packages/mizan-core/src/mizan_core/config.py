@@ -180,6 +180,14 @@ class CacheSettings(BaseModel):
     ttl_hours: int = Field(default=168, ge=1)
 
 
+class ShadowSettings(BaseModel):
+    """Shadow deployment (F9): a candidate answers a sample of /v1/ask requests unseen."""
+
+    enabled: bool = False
+    model: str = "openai/gpt-oss-20b"  # the candidate under test
+    sample_rate: float = Field(default=0.1, ge=0.0, le=1.0)
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="MIZAN_",
@@ -206,6 +214,7 @@ class Settings(BaseSettings):
     llm: LLMSettings = LLMSettings()
     quality: QualitySettings = QualitySettings()
     cache: CacheSettings = CacheSettings()
+    shadow: ShadowSettings = ShadowSettings()
 
     @model_validator(mode="after")
     def _reject_dev_secrets(self) -> Self:

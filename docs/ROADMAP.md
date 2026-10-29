@@ -299,11 +299,11 @@ dense `bge-m3`, reranker-siz (ADR-0009). Bax `evals/results/f7_rerank/README.md`
 ### Həftə 21
 - [x] **MCP server:** `search_law`, `get_article`, `check_conflicts`, `ask_mizan` tool-ları (`apps/mcp`, API-nin nazik klienti; stdio üzərindən end-to-end yoxlanılıb). Claude Desktop konfiqurasiyası README-də — istifadəçi tərəfindən qoşulmalıdır
 - [ ] **Temporal** ilə durable agent execution (server yenidən başlasa belə axın qaldığı yerdən davam edir)
-- [ ] Human-in-the-loop: aşağı confidence olduqda manual review queue
+- [x] Human-in-the-loop: `reviews` növbəsi (confidence < 0.7, imtina, 👎, faithfulness < 0.8), `GET/POST /v1/reviews` (reviewer token)
 
 ### Həftə 22
 - [x] **Semantic cache:** similarity threshold (kalibrə: 0.9431) + TTL + evidence-fingerprint ilə temporal invalidation — gate keçmədi (23.9% < 25%), default söndürülüb; bax `evals/results/f9_cache`
-- [ ] **Shadow deployment:** yeni prompt və ya model real trafikdə paralel işləyir, nəticələr müqayisə olunur
+- [x] **Shadow deployment:** `ShadowRunner` (namizəd model trafik nümunəsində eyni mənbələrlə, istifadəçiyə görünmədən), `shadow_runs`, `mizan-eval shadow` hesabatı + Grafana paneli
 - [~] Feature flags: konfiqurasiya bayraqları (`MIZAN_CACHE__ENABLED`, `RETRIEVAL__GRAPH`, `RETRIEVAL__COURT_DECISIONS`); tenant-səviyyəli tədricən açılma hələ yoxdur
 - [ ] Multi-tenancy: Postgres RLS, tenant başına kvota
 

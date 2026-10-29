@@ -4,6 +4,7 @@ answers         one row per /v1/ask or agent answer: redacted question, answer, 
 feedback        thumbs up/down (+ comment) on an answer, from the user
 online_evals    faithfulness of a sampled answer against its own sources (LLM judge)
 reviews         answers queued for a person (low confidence, refusals, 👎, unfaithful)
+shadow_runs     a candidate model or prompt answering the same request in the background
 
 These rows are the data flywheel: drift detection reads online_evals, and F7/F8 fine-tuning
 reads answers with feedback. Questions are stored redacted (``mizan_core.genai.redact``).
@@ -104,3 +105,31 @@ class Review(Base):
     corrected_answer: Mapped[str | None] = mapped_column(Text)
     note: Mapped[str | None] = mapped_column(Text)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ShadowRun(Base):
+    """A candidate model or prompt answering the same request in the background (F9).
+
+    The user only ever sees the primary answer. Comparing the two on real traffic, before a
+    switch, is what an offline eval set cannot do: real questions, real retrieval, real latency.
+    """
+
+    __tablename__ = "shadow_runs"
+    __table_args__ = (Index("ix_shadow_runs_candidate_created_at", "candidate", "created_at"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    answer_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("answers.id", ondelete="CASCADE"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    candidate: Mapped[str] = mapped_column(String(128))  # model (and prompt version) under test
+    answer: Mapped[str] = mapped_column(Text)
+    refused: Mapped[bool]
+    citations: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
+    tokens: Mapped[int] = mapped_column(Integer, default=0)
+    latency_ms: Mapped[float] = mapped_column(Float, default=0.0)
+    primary_tokens: Mapped[int] = mapped_column(Integer, default=0)
+    primary_latency_ms: Mapped[float] = mapped_column(Float, default=0.0)
+    # Jaccard overlap of cited provisions, primary vs candidate; 1.0 when both cite nothing.
+    citation_overlap: Mapped[float] = mapped_column(Float)
+    refusal_agrees: Mapped[bool]

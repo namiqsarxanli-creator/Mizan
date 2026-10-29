@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from mizan_api.budget import TenantBudget, tenant_of
 from mizan_api.quality import AnswerRecord, QualityLoop
+from mizan_api.shadow import ShadowRunner
 from mizan_core.genai import prompt_version
 from mizan_core.tracing import current_trace_id
 from mizan_ingestion.diff import DiffBackend
@@ -150,6 +151,7 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
     if budget is not None:
         await budget.charge(tenant, tokens)
     answer_id = None
+    latency_ms = round((time.perf_counter() - started) * 1000, 1)
     quality: QualityLoop | None = getattr(state, "quality", None)
     if quality is not None:
         given = fit_to_budget(hits, state.settings.llm.max_context_chars)
@@ -164,11 +166,15 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
                 model=answer.model,
                 prompt_version=ASK_PROMPT_VERSION,
                 tokens=tokens,
-                latency_ms=round((time.perf_counter() - started) * 1000, 1),
+                latency_ms=latency_ms,
                 trace_id=current_trace_id(),
                 abstained=answer.refused,
             )
         )
+    shadow: ShadowRunner | None = getattr(state, "shadow", None)
+    if shadow is not None and answer_id is not None and hit is None:
+        # A cached answer has no fresh primary call to compare against.
+        shadow.submit(answer_id, body.question, hits, on, answer, latency_ms)
     return AskResponse(
         answer_id=answer_id,
         answer=answer.text,

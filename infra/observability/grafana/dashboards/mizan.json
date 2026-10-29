@@ -529,6 +529,87 @@
         "overrides": []
       },
       "options": {}
+    },
+    {
+      "id": 27,
+      "type": "table",
+      "title": "Shadow candidates vs primary, last 7 days",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 53,
+        "w": 16,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT s.candidate, a.model AS primary_model, count(*) AS requests,\n  round(avg(s.citation_overlap)::numeric, 3) AS citation_overlap,\n  round(avg(s.refusal_agrees::int)::numeric, 3) AS refusal_agreement,\n  percentile_cont(0.5) WITHIN GROUP (ORDER BY s.primary_latency_ms) AS primary_p50_ms,\n  percentile_cont(0.5) WITHIN GROUP (ORDER BY s.latency_ms) AS candidate_p50_ms,\n  round(avg(s.primary_tokens)) AS primary_tokens, round(avg(s.tokens)) AS candidate_tokens\nFROM shadow_runs s JOIN answers a ON a.id = s.answer_id\nWHERE s.created_at >= now() - interval '7 days'\nGROUP BY s.candidate, a.model ORDER BY requests DESC"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      }
+    },
+    {
+      "id": 28,
+      "type": "stat",
+      "title": "Open human reviews",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "postgres"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 53,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "postgres"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code",
+          "rawSql": "SELECT reason, count(*) AS open FROM reviews WHERE status = 'open' GROUP BY reason ORDER BY open DESC"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": true
+        },
+        "textMode": "value_and_name"
+      }
     }
   ]
 }

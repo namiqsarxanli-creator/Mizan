@@ -70,6 +70,7 @@ def create_app(
             app.state.quality = services.quality
             app.state.tools = services.tools
             app.state.cache = services.cache
+            app.state.shadow = services.shadow
             app.state.checks = (
                 list(checks)
                 if checks is not None

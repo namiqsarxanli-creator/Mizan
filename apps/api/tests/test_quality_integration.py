@@ -10,7 +10,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from mizan_api.quality import AnswerRecord, QualityLoop, sampled
-from mizan_ingestion.db.quality import AnswerLog, Feedback, OnlineEval
+from mizan_api.shadow import ShadowRunner
+from mizan_ingestion.db.quality import AnswerLog, Feedback, OnlineEval, ShadowRun
+from mizan_retrieval.answer import Answer, Citation
+from mizan_retrieval.search import Hit
 
 pytestmark = pytest.mark.integration
 
@@ -126,3 +129,44 @@ async def test_review_queue_triggers_and_decisions(
     assert unsure not in {r["answer_id"] for r in await loop.reviews()}
     (done,) = await loop.reviews("corrected")
     assert (done["reviewer"], done["corrected_answer"]) == ("namiq", "x")
+
+
+class Candidate:
+    def __init__(self, *, fail: bool = False) -> None:
+        self.fail = fail
+
+    async def answer(self, question: str, hits: Sequence[Hit], *, as_of: date) -> Answer:
+        if self.fail:
+            raise RuntimeError("candidate down")
+        return Answer(
+            "Bəli.", (Citation("art:69", "t", "q"), Citation("art:70", "t", "q")), "m", "stop",
+            usage={"input": 900, "output": 100},
+        )  # fmt: skip
+
+
+async def test_shadow_runs_store_the_comparison_and_swallow_failures(
+    sessions: async_sessionmaker[AsyncSession],
+) -> None:
+    loop = QualityLoop(sessions, None)
+    answer_id = await loop.record(RECORD)
+    primary = Answer(
+        "Bəli.", (Citation("art:69", "t", "q"),), "openai/gpt-oss-120b", "stop",
+        usage={"input": 1000, "output": 234},
+    )  # fmt: skip
+    hits = [Hit("art:69", "art:69", "art:69", "mətn", 0.9, date(2021, 5, 27), ())]
+
+    runner = ShadowRunner(sessions, Candidate(), label="openai/gpt-oss-20b", sample_rate=1.0)
+    assert runner.submit(answer_id, "sual", hits, date(2026, 10, 29), primary, 2800.0)
+    await runner.drain()
+    broken = ShadowRunner(sessions, Candidate(fail=True), label="x", sample_rate=1.0)
+    broken.submit(answer_id, "sual", hits, date(2026, 10, 29), primary, 2800.0)
+    await broken.drain()
+    off = ShadowRunner(sessions, Candidate(), label="y", sample_rate=0.0)
+    assert not off.submit(answer_id, "sual", hits, date(2026, 10, 29), primary, 2800.0)
+
+    async with sessions() as session:
+        (run,) = (await session.scalars(select(ShadowRun))).all()
+    assert run.candidate == "openai/gpt-oss-20b"
+    assert run.citation_overlap == 0.5  # {69} vs {69, 70}
+    assert run.refusal_agrees
+    assert (run.tokens, run.primary_tokens, run.primary_latency_ms) == (1000, 1234, 2800.0)

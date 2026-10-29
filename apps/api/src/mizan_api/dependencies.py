@@ -29,6 +29,7 @@ from mizan_agents.tools import LegalTools
 from mizan_api.budget import TenantBudget
 from mizan_api.quality import QualityLoop
 from mizan_api.routes.legal import ASK_PROMPT_VERSION
+from mizan_api.shadow import ShadowRunner
 from mizan_core.config import Settings
 from mizan_core.health import DependencyCheck
 from mizan_core.logging import get_logger
@@ -135,6 +136,25 @@ def _build_quality(
     return loop
 
 
+def _build_shadow(
+    settings: Settings, stack: AsyncExitStack, sessions: async_sessionmaker[AsyncSession]
+) -> ShadowRunner | None:
+    s = settings.shadow
+    if not s.enabled or settings.llm.groq_api_key is None or not settings.quality.enabled:
+        return None  # shadow rows hang off logged answers: they need the quality loop
+    client = groq.AsyncGroq(api_key=settings.llm.groq_api_key.get_secret_value())
+    stack.push_async_callback(client.close)
+    candidate = GroqAnswerer(
+        client,
+        model=s.model,
+        reasoning_effort=settings.llm.effort,
+        max_context_chars=settings.llm.max_context_chars,
+    )
+    runner = ShadowRunner(sessions, candidate, label=s.model, sample_rate=s.sample_rate)
+    stack.push_async_callback(runner.drain)  # finish running shadows on shutdown
+    return runner
+
+
 def _with_decisions(expand: ArticleExpander, graph: Neo4jGraph) -> ArticleExpander:
     """Whole articles, then the Constitutional Court decisions interpreting them."""
 
@@ -221,6 +241,8 @@ class LegalServices:
     tools: LegalTools | None = None
     # Semantic answer cache for /v1/ask; None unless MIZAN_CACHE__ENABLED.
     cache: SemanticCache | None = None
+    # Candidate answerer on a sample of real traffic; None unless MIZAN_SHADOW__ENABLED.
+    shadow: ShadowRunner | None = None
 
 
 def search_config(settings: Settings) -> SearchConfig:
@@ -334,6 +356,7 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
             version=f"{ASK_PROMPT_VERSION}:{settings.llm.groq_model}",
             embed=embedder.embed_query,
         )
+    shadow = _build_shadow(settings, stack, session_factory(engine))
     return LegalServices(
         searcher,
         config,
@@ -347,4 +370,5 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
         quality,
         tools,
         answer_cache,
+        shadow,
     )
