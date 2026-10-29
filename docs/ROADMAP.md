@@ -297,14 +297,14 @@ dense `bge-m3`, reranker-siz (ADR-0009). Bax `evals/results/f7_rerank/README.md`
 **Məqsəd:** sistemi genişlənə bilən və digər agentlərin istifadə edə biləcəyi platformaya çevirmək.
 
 ### Həftə 21
-- [ ] **MCP server:** `search_law`, `get_article`, `check_conflicts`, `ask_mizan` tool-ları. Claude Desktop-da test olunur
+- [x] **MCP server:** `search_law`, `get_article`, `check_conflicts`, `ask_mizan` tool-ları (`apps/mcp`, API-nin nazik klienti; stdio üzərindən end-to-end yoxlanılıb). Claude Desktop konfiqurasiyası README-də — istifadəçi tərəfindən qoşulmalıdır
 - [ ] **Temporal** ilə durable agent execution (server yenidən başlasa belə axın qaldığı yerdən davam edir)
 - [ ] Human-in-the-loop: aşağı confidence olduqda manual review queue
 
 ### Həftə 22
-- [ ] **Semantic cache:** oxşar suallar üçün (similarity threshold + TTL + temporal invalidation)
+- [x] **Semantic cache:** similarity threshold (kalibrə: 0.9431) + TTL + evidence-fingerprint ilə temporal invalidation — gate keçmədi (23.9% < 25%), default söndürülüb; bax `evals/results/f9_cache`
 - [ ] **Shadow deployment:** yeni prompt və ya model real trafikdə paralel işləyir, nəticələr müqayisə olunur
-- [ ] Feature flags (yeni komponentlərin tədricən açılması)
+- [~] Feature flags: konfiqurasiya bayraqları (`MIZAN_CACHE__ENABLED`, `RETRIEVAL__GRAPH`, `RETRIEVAL__COURT_DECISIONS`); tenant-səviyyəli tədricən açılma hələ yoxdur
 - [ ] Multi-tenancy: Postgres RLS, tenant başına kvota
 
 **✅ DoD:** Mizan Claude Desktop-dan MCP ilə istifadə olunur, semantic cache xərci ≥ 25% azaldır, shadow test hesabatı avtomatik yaranır.
