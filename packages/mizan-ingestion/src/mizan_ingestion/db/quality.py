@@ -3,6 +3,7 @@
 answers         one row per /v1/ask or agent answer: redacted question, answer, sources, cost
 feedback        thumbs up/down (+ comment) on an answer, from the user
 online_evals    faithfulness of a sampled answer against its own sources (LLM judge)
+reviews         answers queued for a person (low confidence, refusals, 👎, unfaithful)
 
 These rows are the data flywheel: drift detection reads online_evals, and F7/F8 fine-tuning
 reads answers with feedback. Questions are stored redacted (``mizan_core.genai.redact``).
@@ -77,3 +78,29 @@ class OnlineEval(Base):
     faithfulness: Mapped[float] = mapped_column(Float)
     unsupported: Mapped[list[str]] = mapped_column(JSONB, default=list)
     judge_model: Mapped[str] = mapped_column(String(128))
+
+
+class Review(Base):
+    """Human-in-the-loop queue (F9): answers a person should look at, and what they decided.
+
+    One row per answer, whatever triggered it first. A correction is training data for the
+    verifier and the drafter, and evidence for the eval sets.
+    """
+
+    __tablename__ = "reviews"
+    __table_args__ = (Index("ix_reviews_status_created_at", "status", "created_at"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    answer_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("answers.id", ondelete="CASCADE"), unique=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # low_confidence | abstained | negative_feedback | unfaithful
+    reason: Mapped[str] = mapped_column(String(32))
+    status: Mapped[str] = mapped_column(
+        String(16), default="open"
+    )  # open | approved | corrected | rejected
+    reviewer: Mapped[str | None] = mapped_column(String(64))
+    corrected_answer: Mapped[str | None] = mapped_column(Text)
+    note: Mapped[str | None] = mapped_column(Text)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

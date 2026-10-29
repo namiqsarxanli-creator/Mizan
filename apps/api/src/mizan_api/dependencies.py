@@ -124,7 +124,13 @@ def _build_quality(
         client = groq.AsyncGroq(api_key=settings.llm.groq_api_key.get_secret_value())
         stack.push_async_callback(client.close)
         judge = FaithfulnessJudge(client, model=q.judge_model)
-    loop = QualityLoop(sessions, judge, sample_rate=q.online_eval_sample_rate)
+    loop = QualityLoop(
+        sessions,
+        judge,
+        sample_rate=q.online_eval_sample_rate,
+        review_below=q.review_below,
+        unfaithful_below=q.unfaithful_below,
+    )
     stack.push_async_callback(loop.drain)  # finish sampled evaluations on shutdown
     return loop
 

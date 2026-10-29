@@ -161,6 +161,12 @@ class QualitySettings(BaseModel):
     # Share of answers judged for faithfulness after the response is sent.
     online_eval_sample_rate: float = Field(default=0.05, ge=0.0, le=1.0)
     judge_model: str = "qwen/qwen3.8-27b"
+    # Human review queue (F9): agent answers below this confidence go to a person.
+    review_below: float = Field(default=0.7, ge=0.0, le=1.0)
+    unfaithful_below: float = Field(default=0.8, ge=0.0, le=1.0)
+    # Bearer token for the reviewer endpoints (/v1/reviews); unset disables them. Until F10
+    # adds user auth, this is the only thing between the queue and the internet.
+    review_token: SecretStr | None = None
 
 
 class CacheSettings(BaseModel):

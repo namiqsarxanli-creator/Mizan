@@ -102,3 +102,27 @@ def test_sampling_is_deterministic_and_close_to_the_rate() -> None:
     share = sum(sampled(i, 0.05) for i in ids) / len(ids)
     assert 0.04 < share < 0.06
     assert all(sampled(i, 0.05) == sampled(i, 0.05) for i in ids[:100])
+
+
+async def test_review_queue_triggers_and_decisions(
+    sessions: async_sessionmaker[AsyncSession],
+) -> None:
+    loop = QualityLoop(sessions, Judge(), sample_rate=1.0, review_below=0.7, unfaithful_below=0.8)
+    confident = await loop.record(replace(RECORD, endpoint="agent", confidence=0.9))
+    unsure = await loop.record(replace(RECORD, endpoint="agent", confidence=0.6))
+    refused = await loop.record(replace(RECORD, abstained=True))
+    await loop.drain()  # the fake judge scores 0.5: every judged answer is also "unfaithful"
+    assert await loop.feedback(unsure, -1, None)  # already queued: no second review
+
+    queued = {r["answer_id"]: r for r in await loop.reviews()}
+    assert queued[unsure]["reason"] == "low_confidence"
+    assert queued[refused]["reason"] == "abstained"
+    assert queued[confident]["reason"] == "unfaithful"
+    assert len(queued) == 3
+
+    review = queued[unsure]["id"]
+    assert await loop.resolve(review, status="corrected", reviewer="namiq", corrected_answer="x")
+    assert not await loop.resolve(10_000_000, status="approved", reviewer="namiq")
+    assert unsure not in {r["answer_id"] for r in await loop.reviews()}
+    (done,) = await loop.reviews("corrected")
+    assert (done["reviewer"], done["corrected_answer"]) == ("namiq", "x")
