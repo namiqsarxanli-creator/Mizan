@@ -163,6 +163,17 @@ class QualitySettings(BaseModel):
     judge_model: str = "qwen/qwen3.8-27b"
 
 
+class CacheSettings(BaseModel):
+    """Semantic answer cache for /v1/ask (F9). Off by default: it missed its saving gate (23.9%
+    vs 25%) on the calibration workload and had one near-duplicate false hit; see
+    evals/results/f9_cache."""
+
+    enabled: bool = False
+    # Calibrated (mizan-eval cache): the smallest cosine with <= 1% false hits on near-miss pairs.
+    threshold: float = Field(default=0.9431, ge=0.0, le=1.0)
+    ttl_hours: int = Field(default=168, ge=1)
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="MIZAN_",
@@ -188,6 +199,7 @@ class Settings(BaseSettings):
     retrieval: RetrievalSettings = RetrievalSettings()
     llm: LLMSettings = LLMSettings()
     quality: QualitySettings = QualitySettings()
+    cache: CacheSettings = CacheSettings()
 
     @model_validator(mode="after")
     def _reject_dev_secrets(self) -> Self:

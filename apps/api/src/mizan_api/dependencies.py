@@ -28,6 +28,7 @@ from mizan_agents.orchestrator import Orchestrator
 from mizan_agents.tools import LegalTools
 from mizan_api.budget import TenantBudget
 from mizan_api.quality import QualityLoop
+from mizan_api.routes.legal import ASK_PROMPT_VERSION
 from mizan_core.config import Settings
 from mizan_core.health import DependencyCheck
 from mizan_core.logging import get_logger
@@ -39,6 +40,7 @@ from mizan_ingestion.chunking import Strategy
 from mizan_ingestion.db.session import create_engine, session_factory
 from mizan_ingestion.diff import DiffBackend, PostgresDiff
 from mizan_retrieval.answer import AnswerBackend, ClaudeAnswerer, GroqAnswerer
+from mizan_retrieval.cache import SemanticCache
 from mizan_retrieval.embeddings import MODELS, Embedder, EmbeddingCache
 from mizan_retrieval.index import alias_for
 from mizan_retrieval.rerank import Reranker
@@ -211,6 +213,8 @@ class LegalServices:
     quality: QualityLoop | None = None
     # The agent's tools without the agent (no LLM needed): articles, decisions, collisions.
     tools: LegalTools | None = None
+    # Semantic answer cache for /v1/ask; None unless MIZAN_CACHE__ENABLED.
+    cache: SemanticCache | None = None
 
 
 def search_config(settings: Settings) -> SearchConfig:
@@ -314,6 +318,27 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
     stack.push_async_callback(redis.aclose)
     budget = TenantBudget(redis, settings.llm.daily_tokens_per_tenant)
     quality = _build_quality(settings, stack, session_factory(engine))
+    answer_cache = None
+    if settings.cache.enabled and answerer is not None:
+        answer_cache = SemanticCache(
+            qdrant,
+            dim=embedder.spec.dim,
+            threshold=settings.cache.threshold,
+            ttl_s=settings.cache.ttl_hours * 3600,
+            version=f"{ASK_PROMPT_VERSION}:{settings.llm.groq_model}",
+            embed=embedder.embed_query,
+        )
     return LegalServices(
-        searcher, config, answerer, checks, rewriter, expand, diff, agent, budget, quality, tools
+        searcher,
+        config,
+        answerer,
+        checks,
+        rewriter,
+        expand,
+        diff,
+        agent,
+        budget,
+        quality,
+        tools,
+        answer_cache,
     )

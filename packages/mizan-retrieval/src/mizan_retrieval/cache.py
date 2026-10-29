@@ -21,9 +21,10 @@ where the cost and the latency are.
 
 from __future__ import annotations
 
+import asyncio
 import time
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -31,6 +32,7 @@ from qdrant_client import AsyncQdrantClient, models
 
 from mizan_core.logging import get_logger
 from mizan_retrieval.answer import Answer, Citation
+from mizan_retrieval.embeddings import Vector
 from mizan_retrieval.search import Hit
 
 log = get_logger(__name__)
@@ -66,8 +68,10 @@ class SemanticCache:
         version: str,
         candidates: int = 3,
         now: Any = time.time,
+        embed: Callable[[str], Vector] | None = None,
     ) -> None:
         self._client = client
+        self._embed = embed  # the serving query encoder
         self._dim = dim
         self.threshold = threshold
         self._ttl_s = ttl_s
@@ -75,6 +79,12 @@ class SemanticCache:
         self._candidates = candidates
         self._now = now
         self._ready = False
+
+    async def vector(self, question: str) -> Vector:
+        """The question's embedding, computed off the event loop (it is CPU-bound)."""
+        if self._embed is None:
+            raise RuntimeError("SemanticCache was built without an embedder")
+        return await asyncio.to_thread(self._embed, question)
 
     async def _ensure(self) -> None:
         if self._ready:
@@ -91,11 +101,13 @@ class SemanticCache:
                 await self._client.create_payload_index(COLLECTION, field, field_schema=schema)
         self._ready = True
 
-    async def lookup(self, vector: Sequence[float], hits: Sequence[Hit]) -> CacheHit | None:
+    async def lookup(
+        self, vector: Vector | Sequence[float], hits: Sequence[Hit]
+    ) -> CacheHit | None:
         await self._ensure()
         found = await self._client.query_points(
             COLLECTION,
-            query=list(vector),
+            query=[float(x) for x in vector],
             limit=self._candidates,
             score_threshold=self.threshold,
             query_filter=models.Filter(
@@ -118,7 +130,7 @@ class SemanticCache:
         return None
 
     async def store(
-        self, vector: Sequence[float], question: str, answer: Answer, hits: Sequence[Hit]
+        self, vector: Vector | Sequence[float], question: str, answer: Answer, hits: Sequence[Hit]
     ) -> None:
         """Cache an answer that cites at least one retrieved source. Refusals are not cached:
         a refusal is cheap to recompute and may be a retrieval miss worth retrying."""
@@ -132,7 +144,7 @@ class SemanticCache:
             points=[
                 models.PointStruct(
                     id=str(uuid.uuid4()),
-                    vector=list(vector),
+                    vector=[float(x) for x in vector],
                     payload={
                         "version": self._version,
                         "created": self._now(),

@@ -1,0 +1,52 @@
+{
+ "questions": 185,
+ "threshold": 0.9431,
+ "calibration": {
+  "paraphrase_hit_rate": [
+   0.397,
+   0.325,
+   0.464
+  ],
+  "near_miss_false_hit_rate": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "positives": 194,
+  "negatives": 24
+ },
+ "evaluation": {
+  "paraphrase_hit_rate": [
+   0.409,
+   0.341,
+   0.483
+  ],
+  "near_miss_false_hit_rate": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "positives": 176,
+  "negatives": 32
+ },
+ "workload": {
+  "requests": 264,
+  "llm_calls": 201,
+  "cache_hits": 63,
+  "false_hits": 1,
+  "saving": 0.239,
+  "ceiling": 0.667
+ },
+ "workload_similarity_only": {
+  "requests": 264,
+  "llm_calls": 195,
+  "cache_hits": 69,
+  "false_hits": 1,
+  "saving": 0.261,
+  "ceiling": 0.667
+ },
+ "gate": {
+  "min_saving": 0.25,
+  "passed": false
+ }
+}

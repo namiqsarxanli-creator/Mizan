@@ -24,6 +24,7 @@ from mizan_retrieval.answer import (
     fit_to_budget,
     source_title,
 )
+from mizan_retrieval.cache import SemanticCache
 from mizan_retrieval.search import Hit, SearchBackend, SearchConfig
 
 ASK_PROMPT_VERSION = prompt_version(SYSTEM_PROMPT + JSON_INSTRUCTIONS)
@@ -72,6 +73,8 @@ class AskResponse(BaseModel):
     rejected_citations: int = 0
     # Send it back with POST /v1/feedback; None when the quality loop is off.
     answer_id: UUID | None = None
+    # Served by the semantic cache: no LLM call, nothing charged to the tenant's budget.
+    cached: bool = False
     disclaimer: str = "Bu cavab hüquqi məsləhət deyil."
 
 
@@ -126,15 +129,23 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
     hits = await searcher.search(query, source_id=source_id, as_of=on, config=config, k=body.k)
     if state.expand is not None:
         hits = await state.expand(hits, source_id, on)
-    try:
-        answer = await answerer.answer(body.question, hits, as_of=on)
-    except AnswerUnavailableError as exc:
-        headers = {"Retry-After": str(exc.retry_after_s)} if exc.retry_after_s else None
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            f"Answering is temporarily unavailable: {exc}. /v1/search still works.",
-            headers=headers,
-        ) from exc
+    cache: SemanticCache | None = getattr(state, "cache", None)
+    vector = await cache.vector(body.question) if cache is not None else None
+    hit = await cache.lookup(vector, hits) if cache is not None and vector is not None else None
+    if hit is not None:
+        answer = hit.answer
+    else:
+        try:
+            answer = await answerer.answer(body.question, hits, as_of=on)
+        except AnswerUnavailableError as exc:
+            headers = {"Retry-After": str(exc.retry_after_s)} if exc.retry_after_s else None
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                f"Answering is temporarily unavailable: {exc}. /v1/search still works.",
+                headers=headers,
+            ) from exc
+        if cache is not None and vector is not None:
+            await cache.store(vector, body.question, answer, hits)
     tokens = sum(answer.usage.values())
     if budget is not None:
         await budget.charge(tenant, tokens)
@@ -167,6 +178,7 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
         model=answer.model,
         refused=answer.refused,
         rejected_citations=answer.rejected_citations,
+        cached=hit is not None,
     )
 
 
