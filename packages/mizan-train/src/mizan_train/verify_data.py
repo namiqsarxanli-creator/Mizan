@@ -155,9 +155,10 @@ async def judge_claims(
         + "\n".join(f"{j}. {c}" for j, c in enumerate(claims, start=1))
         for i, (_, text, claims) in enumerate(items, start=1)
     )
-    # A small completion budget: providers count it against tokens-per-minute limits up front.
+    # A small completion budget: Groq counts it against the model's output-tokens-per-minute
+    # limit up front (1000 for qwen on the free tier), so 1500 is refused before it runs.
     content = await _chat(
-        client, model, JUDGE_PROMPT.format(items=blocks), max_tokens=1500, temperature=0.0
+        client, model, JUDGE_PROMPT.format(items=blocks), max_tokens=900, temperature=0.0
     )
     out: dict[str, list[str]] = {}
     for raw in _items(content):
