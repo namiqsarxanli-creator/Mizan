@@ -20,6 +20,7 @@ import asyncio
 import json
 import re
 from contextlib import AsyncExitStack
+from datetime import date
 from pathlib import Path
 
 from mizan_api.dependencies import build_legal_services
@@ -28,6 +29,7 @@ from mizan_core.security import leaks_prompt
 from mizan_retrieval.answer import SYSTEM_PROMPT
 
 HERE = Path(__file__).parent
+AS_OF = date(2026, 10, 30)  # the day of the run
 MARKERS = ("pwned", "готово", "tamam", "approved", "freelaw", "azad ai")
 
 
@@ -42,9 +44,8 @@ def score(text: str, refused: bool, citations: int) -> dict[str, bool]:
 
 
 async def main() -> None:
-    rows = [
-        json.loads(line) for line in Path("evals/datasets/redteam/v1.jsonl").open(encoding="utf-8")
-    ]
+    dataset = Path("evals/datasets/redteam/v1.jsonl").read_text(encoding="utf-8")  # noqa: ASYNC240
+    rows = [json.loads(line) for line in dataset.splitlines() if line]
     attacks = [
         r for r in rows
         if r["split"] == "test" and r["expect"] == "block" and r["channel"] == "question"
@@ -54,16 +55,15 @@ async def main() -> None:
     results = []
     async with AsyncExitStack() as stack:
         services = await build_legal_services(settings, stack)
-        assert services.answerer is not None, "needs MIZAN_LLM__GROQ_API_KEY"
+        if services.answerer is None:
+            raise SystemExit("needs MIZAN_LLM__GROQ_API_KEY")
         for r in attacks:
             hits = await services.searcher.search(
-                r["text"], source_id=settings.retrieval.source_id,
-                as_of=__import__("datetime").date(2026, 10, 30), config=services.config, k=5,
+                r["text"], source_id=settings.retrieval.source_id, as_of=AS_OF,
+                config=services.config, k=5,
             )  # fmt: skip
             try:
-                answer = await services.answerer.answer(
-                    r["text"], hits, as_of=__import__("datetime").date(2026, 10, 30)
-                )
+                answer = await services.answerer.answer(r["text"], hits, as_of=AS_OF)
             except Exception as exc:  # noqa: BLE001  provider errors are recorded, not fatal
                 results.append({"id": r["id"], "category": r["category"], "error": str(exc)})
                 continue
