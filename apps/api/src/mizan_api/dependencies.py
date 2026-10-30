@@ -21,11 +21,13 @@ import httpx
 from neo4j import AsyncDriver, AsyncGraphDatabase
 from qdrant_client import AsyncQdrantClient
 from redis.asyncio import Redis
+from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from mizan_agents.gateway import LLMGateway
 from mizan_agents.orchestrator import Agent, Orchestrator
 from mizan_agents.tools import LegalTools
+from mizan_api.auth import AuditLog, AuditRecord, RateLimiter
 from mizan_api.budget import TenantBudget
 from mizan_api.quality import QualityLoop
 from mizan_api.routes.legal import ASK_PROMPT_VERSION
@@ -38,7 +40,8 @@ from mizan_graph.decisions import attach_decisions
 from mizan_graph.search import SERVING_POLICY, GraphSearcher
 from mizan_graph.store import Neo4jGraph
 from mizan_ingestion.chunking import Strategy
-from mizan_ingestion.db.session import create_engine, session_factory
+from mizan_ingestion.db.quality import AuditEvent
+from mizan_ingestion.db.session import ALL_TENANTS, as_tenant, create_engine, session_factory
 from mizan_ingestion.diff import DiffBackend, PostgresDiff
 from mizan_retrieval.answer import AnswerBackend, ClaudeAnswerer, GroqAnswerer
 from mizan_retrieval.cache import SemanticCache
@@ -134,6 +137,32 @@ def _build_quality(
     )
     stack.push_async_callback(loop.drain)  # finish sampled evaluations on shutdown
     return loop
+
+
+def audit_writer(
+    sessions: async_sessionmaker[AsyncSession],
+) -> Callable[[list[AuditRecord]], Awaitable[None]]:
+    """Insert audit rows as ``mizan_app``, which may insert them but never change them."""
+
+    async def write(rows: list[AuditRecord]) -> None:
+        async with sessions.begin() as session:
+            await as_tenant(session, ALL_TENANTS)
+            await session.execute(
+                insert(AuditEvent),
+                [{k: getattr(r, k) for k in AuditRecord.__slots__} for r in rows],
+            )
+
+    return write
+
+
+def _build_audit(
+    settings: Settings, stack: AsyncExitStack, sessions: async_sessionmaker[AsyncSession]
+) -> AuditLog | None:
+    if not settings.auth.audit:
+        return None
+    audit = AuditLog(audit_writer(sessions))
+    stack.push_async_callback(audit.close)
+    return audit
 
 
 def _build_shadow(
@@ -259,6 +288,9 @@ class LegalServices:
     cache: SemanticCache | None = None
     # Candidate answerer on a sample of real traffic; None unless MIZAN_SHADOW__ENABLED.
     shadow: ShadowRunner | None = None
+    # F10: requests per minute per subject, and who called what.
+    rate_limiter: RateLimiter | None = None
+    audit: AuditLog | None = None
 
 
 def search_config(settings: Settings) -> SearchConfig:
@@ -376,6 +408,8 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
             embed=embedder.embed_query,
         )
     shadow = _build_shadow(settings, stack, session_factory(engine))
+    limiter = RateLimiter(redis, settings.auth.requests_per_minute)
+    audit = _build_audit(settings, stack, session_factory(engine))
     return LegalServices(
         searcher,
         config,
@@ -390,4 +424,6 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
         tools,
         answer_cache,
         shadow,
+        limiter,
+        audit,
     )

@@ -9,6 +9,8 @@ Configuration (environment):
 
 - ``MIZAN_API_URL``: the API's base URL, default ``http://127.0.0.1:18000``.
 - ``MIZAN_TENANT_ID``: sent as ``X-Tenant-Id``, so the API's per-tenant token budget applies.
+- ``MIZAN_API_TOKEN``: a bearer token (``mizan-token``) for an API with authentication on;
+  the tenant then comes from the token.
 
 Run it over stdio (Claude Desktop) with ``mizan-mcp``.
 """
@@ -60,6 +62,8 @@ class MizanApi:
         headers = {"User-Agent": "mizan-mcp"}
         if tenant := os.environ.get("MIZAN_TENANT_ID"):
             headers["X-Tenant-Id"] = tenant
+        if token := os.environ.get("MIZAN_API_TOKEN"):
+            headers["Authorization"] = f"Bearer {token}"
         return cls(
             httpx.AsyncClient(
                 base_url=os.environ.get("MIZAN_API_URL", "http://127.0.0.1:18000"),
@@ -76,11 +80,12 @@ class MizanApi:
             raise ToolError(
                 f"Mizan API is unreachable ({type(exc).__name__}); is it running?"
             ) from exc
+        if response.status_code == 401:
+            raise ToolError("Mizan API needs a valid token: set MIZAN_API_TOKEN.")
         if response.status_code == 429:
             retry = response.headers.get("Retry-After")
             raise ToolError(
-                "The daily token budget for this tenant is spent"
-                + (f"; retry in {retry} s." if retry else ".")
+                f"Mizan API: {_detail(response)}" + (f"; retry in {retry} s." if retry else ".")
             )
         if response.status_code >= 400:
             detail = _detail(response)

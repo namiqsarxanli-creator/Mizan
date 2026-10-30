@@ -211,3 +211,28 @@ async def test_tenants_are_isolated_by_row_level_security(
 
     with pytest.raises(DBAPIError, match="row-level security"):
         await write_for_another_tenant()
+
+
+async def test_audit_rows_are_written_and_cannot_be_changed_by_the_api_role(
+    sessions: async_sessionmaker[AsyncSession],
+) -> None:
+    from mizan_api.auth import AuditRecord
+    from mizan_api.dependencies import audit_writer
+    from mizan_ingestion.db.quality import AuditEvent
+
+    write = audit_writer(sessions)
+    await write([AuditRecord("alice", "acme", "POST", "/v1/ask", 200, "ok", "ab" * 16, 12.5)])
+    async with sessions() as session:
+        rows = (await session.scalars(select(AuditEvent))).all()
+    assert [(r.subject, r.tenant, r.path, r.outcome) for r in rows] == [
+        ("alice", "acme", "/v1/ask", "ok")
+    ]
+
+    async def as_api(statement: str) -> None:
+        async with sessions.begin() as session:
+            await as_tenant(session, "*")
+            await session.execute(text(statement))
+
+    for statement in ("UPDATE audit_log SET outcome = 'ok'", "DELETE FROM audit_log"):
+        with pytest.raises(DBAPIError, match="permission denied"):
+            await as_api(statement)

@@ -3,6 +3,7 @@ from pydantic import SecretStr, ValidationError
 
 from mizan_core.config import (
     DEV_PASSWORD,
+    AuthSettings,
     Environment,
     Neo4jSettings,
     PostgresSettings,
@@ -50,9 +51,29 @@ def test_real_secrets_are_accepted_in_production() -> None:
         environment=Environment.PRODUCTION,
         postgres=PostgresSettings(password=SecretStr("a-real-secret")),
         neo4j=Neo4jSettings(password=SecretStr("another-real-secret")),
+        auth=AuthSettings(enabled=True, jwt_secret=SecretStr("x" * 32)),
     )
 
     assert settings.postgres.password.get_secret_value() != DEV_PASSWORD
+
+
+def test_deployments_require_authentication() -> None:
+    with pytest.raises(ValidationError, match="authentication must be enabled"):
+        Settings(
+            _env_file=None,
+            environment=Environment.PRODUCTION,
+            postgres=PostgresSettings(password=SecretStr("a-real-secret")),
+            neo4j=Neo4jSettings(password=SecretStr("another-real-secret")),
+        )
+
+
+@pytest.mark.parametrize("secret", [None, "too-short"])
+def test_auth_needs_a_strong_secret(secret: str | None) -> None:
+    with pytest.raises(ValidationError, match="at least 32 characters"):
+        Settings(
+            _env_file=None,
+            auth=AuthSettings(enabled=True, jwt_secret=SecretStr(secret) if secret else None),
+        )
 
 
 def test_sample_ratio_is_bounded() -> None:

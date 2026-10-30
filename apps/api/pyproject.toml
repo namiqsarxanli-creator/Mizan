@@ -19,10 +19,12 @@ dependencies = [
     "redis>=5.2",
     "temporalio>=1.35.0",
     "uvicorn[standard]>=0.32",
+    "pyjwt>=2.10",
 ]
 
 [project.scripts]
 mizan-agent-worker = "mizan_api.agent_worker:main"
+mizan-token = "mizan_api.auth:main"
 
 [tool.uv.sources]
 mizan-agents = { workspace = true }

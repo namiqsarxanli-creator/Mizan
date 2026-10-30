@@ -323,7 +323,7 @@ dense `bge-m3`, reranker-siz (ADR-0009). Bax `evals/results/f7_rerank/README.md`
 - [ ] **OWASP LLM Top 10** üzrə audit
 - [ ] Prompt injection müdafiəsi: retrieval / sənəd mətni "data" kimi işarələnir, tool allowlist, output validation
 - [ ] Avtomatik red-teaming dataset-i CI-də işləyir (yüklənən müqavilələrdə gizli təlimatlar da daxil)
-- [ ] Auth (JWT / OAuth), rate limiting, audit log
+- [x] Auth (JWT, scope-lar `ask`/`review`; tenant yalnız token-dən), rate limiting (subject başına dəqiqəlik, Redis), append-only audit log. Staging/production auth-suz başlamır. OAuth/OIDC real istifadəçilər gələnə qədər açıq qalır. Bax **ADR-012**
 - [ ] Hüquqi disclaimer və məsuliyyət sərhədləri UI-da
 
 **✅ DoD:** Red-team dataset-inin ≥ 95%-i bloklanır, müqavilə analizi 10 real nümunədə düzgün işləyir.
@@ -373,8 +373,8 @@ dense `bge-m3`, reranker-siz (ADR-0009). Bax `evals/results/f7_rerank/README.md`
 | 008 | Observability: OTel GenAI span-ları, ClickHouse, Postgres-də keyfiyyət dövrəsi |
 | 009 | Model serving strategiyası |
 | 010 | Lokal model vs API routing |
-| 011 | Semantic cache invalidation |
-| 012 | Multi-tenancy və data izolyasiyası |
+| 011 | Durable agent runs (Temporal) |
+| 012 | Tenancy və giriş: JWT, RLS, rate limit, audit log |
 
 ---
 

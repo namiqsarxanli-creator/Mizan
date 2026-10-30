@@ -10,6 +10,7 @@ from uuid import UUID
 from fastapi import APIRouter, Header, HTTPException, Path, Query, Request, status
 from pydantic import BaseModel, Field
 
+from mizan_api.auth import require
 from mizan_api.quality import QualityLoop
 
 router = APIRouter(prefix="/v1/reviews", tags=["reviews"])
@@ -42,10 +43,17 @@ class Decision(BaseModel):
 
 
 def _queue(request: Request, authorization: str | None) -> QualityLoop:
-    """The queue, for a caller holding the reviewer token; 404 when reviews are not enabled."""
+    """The queue, for a reviewer; 404 when reviews are not enabled.
+
+    With authentication on, a reviewer is a token with the ``review`` scope. Without it (local
+    development), the shared ``MIZAN_QUALITY__REVIEW_TOKEN``.
+    """
     settings = request.app.state.settings
     token = settings.quality.review_token
     quality: QualityLoop | None = getattr(request.app.state, "quality", None)
+    if quality is not None and settings.auth.enabled:
+        require(request, "review")
+        return quality
     if token is None or quality is None:
         # Not 503: an unconfigured admin surface should look like it does not exist.
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Not Found")

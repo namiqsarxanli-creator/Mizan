@@ -11,7 +11,8 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 
-from mizan_api.budget import TenantBudget, tenant_of
+from mizan_api.auth import require
+from mizan_api.budget import TenantBudget
 from mizan_api.quality import AnswerRecord, QualityLoop
 from mizan_api.shadow import ShadowRunner
 from mizan_core.genai import prompt_version
@@ -111,6 +112,7 @@ async def search(
 
 @router.post("/ask", responses={503: {"description": "LLM is not configured"}})
 async def ask(request: Request, body: AskRequest) -> AskResponse:
+    tenant = require(request, "ask").tenant
     answerer: AnswerBackend | None = request.app.state.answerer
     if answerer is None:
         raise HTTPException(
@@ -120,7 +122,6 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
         )
     searcher, config, source_id = _searcher(request)
     state = request.app.state
-    tenant = tenant_of(request.headers.get("X-Tenant-Id"))
     budget: TenantBudget | None = getattr(state, "budget", None)
     if budget is not None:
         await budget.check(tenant)

@@ -117,7 +117,7 @@ async def test_ask_returns_citations_and_rejections() -> None:
 @pytest.mark.parametrize(
     ("status", "headers", "message"),
     [
-        (429, {"Retry-After": "3600"}, "budget for this tenant is spent; retry in 3600 s"),
+        (429, {"Retry-After": "3600"}, "Mizan API: nope; retry in 3600 s"),
         (503, {}, "Mizan API 503: nope"),
     ],
 )

@@ -5,6 +5,7 @@ feedback        thumbs up/down (+ comment) on an answer, from the user
 online_evals    faithfulness of a sampled answer against its own sources (LLM judge)
 reviews         answers queued for a person (low confidence, refusals, 👎, unfaithful)
 shadow_runs     a candidate model or prompt answering the same request in the background
+audit_log       who called which endpoint, with what outcome (F10)
 
 These rows are the data flywheel: drift detection reads online_evals, and F7/F8 fine-tuning
 reads answers with feedback. Questions are stored redacted (``mizan_core.genai.redact``).
@@ -136,3 +137,26 @@ class ShadowRun(Base):
     # Set when the candidate failed (provider error, invalid JSON): the other fields are empty.
     # A candidate that fails where the primary answers is a result, not noise.
     error: Mapped[str | None] = mapped_column(Text)
+
+
+class AuditEvent(Base):
+    """Who called what (F10): one row per authenticated or refused /v1 request.
+
+    Append-only: the API's role may insert but not change or delete rows. Bodies are not
+    stored (questions are in ``answers``, redacted); the trace id links the two.
+    """
+
+    __tablename__ = "audit_log"
+    __table_args__ = (Index("ix_audit_log_tenant_at", "tenant", "at"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    subject: Mapped[str | None] = mapped_column(String(128))  # None: no valid credentials
+    tenant: Mapped[str | None] = mapped_column(String(64))
+    method: Mapped[str] = mapped_column(String(8))
+    path: Mapped[str] = mapped_column(String(256))
+    status: Mapped[int] = mapped_column(SmallInteger)
+    # ok | missing_token | invalid_token | forbidden | rate_limited
+    outcome: Mapped[str] = mapped_column(String(16))
+    trace_id: Mapped[str | None] = mapped_column(String(32))
+    latency_ms: Mapped[float] = mapped_column(Float)

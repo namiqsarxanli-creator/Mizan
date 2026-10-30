@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 from mizan_api import __version__
+from mizan_api.auth import AuthMiddleware
 from mizan_api.budget import BudgetExhaustedError
 from mizan_api.dependencies import LegalServices, build_dependency_checks, build_legal_services
 from mizan_api.middleware import TraceIdHeaderMiddleware
@@ -71,6 +72,8 @@ def create_app(
             app.state.tools = services.tools
             app.state.cache = services.cache
             app.state.shadow = services.shadow
+            app.state.rate_limiter = services.rate_limiter
+            app.state.audit = services.audit
             app.state.checks = (
                 list(checks)
                 if checks is not None
@@ -83,6 +86,7 @@ def create_app(
 
     app = FastAPI(title="Mizan API", version=__version__, lifespan=lifespan)
     app.state.settings = settings
+    app.add_middleware(AuthMiddleware, settings=settings.auth)
     app.add_middleware(TraceIdHeaderMiddleware)
 
     @app.exception_handler(BudgetExhaustedError)

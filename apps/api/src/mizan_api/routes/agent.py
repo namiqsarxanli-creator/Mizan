@@ -27,7 +27,8 @@ from pydantic import BaseModel, Field
 from mizan_agents.durable import DurableAgent
 from mizan_agents.orchestrator import Agent, Event, EventSink, _noop
 from mizan_agents.schemas import AgentAnswer, Verdict
-from mizan_api.budget import TenantBudget, tenant_of
+from mizan_api.auth import require
+from mizan_api.budget import TenantBudget
 from mizan_api.quality import AnswerRecord, QualityLoop
 from mizan_api.routes.legal import today_in_baku
 from mizan_core.logging import get_logger
@@ -43,6 +44,7 @@ class AgentRequest(BaseModel):
 
 
 def _agent(request: Request) -> Agent:
+    require(request, "ask")  # 403 before 503: a caller learns nothing it may not use
     agent: Agent | None = request.app.state.agent
     if agent is None:
         raise HTTPException(
@@ -54,7 +56,7 @@ def _agent(request: Request) -> Agent:
 
 async def _check_budget(request: Request) -> tuple[TenantBudget | None, str]:
     budget: TenantBudget | None = getattr(request.app.state, "budget", None)
-    tenant = tenant_of(request.headers.get("X-Tenant-Id"))
+    tenant = require(request, "ask").tenant
     if budget is not None:
         await budget.check(tenant)
     return budget, tenant

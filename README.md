@@ -235,10 +235,25 @@ uv run mizan-agent-worker                          # any number of workers
 MIZAN_DURABLE__ENABLED=true uv run uvicorn mizan_api.main:create_app --factory
 ```
 
-## Multi-tenancy (F9)
+## Authentication and multi-tenancy (F9–F10)
 
-- **Tenant id:** every request carries a tenant in `X-Tenant-Id`. Without one, it falls back to
-  `public`.
+See [ADR-0012](docs/adr/0012-tenancy-and-access.md).
+
+- **Authentication:** with `MIZAN_AUTH__ENABLED=true` (required in staging and production),
+  every `/v1` request needs `Authorization: Bearer <JWT>`.
+  - Tokens are HS256, signed with `MIZAN_AUTH__JWT_SECRET` (at least 32 characters).
+  - They carry the subject, the tenant and the scopes: `ask` for the LLM endpoints, `review`
+    for the review queue. Operators issue them with
+    `uv run mizan-token --subject alice --tenant acme --scopes ask --days 30`.
+- **Rate limit:** `MIZAN_AUTH__REQUESTS_PER_MINUTE` per subject (default 60). Over the limit,
+  the API answers `429` with `Retry-After`.
+- **Audit log:** every `/v1` request, refused ones included, becomes an append-only
+  `audit_log` row: subject, tenant, path, status, outcome and trace id.
+- **MCP:** the MCP server sends `MIZAN_API_TOKEN` when it is set.
+
+
+- **Tenant id:** with auth on, it comes from the token. With auth off (local development), it
+  comes from `X-Tenant-Id`, falling back to `public`.
 - **Quota:** a daily token budget per tenant, in Redis (`MIZAN_LLM__DAILY_TOKENS_PER_TENANT`).
   The API answers `429` with `Retry-After` when it is spent.
 - **Row-level security:** `answers` is protected in Postgres. Every session of the quality loop
@@ -294,6 +309,7 @@ Docker image build. Install the git hooks once with `uv run pre-commit install`.
 | [0009](docs/adr/0009-model-serving.md) | Public bge-m3 dense retrieval, no reranker; trained models stay gated local artefacts |
 | [0010](docs/adr/0010-local-vs-api-models.md) | Narrow, high-volume tasks go local only past a pre-registered gate and the GPU break-even; verification stays on the API for now |
 | [0011](docs/adr/0011-durable-agent-runs.md) | Durable agent runs on Temporal (opt-in): one state machine, steps as activities, idempotent request ids |
+| [0012](docs/adr/0012-tenancy-and-access.md) | JWT identity with scopes, tenant from the token only; Postgres RLS; per-subject rate limit; append-only audit log |
 
 ## Disclaimer
 

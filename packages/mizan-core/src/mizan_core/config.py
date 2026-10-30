@@ -188,6 +188,23 @@ class ShadowSettings(BaseModel):
     sample_rate: float = Field(default=0.1, ge=0.0, le=1.0)
 
 
+class AuthSettings(BaseModel):
+    """Authentication, rate limiting and the audit log for /v1 (F10).
+
+    Off (local development): the tenant comes from ``X-Tenant-Id`` and every caller may do
+    everything. On: every /v1 request needs ``Authorization: Bearer <JWT>`` signed with
+    ``jwt_secret`` (HS256); the tenant and the scopes come from the token, never from headers.
+    """
+
+    enabled: bool = False
+    jwt_secret: SecretStr | None = None
+    issuer: str = "mizan"
+    audience: str = "mizan-api"
+    # Per subject, fixed one-minute windows in Redis; 0 turns the limit off.
+    requests_per_minute: int = Field(default=60, ge=0)
+    audit: bool = True
+
+
 class DurableSettings(BaseModel):
     """Durable agent runs on Temporal (F9). Off: the API runs the agent in process."""
 
@@ -225,6 +242,7 @@ class Settings(BaseSettings):
     cache: CacheSettings = CacheSettings()
     shadow: ShadowSettings = ShadowSettings()
     durable: DurableSettings = DurableSettings()
+    auth: AuthSettings = AuthSettings()
 
     @model_validator(mode="after")
     def _reject_dev_secrets(self) -> Self:
@@ -242,6 +260,17 @@ class Settings(BaseSettings):
             raise ValueError(
                 f"development secrets are not allowed in {self.environment}: {', '.join(offenders)}"
             )
+        if not self.auth.enabled:
+            raise ValueError(f"authentication must be enabled in {self.environment}")
+        return self
+
+    @model_validator(mode="after")
+    def _auth_needs_a_strong_secret(self) -> Self:
+        if self.auth.enabled:
+            secret = self.auth.jwt_secret
+            # HS256 keys shorter than the hash output are brute-forceable (RFC 7518 3.2).
+            if secret is None or len(secret.get_secret_value()) < 32:
+                raise ValueError("auth.jwt_secret must be at least 32 characters")
         return self
 
 
