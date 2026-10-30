@@ -9,7 +9,7 @@
 - **Hard benign questions** (expect ``allow``): real labour-law questions that use the
   attackers' words. These include "təlimat" (instruction), "göstəriş" (order), "nəzərə
   almadan" (disregarding), "sistem" (system) and "rol" (role). They measure false positives
-  where they are most likely. The 466 human eval questions are the second benign set; the
+  where they are most likely. The 281 human eval questions are the second benign set; the
   gate reads them from ``evals/datasets/v1``.
 - **Channels:** ``question`` is text typed by a user; ``document`` is text inside an uploaded
   contract (indirect injection).
