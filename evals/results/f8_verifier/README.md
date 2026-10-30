@@ -1,8 +1,11 @@
 # F8: a local verifier (Qwen3.5-2B + LoRA) against the API verifier
 
 Protocol: [`PREREGISTRATION.md`](PREREGISTRATION.md), committed before any data was generated or
-model trained. Numbers: [`report.json`](report.json); training curve: [`training.json`](training.json); local test predictions: [`local_test_predictions.jsonl`](local_test_predictions.jsonl) (`mizan-train verifier-report
---gpu-usd-per-hour 0.22`).
+model trained. Files:
+
+- [`report.json`](report.json): the comparison, from `mizan-train verifier-report --gpu-usd-per-hour 0.22`;
+- [`training.json`](training.json): the training curve;
+- [`local_test_predictions.jsonl`](local_test_predictions.jsonl): the local model's test predictions.
 
 **Result: both pre-registered gates pass.** The local verifier keeps 98.4% of the API
 verifier's macro-F1 and costs 7.3 times less per claim. It is also 7 times faster per claim.
