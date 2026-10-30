@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
+from mizan_api.budget import tenant_of
 from mizan_api.quality import QualityLoop
 
 router = APIRouter(prefix="/v1", tags=["feedback"])
@@ -28,5 +29,6 @@ async def feedback(request: Request, body: FeedbackRequest) -> None:
     quality: QualityLoop | None = getattr(request.app.state, "quality", None)
     if quality is None:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "feedback is disabled")
-    if not await quality.feedback(body.answer_id, body.rating, body.comment):
+    tenant = tenant_of(request.headers.get("X-Tenant-Id"))
+    if not await quality.feedback(body.answer_id, body.rating, body.comment, tenant=tenant):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "unknown answer id")

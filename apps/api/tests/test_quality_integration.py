@@ -6,12 +6,14 @@ from dataclasses import replace
 from datetime import date
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from mizan_api.quality import AnswerRecord, QualityLoop, sampled
 from mizan_api.shadow import ShadowRunner
 from mizan_ingestion.db.quality import AnswerLog, Feedback, OnlineEval, ShadowRun
+from mizan_ingestion.db.session import as_tenant
 from mizan_retrieval.answer import Answer, Citation
 from mizan_retrieval.search import Hit
 
@@ -92,8 +94,8 @@ async def test_feedback_needs_a_known_answer(sessions: async_sessionmaker[AsyncS
     loop = QualityLoop(sessions, None)
     answer_id = await loop.record(RECORD)
 
-    assert await loop.feedback(answer_id, -1, "Yanlışdır, e-poçt: a@b.az")
-    assert not await loop.feedback(uuid.uuid4(), 1, None)
+    assert await loop.feedback(answer_id, -1, "Yanlışdır, e-poçt: a@b.az", tenant="acme")
+    assert not await loop.feedback(uuid.uuid4(), 1, None, tenant="acme")
 
     async with sessions() as session:
         (fb,) = (await session.scalars(select(Feedback))).all()
@@ -115,7 +117,7 @@ async def test_review_queue_triggers_and_decisions(
     unsure = await loop.record(replace(RECORD, endpoint="agent", confidence=0.6))
     refused = await loop.record(replace(RECORD, abstained=True))
     await loop.drain()  # the fake judge scores 0.5: every judged answer is also "unfaithful"
-    assert await loop.feedback(unsure, -1, None)  # already queued: no second review
+    assert await loop.feedback(unsure, -1, None, tenant="acme")  # already queued: no 2nd review
 
     queued = {r["answer_id"]: r for r in await loop.reviews()}
     assert queued[unsure]["reason"] == "low_confidence"
@@ -174,3 +176,38 @@ async def test_shadow_runs_store_the_comparison_and_swallow_failures(
     assert run.citation_overlap == 0.5  # {69} vs {69, 70}
     assert run.refusal_agrees
     assert (run.tokens, run.primary_tokens, run.primary_latency_ms) == (1000, 1234, 2800.0)
+
+
+async def test_tenants_are_isolated_by_row_level_security(
+    sessions: async_sessionmaker[AsyncSession],
+) -> None:
+    loop = QualityLoop(sessions, None)
+    mine = await loop.record(replace(RECORD, tenant="acme"))
+    theirs = await loop.record(replace(RECORD, tenant="globex"))
+
+    # Feedback reaches only the caller's own answers; another tenant's id looks unknown.
+    assert await loop.feedback(mine, 1, None, tenant="acme")
+    assert not await loop.feedback(theirs, 1, None, tenant="acme")
+
+    async with sessions.begin() as session:
+        await as_tenant(session, "acme")
+        visible = set((await session.scalars(select(AnswerLog.id))).all())
+    assert mine in visible
+    assert theirs not in visible
+
+    async with sessions.begin() as session:
+        await session.execute(text("SET LOCAL ROLE mizan_app"))  # no tenant set: fails closed
+        assert (await session.scalars(select(AnswerLog.id))).all() == []
+
+    async def write_for_another_tenant() -> None:
+        async with sessions.begin() as session:
+            await as_tenant(session, "acme")
+            session.add(
+                AnswerLog(
+                    endpoint="ask", tenant="globex", question="q", as_of=date(2026, 10, 30),
+                    answer="a", sources=[], tokens=0, latency_ms=0.0,
+                )
+            )  # fmt: skip
+
+    with pytest.raises(DBAPIError, match="row-level security"):
+        await write_for_another_tenant()

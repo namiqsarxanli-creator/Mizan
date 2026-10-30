@@ -29,6 +29,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from mizan_core.genai import TRACER, redact
 from mizan_core.logging import get_logger
 from mizan_ingestion.db.quality import AnswerLog, Feedback, OnlineEval, Review
+from mizan_ingestion.db.session import ALL_TENANTS, as_tenant
 
 log = get_logger(__name__)
 
@@ -81,6 +82,7 @@ class QualityLoop:
     async def record(self, r: AnswerRecord) -> uuid.UUID:
         answer_id = uuid.uuid4()
         async with self.sessions.begin() as session:
+            await as_tenant(session, r.tenant)
             session.add(
                 AnswerLog(
                     id=answer_id,
@@ -126,6 +128,7 @@ class QualityLoop:
                     return
                 span.set_attribute("mizan.faithfulness", score)
                 async with self.sessions.begin() as session:
+                    await as_tenant(session, r.tenant)
                     session.add(
                         OnlineEval(
                             answer_id=answer_id,
@@ -137,9 +140,12 @@ class QualityLoop:
                     if score < self.unfaithful_below:
                         await self._enqueue(session, answer_id, "unfaithful")
 
-    async def feedback(self, answer_id: uuid.UUID, rating: int, comment: str | None) -> bool:
-        """Store feedback; False when the answer id is unknown."""
+    async def feedback(
+        self, answer_id: uuid.UUID, rating: int, comment: str | None, *, tenant: str
+    ) -> bool:
+        """Store feedback; False when the answer id is unknown *to this tenant*."""
         async with self.sessions.begin() as session:
+            await as_tenant(session, tenant)
             exists = await session.scalar(select(AnswerLog.id).where(AnswerLog.id == answer_id))
             if exists is None:
                 return False
@@ -166,7 +172,8 @@ class QualityLoop:
 
     async def reviews(self, status: str = "open", limit: int = 50) -> list[dict[str, Any]]:
         """Queued answers with what a reviewer needs to judge them, oldest first."""
-        async with self.sessions() as session:
+        async with self.sessions.begin() as session:
+            await as_tenant(session, ALL_TENANTS)
             rows = await session.execute(
                 select(Review, AnswerLog)
                 .join(AnswerLog, AnswerLog.id == Review.answer_id)
@@ -205,6 +212,7 @@ class QualityLoop:
     ) -> bool:
         """Record a reviewer's decision; False when the review id is unknown."""
         async with self.sessions.begin() as session:
+            await as_tenant(session, ALL_TENANTS)
             review = await session.get(Review, review_id)
             if review is None:
                 return False
