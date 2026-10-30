@@ -34,6 +34,6 @@ for name in (
 ):
     if (DATA / name).exists():
         shutil.copy(DATA / name, out / name)
-for script in ("pod_train.py", "pod_test.py", "pod_distill.py", "pod_verifier.py"):
+for script in ("pod_train.py", "pod_test.py", "pod_distill.py", "pod_verifier.py", "run.sh"):
     shutil.copy(Path(__file__).parent / script, out / script)
 print(len(articles), "articles")
