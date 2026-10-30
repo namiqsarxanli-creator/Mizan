@@ -1,0 +1,83 @@
+{
+ "test_claims": 114,
+ "api": {
+  "macro_f1": 0.9505,
+  "accuracy": 0.9474,
+  "f1": {
+   "supported": 1.0,
+   "contradicted": 0.9091,
+   "not_enough_info": 0.9423
+  },
+  "confusion": {
+   "supported": {
+    "supported": 29,
+    "contradicted": 0,
+    "not_enough_info": 0
+   },
+   "contradicted": {
+    "supported": 0,
+    "contradicted": 30,
+    "not_enough_info": 1
+   },
+   "not_enough_info": {
+    "supported": 0,
+    "contradicted": 5,
+    "not_enough_info": 49
+   }
+  },
+  "accuracy_by_kind": {
+   "absent": 0.8519,
+   "altered": 0.9677,
+   "extended": 0.963,
+   "restated": 1.0
+  }
+ },
+ "local": {
+  "macro_f1": 0.9349,
+  "accuracy": 0.9386,
+  "f1": {
+   "supported": 0.9474,
+   "contradicted": 0.9032,
+   "not_enough_info": 0.9541
+  },
+  "confusion": {
+   "supported": {
+    "supported": 27,
+    "contradicted": 1,
+    "not_enough_info": 1
+   },
+   "contradicted": {
+    "supported": 1,
+    "contradicted": 28,
+    "not_enough_info": 2
+   },
+   "not_enough_info": {
+    "supported": 0,
+    "contradicted": 2,
+    "not_enough_info": 52
+   }
+  },
+  "accuracy_by_kind": {
+   "absent": 0.963,
+   "altered": 0.9032,
+   "extended": 0.963,
+   "restated": 0.931
+  }
+ },
+ "cost_per_claim_usd": {
+  "api": 9.54e-05,
+  "local": 1.306e-05,
+  "local_basis": "0.22 USD/h, 4.68 claims/s (Tesla T4, Qwen/Qwen3.5-2B)",
+  "ratio": 7.3
+ },
+ "latency": {
+  "api_p50_s": 1.59,
+  "local_batch1_ms": 213.8
+ },
+ "gate": {
+  "quality_retention": 0.984,
+  "quality_passed": true,
+  "cost_passed": true
+ },
+ "base": "Qwen/Qwen3.5-2B"
+}

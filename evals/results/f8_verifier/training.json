@@ -1,0 +1,74 @@
+{
+ "config": {
+  "base": "Qwen/Qwen3.5-2B",
+  "rank": 16,
+  "alpha": 32,
+  "dropout": 0.05,
+  "lr": 0.0002,
+  "epochs": 3,
+  "batch_size": 8,
+  "max_length": 1536,
+  "warmup_ratio": 0.05,
+  "seed": 13
+ },
+ "train_claims": 953,
+ "val_claims": 158,
+ "trainable_params": 16819200,
+ "device": "cuda",
+ "gpu": "Tesla T4 (Colab)",
+ "best_epoch": 3,
+ "minutes": 59.5,
+ "history": [
+  {
+   "epoch": 0,
+   "val": {
+    "macro_f1": 0.5656,
+    "accuracy": 0.6519,
+    "f1": {
+     "supported": 0.7872,
+     "contradicted": 0.2083,
+     "not_enough_info": 0.7011
+    }
+   }
+  },
+  {
+   "epoch": 1,
+   "loss": 0.18385133829616127,
+   "val": {
+    "macro_f1": 0.9074,
+    "accuracy": 0.9114,
+    "f1": {
+     "supported": 0.8989,
+     "contradicted": 0.8889,
+     "not_enough_info": 0.9343
+    }
+   }
+  },
+  {
+   "epoch": 2,
+   "loss": 0.05055731790574782,
+   "val": {
+    "macro_f1": 0.9216,
+    "accuracy": 0.9304,
+    "f1": {
+     "supported": 0.9195,
+     "contradicted": 0.8736,
+     "not_enough_info": 0.9718
+    }
+   }
+  },
+  {
+   "epoch": 3,
+   "loss": 0.01730186209744365,
+   "val": {
+    "macro_f1": 0.9353,
+    "accuracy": 0.943,
+    "f1": {
+     "supported": 0.9302,
+     "contradicted": 0.8966,
+     "not_enough_info": 0.979
+    }
+   }
+  }
+ ]
+}

@@ -263,32 +263,32 @@ dense `bge-m3`, reranker-siz (ADR-0009). Bax `evals/results/f7_rerank/README.md`
 
 ---
 
-## F8 — LLM fine-tune (Həftə 18–20)
+## F8 — LLM fine-tune (Həftə 18–20) ✅ (verifier; gate keçdi)
 
 **Məqsəd:** dar və tez-tez təkrarlanan tapşırıqları ucuz, sürətli və öz idarənlə olan modellərə vermək.
 
+**Nəticə:** [`evals/results/f8_verifier`](../evals/results/f8_verifier/README.md). Qwen3.5-2B + LoRA verifier API-nin (`gpt-oss-20b`) macro-F1-inin **98.4%**-ni saxlayır (0.935 vs 0.951) və iddia başına **7.3×** ucuzdur (214 ms vs 1.59 s). Hər iki pre-registered gate keçdi. Retention intervalı [0.91, 1.05]-dir; test iddiaları sintetikdir.
+
 ### Həftə 18 — Data və tokenizer analizi
-- [ ] Tokenizer analizi: Azərbaycan mətni üçün Qwen / Llama / Gemma-nın token effektivliyi
-- [ ] Base model seçimi (Qwen 1.5–3B tövsiyə olunur)
-- [ ] F5-F6 trace-lərindən distillation datası: verifier qərarları, query rewrite-lar, citation extraction-lar
-- [ ] Sinif balansı, deduplikasiya, keyfiyyət filtri
+- [x] Tokenizer analizi: Azərbaycan mətni üçün Qwen / Llama / Gemma-nın token effektivliyi ([`f8_tokenizers`](../evals/results/f8_tokenizers/README.md))
+- [x] Base model seçimi: `Qwen/Qwen3.5-2B` (248k vocab, Qwen2.5-dən 22% az token)
+- [x] Verifier datası: label-i konstruksiya ilə məlum olan iddialar (restated / altered / absent / extended), başqa model ailəsindən hakim filtri; F5 trace-ləri əvəzinə (gold label yoxdur)
+- [x] Sinif balansı, deduplikasiya, keyfiyyət filtri; maddə üzrə split (test maddələri train-də yoxdur)
 
 ### Həftə 19 — Training
-- [ ] **QLoRA** (4-bit) ilə üç adapter:
-  1. **Verifier** — `supported / contradicted / not_enough_info`
-  2. **Citation extractor** — strukturlu JSON çıxışı
-  3. **Query rewriter** — gündəlik dildən hüquqi terminologiyaya
-- [ ] GPU: Kaggle / Colab (pulsuz) və ya RunPod
-- [ ] Hər adapter üçün W&B report
+- [x] **LoRA** (r=16, bütün linear qatlar) ilə verifier — `supported / contradicted / not_enough_info`. QLoRA lazım olmadı: 2B model fp16-da T4-ə sığır
+- [ ] Citation extractor və query rewriter — öyrədilmədi; ADR-010 qaydası ilə API-də qalır
+- [x] GPU: pulsuz Colab T4 (`infra/gpu/verifier_notebook.ipynb`); RunPod pod-ları özünü silir (`infra/gpu/run.sh`)
+- [x] Report: `evals/results/f8_verifier/` (W&B əvəzinə repoda JSON + README)
 
 ### Həftə 20 — Serving və inteqrasiya
-- [ ] vLLM ilə **multi-LoRA serving** (bir base model, üç adapter)
-- [ ] LLM Gateway-ə əlavə: routing qaydası (`task=verify` → lokal model, fallback → Claude)
-- [ ] Eval: keyfiyyət / xərc / latency (Claude ilə müqayisədə)
-- [ ] Shadow rejimdə test (növbəti fazanın infrastrukturu ilə)
-- [ ] **ADR-010:** Hansı tapşırıqlar lokal modelə, hansılar API-yə gedir
+- [ ] vLLM ilə multi-LoRA serving — ADR-010-a görə təxirə salındı (GPU yalnız trafik break-even-i keçəndə)
+- [ ] LLM Gateway routing qaydası (`task=verify` → lokal model, fallback → API) — eyni səbəbdən
+- [x] Eval: keyfiyyət / xərc / latency (API ilə müqayisədə)
+- [ ] Shadow rejimdə test (F9 `ShadowRunner` hazırdır; lokal modelin serving-i ilə birlikdə)
+- [x] **ADR-010:** Hansı tapşırıqlar lokal modelə, hansılar API-yə gedir
 
-**✅ DoD:** Lokal verifier Claude-un keyfiyyətinin ≥ 95%-ni saxlayır, sorğu başına xərc ≥ 5 dəfə azalır.
+**✅ DoD:** Lokal verifier API-nin keyfiyyətinin ≥ 95%-ni saxlayır, sorğu başına xərc ≥ 5 dəfə azalır. — **keçdi** (98.4%, 7.3×)
 
 ---
 
