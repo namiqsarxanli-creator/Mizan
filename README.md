@@ -268,6 +268,17 @@ See [ADR-0012](docs/adr/0012-tenancy-and-access.md).
   In production the API should log in as `mizan_app` itself, so that the owner role is used
   only by migrations.
 
+## Security (F10)
+
+- **Prompt injection.** Questions are screened before any spend, and attacks get `400`. The
+  screen is a pre-registered CI gate: 98.2% of test attacks blocked, 0 of 281 real questions
+  blocked ([report](evals/results/f10_redteam/README.md)).
+  - Untrusted text is neutralised, and sources are delimited as data.
+  - Outputs are schema-checked JSON, and every quote is checked against its source.
+  - An answer that reproduces a system prompt is replaced by a refusal.
+- **OWASP Top 10 for LLM applications:** [audit](docs/security/owasp-llm-top10.md). 8 risks
+  are controlled and 2 are partial, with next steps.
+
 ## Quality gates
 
 | Command | What it checks |
@@ -277,6 +288,7 @@ See [ADR-0012](docs/adr/0012-tenancy-and-access.md).
 | `uv run mypy packages apps` | strict typing |
 | `uv run pytest --cov` | unit tests + coverage |
 | `MIZAN_INTEGRATION=1 uv run pytest -m integration` | real Postgres: migrations + `alembic check`, ingestion pipeline end to end, dependency checks |
+| `uv run mizan-eval redteam --gate` | prompt-injection screen vs the pre-registered red-team test split |
 | `uv run mizan-graph gate` | quality of the serving path (dense + graph) vs the committed baseline (paired bootstrap) |
 
 All of the above run in CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)), followed by a

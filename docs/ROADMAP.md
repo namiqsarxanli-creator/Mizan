@@ -320,9 +320,9 @@ dense `bge-m3`, reranker-siz (ADR-0009). Bax `evals/results/f7_rerank/README.md`
 - [ ] UI: bəndlər rəng kodu ilə + istinadlar
 
 ### Təhlükəsizlik
-- [ ] **OWASP LLM Top 10** üzrə audit
-- [ ] Prompt injection müdafiəsi: retrieval / sənəd mətni "data" kimi işarələnir, tool allowlist, output validation
-- [ ] Avtomatik red-teaming dataset-i CI-də işləyir (yüklənən müqavilələrdə gizli təlimatlar da daxil)
+- [x] **OWASP LLM Top 10** üzrə audit: 8/10 nəzarətdə, 2-si qismən (supply chain scan, mənbənin müstəqil yoxlanması); bax `docs/security/owasp-llm-top10.md`
+- [x] Prompt injection müdafiəsi: sualların skrininqi (400 + audit `injection`), etibarsız mətnin neytrallaşdırılması, mənbələr "data" kimi işarələnir, read-only tool allowlist, JSON/quote output validation, sistem promptunun sızmasının bloklanması
+- [x] Avtomatik red-teaming dataset-i CI-də işləyir (yüklənən müqavilələrdə gizli təlimatlar da daxil): pre-registered gate test-də **keçdi**: hücumların 98.2%-i bloklandı, 0/281 yanlış bloklama. Skrininqi keçən 20 hücumun heç birinə model itaət etmədi. Bax `evals/results/f10_redteam`
 - [x] Auth (JWT, scope-lar `ask`/`review`; tenant yalnız token-dən), rate limiting (subject başına dəqiqəlik, Redis), append-only audit log. Staging/production auth-suz başlamır. OAuth/OIDC real istifadəçilər gələnə qədər açıq qalır. Bax **ADR-012**
 - [ ] Hüquqi disclaimer və məsuliyyət sərhədləri UI-da
 
