@@ -35,8 +35,8 @@ print(json.dumps({"train": len(train), "val": len(val), "test": len(test)}))
 base = sys.argv[1] if len(sys.argv) > 1 else BASE
 try:
     report = train_verifier(train, val, LoraConfig(base=base), root / "runs" / "verifier")
-except torch.OutOfMemoryError:
-    raise  # a memory budget is a configuration problem, not an unsupported architecture
+except (torch.OutOfMemoryError, ImportError):
+    raise  # memory and missing packages are the environment, not an unsupported architecture
 except Exception as exc:  # noqa: BLE001 - any failure of the new architecture triggers the fallback
     print(json.dumps({"base_failed": base, "error": repr(exc)[:500], "fallback": FALLBACK}))
     base = FALLBACK

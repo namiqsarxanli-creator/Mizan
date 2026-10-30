@@ -10,6 +10,7 @@ dependencies = [
     "mizan-evals",
     "mizan-graph",
     "mizan-ingestion",
+    "mizan-mcp",
     "mizan-retrieval",
     "mizan-train",
     "mizan-worker",
@@ -26,6 +27,7 @@ mizan-agents = { workspace = true }
 mizan-core = { workspace = true }
 mizan-api = { workspace = true }
 mizan-ingestion = { workspace = true }
+mizan-mcp = { workspace = true }
 mizan-worker = { workspace = true }
 mizan-retrieval = { workspace = true }
 mizan-evals = { workspace = true }
@@ -51,6 +53,8 @@ dev = [
 line-length = 100
 target-version = "py312"
 src = ["packages/*/src", "apps/*/src"]
+# Notebooks are runbooks for hosted GPUs (Colab, Kaggle), with shell lines; not library code.
+extend-exclude = ["*.ipynb"]
 
 [tool.ruff.lint]
 select = [
