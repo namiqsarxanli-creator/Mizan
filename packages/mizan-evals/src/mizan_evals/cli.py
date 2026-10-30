@@ -557,6 +557,10 @@ def main(argv: list[str] | None = None) -> int:
     p_shadow.add_argument("--out", type=Path, default=Path("evals/results/shadow"))
     p_cache = sub.add_parser("cache", help="semantic cache threshold and saving")
     p_cache.add_argument("--out", type=Path, default=Path("evals/results/f9_cache/report.json"))
+    p_red = sub.add_parser("redteam", help="prompt-injection screen vs the red-team set")
+    p_red.add_argument("--split", choices=["dev", "test"], default="dev")
+    p_red.add_argument("--gate", action="store_true", help="score test; exit 1 on failure")
+    p_red.add_argument("--out", type=Path, help="write the report as JSON")
     p_report = sub.add_parser("report")
     p_report.add_argument("--out", type=Path, default=DEFAULT_OUT)
     p_label = sub.add_parser("label")
@@ -595,6 +599,15 @@ def main(argv: list[str] | None = None) -> int:
         (args.out / f"{stem}.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
         print(markdown)
         return 0
+    if args.command == "redteam":
+        from mizan_evals.redteam import evaluate
+
+        report = evaluate("test" if args.gate else args.split)
+        if args.out:
+            args.out.parent.mkdir(parents=True, exist_ok=True)
+            args.out.write_text(json.dumps(report, indent=1, ensure_ascii=False), encoding="utf-8")
+        print(json.dumps(report, indent=1, ensure_ascii=False))
+        return 0 if not args.gate or all(report["gate"].values()) else 1
     if args.command == "cache":
         report = asyncio.run(_cache())
         args.out.parent.mkdir(parents=True, exist_ok=True)
