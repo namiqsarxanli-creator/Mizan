@@ -137,6 +137,13 @@ class LoraConfig:
     seed: int = 13
 
 
+def native_bf16() -> bool:
+    """bf16 in hardware: Ampere (sm 8.0) and newer. A T4 (Kaggle, Colab) only emulates it."""
+    import torch
+
+    return torch.cuda.is_available() and torch.cuda.get_device_capability()[0] >= 8
+
+
 def load_base(name: str, device: str) -> tuple[Any, Any]:
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -144,7 +151,10 @@ def load_base(name: str, device: str) -> tuple[Any, Any]:
     tokenizer = AutoTokenizer.from_pretrained(name)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
-    dtype = torch.bfloat16 if device == "cuda" else torch.float32
+    if device != "cuda":
+        dtype = torch.float32
+    else:
+        dtype = torch.bfloat16 if native_bf16() else torch.float16
     model: Any = AutoModelForCausalLM.from_pretrained(name, dtype=dtype)
     return model.to(device), tokenizer
 
@@ -172,6 +182,15 @@ def train_verifier(
             task_type="CAUSAL_LM",
         ),
     )
+    # fp16 base weights (no native bf16): the adapters train in fp32 under autocast, with loss
+    # scaling, because fp16 gradients of a 2B model underflow.
+    half = device == "cuda" and not native_bf16()
+    if half:
+        for p in model.parameters():
+            if p.requires_grad:
+                p.data = p.data.float()
+    autocast = torch.autocast("cuda", dtype=torch.float16, enabled=half)
+    scaler = torch.amp.GradScaler("cuda", enabled=half)
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
     def encode(item: Item) -> tuple[list[int], list[int]]:
@@ -210,16 +229,21 @@ def train_verifier(
             batch_loss = 0.0
             for ids, labels in batch:
                 answer = sum(label != -100 for label in labels)
-                out = model(input_ids=torch.tensor([ids], device=device), logits_to_keep=answer + 1)
+                with autocast:
+                    out = model(
+                        input_ids=torch.tensor([ids], device=device), logits_to_keep=answer + 1
+                    )
                 # Position t predicts token t+1: the kept logits minus the last predict the
                 # answer tokens.
                 logits = out.logits[0, :-1].float()
                 target = torch.tensor(ids[-answer:], device=device)
                 loss = torch.nn.functional.cross_entropy(logits, target) / len(batch)
-                loss.backward()  # type: ignore[no-untyped-call]
+                scaler.scale(loss).backward()  # type: ignore[no-untyped-call]
                 batch_loss += loss.item()
+            scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(params, 1.0)
-            optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
             schedule.step()
             optimizer.zero_grad()
             losses.append(batch_loss)
