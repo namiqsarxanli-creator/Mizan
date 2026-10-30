@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from dataclasses import replace
 from datetime import date, datetime
 from typing import Annotated
 from uuid import UUID
@@ -13,6 +14,7 @@ from pydantic import BaseModel, Field
 
 from mizan_api.auth import require
 from mizan_api.budget import TenantBudget
+from mizan_api.guard import LEAK_REFUSAL, leaked, screened
 from mizan_api.quality import AnswerRecord, QualityLoop
 from mizan_api.shadow import ShadowRunner
 from mizan_core.genai import prompt_version
@@ -113,6 +115,7 @@ async def search(
 @router.post("/ask", responses={503: {"description": "LLM is not configured"}})
 async def ask(request: Request, body: AskRequest) -> AskResponse:
     tenant = require(request, "ask").tenant
+    question = screened(request, body.question)
     answerer: AnswerBackend | None = request.app.state.answerer
     if answerer is None:
         raise HTTPException(
@@ -127,18 +130,18 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
         await budget.check(tenant)
     on = body.as_of or today_in_baku()
     started = time.perf_counter()
-    query = await state.rewriter.expand(body.question) if state.rewriter else body.question
+    query = await state.rewriter.expand(question) if state.rewriter else question
     hits = await searcher.search(query, source_id=source_id, as_of=on, config=config, k=body.k)
     if state.expand is not None:
         hits = await state.expand(hits, source_id, on)
     cache: SemanticCache | None = getattr(state, "cache", None)
-    vector = await cache.vector(body.question) if cache is not None else None
+    vector = await cache.vector(question) if cache is not None else None
     hit = await cache.lookup(vector, hits) if cache is not None and vector is not None else None
     if hit is not None:
         answer = hit.answer
     else:
         try:
-            answer = await answerer.answer(body.question, hits, as_of=on)
+            answer = await answerer.answer(question, hits, as_of=on)
         except AnswerUnavailableError as exc:
             headers = {"Retry-After": str(exc.retry_after_s)} if exc.retry_after_s else None
             raise HTTPException(
@@ -146,8 +149,10 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
                 f"Answering is temporarily unavailable: {exc}. /v1/search still works.",
                 headers=headers,
             ) from exc
+        if leaked(answer.text, SYSTEM_PROMPT):
+            answer = replace(answer, text=LEAK_REFUSAL, citations=(), refused=True)
         if cache is not None and vector is not None:
-            await cache.store(vector, body.question, answer, hits)
+            await cache.store(vector, question, answer, hits)
     tokens = sum(answer.usage.values())
     if budget is not None:
         await budget.charge(tenant, tokens)
@@ -160,7 +165,7 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
             AnswerRecord(
                 endpoint="ask",
                 tenant=tenant,
-                question=body.question,
+                question=question,
                 as_of=on,
                 answer=answer.text,
                 sources=[(h.key, h.text) for h in given],
@@ -175,7 +180,7 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
     shadow: ShadowRunner | None = getattr(state, "shadow", None)
     if shadow is not None and answer_id is not None and hit is None:
         # A cached answer has no fresh primary call to compare against.
-        shadow.submit(answer_id, body.question, hits, on, answer, latency_ms)
+        shadow.submit(answer_id, question, hits, on, answer, latency_ms)
     return AskResponse(
         answer_id=answer_id,
         answer=answer.text,

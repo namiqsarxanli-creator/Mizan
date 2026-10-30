@@ -24,11 +24,13 @@ from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from mizan_agents.agents import DRAFTER_SYSTEM, PLANNER_SYSTEM, VERIFIER_SYSTEM
 from mizan_agents.durable import DurableAgent
 from mizan_agents.orchestrator import Agent, Event, EventSink, _noop
 from mizan_agents.schemas import AgentAnswer, Verdict
 from mizan_api.auth import require
 from mizan_api.budget import TenantBudget
+from mizan_api.guard import LEAK_REFUSAL, leaked, screened
 from mizan_api.quality import AnswerRecord, QualityLoop
 from mizan_api.routes.legal import today_in_baku
 from mizan_core.logging import get_logger
@@ -72,10 +74,16 @@ async def _run(
 ) -> AgentAnswer:
     key = request.headers.get("Idempotency-Key")
     if key and isinstance(agent, DurableAgent):
-        return await agent.run(
+        result = await agent.run(
             question, as_of=as_of, on_event=on_event, request_id=f"{tenant}-{key}"
         )
-    return await agent.run(question, as_of=as_of, on_event=on_event)
+    else:
+        result = await agent.run(question, as_of=as_of, on_event=on_event)
+    if leaked(result.answer, PLANNER_SYSTEM, DRAFTER_SYSTEM, VERIFIER_SYSTEM):
+        result = result.model_copy(
+            update={"answer": LEAK_REFUSAL, "verdict": Verdict.ABSTAIN, "claims": []}
+        )
+    return result
 
 
 class AgentResponse(AgentAnswer):
@@ -111,8 +119,9 @@ async def _record(
 async def ask(request: Request, body: AgentRequest) -> AgentResponse:
     agent = _agent(request)
     budget, tenant = await _check_budget(request)
+    question = screened(request, body.question)
     started = time.perf_counter()
-    result = await _run(request, agent, tenant, body.question, body.as_of or today_in_baku())
+    result = await _run(request, agent, tenant, question, body.as_of or today_in_baku())
     if budget is not None:
         await budget.charge(tenant, result.usage.get("total", 0))
     answer_id = await _record(
@@ -129,6 +138,7 @@ def _sse(event: str, data: object) -> str:
 async def ask_stream(request: Request, body: AgentRequest) -> StreamingResponse:
     agent = _agent(request)
     budget, tenant = await _check_budget(request)
+    question = screened(request, body.question)
     on = body.as_of or today_in_baku()
     started = time.perf_counter()
     queue: asyncio.Queue[str | None] = asyncio.Queue()
@@ -142,7 +152,7 @@ async def ask_stream(request: Request, body: AgentRequest) -> StreamingResponse:
 
     async def run() -> None:
         try:
-            result = await _run(request, agent, tenant, body.question, on, on_event)
+            result = await _run(request, agent, tenant, question, on, on_event)
             if budget is not None:
                 await budget.charge(tenant, result.usage.get("total", 0))
             answer_id = await _record(

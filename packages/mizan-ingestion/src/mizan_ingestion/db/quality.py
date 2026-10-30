@@ -156,7 +156,7 @@ class AuditEvent(Base):
     method: Mapped[str] = mapped_column(String(8))
     path: Mapped[str] = mapped_column(String(256))
     status: Mapped[int] = mapped_column(SmallInteger)
-    # ok | missing_token | invalid_token | forbidden | rate_limited
+    # ok | missing_token | invalid_token | forbidden | rate_limited | injection
     outcome: Mapped[str] = mapped_column(String(16))
     trace_id: Mapped[str | None] = mapped_column(String(32))
     latency_ms: Mapped[float] = mapped_column(Float)

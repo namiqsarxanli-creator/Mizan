@@ -259,6 +259,8 @@ class AuthMiddleware:
             await self.app(scope, receive, tracked)
             if code == status.HTTP_403_FORBIDDEN:
                 outcome = "forbidden"
+            # A route may name a more precise outcome (guard.py: "injection").
+            outcome = scope["state"].get("audit_outcome", outcome)
         except AuthError as exc:
             outcome = exc.outcome
             await _json(tracked, 401, exc.detail, {"WWW-Authenticate": "Bearer"})

@@ -101,7 +101,8 @@ def views(text: str) -> list[str]:
         candidates.extend(views(payload))
     seen: dict[str, None] = {}
     for c in candidates:
-        seen.setdefault(c.lower(), None)
+        # "İ".lower() is "i" + a combining dot, which breaks \b and every rule after it.
+        seen.setdefault(c.replace("İ", "i").lower(), None)
     return list(seen)
 
 
