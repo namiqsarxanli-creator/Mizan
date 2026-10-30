@@ -114,6 +114,21 @@ services:
       qdrant: { condition: service_healthy }
       neo4j: { condition: service_healthy }
 
+  # ---------------------------------------------------------------- durable agent runs (F9)
+  # docker compose --profile durable up -d  ->  Temporal on 127.0.0.1:17233, UI on :18233.
+  # The dev server keeps its state in a SQLite file, so runs survive its restarts too.
+  # Then: MIZAN_DURABLE__ENABLED=true for the API, and run `mizan-agent-worker`.
+  temporal:
+    profiles: [durable]
+    restart: unless-stopped
+    image: temporalio/temporal:1.8.3
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/home/temporal/temporal.db"]
+    ports:
+      - "127.0.0.1:${MIZAN_HOST_PORT_TEMPORAL:-17233}:7233"
+      - "127.0.0.1:${MIZAN_HOST_PORT_TEMPORAL_UI:-18233}:8233"
+    # On the image user's home, so the new volume is owned by that user.
+    volumes: [temporal-data:/home/temporal]
+
   # ---------------------------------------------------------------- observability (F6)
   # docker compose --profile observability up -d   ->  Grafana on http://127.0.0.1:13000
   clickhouse:
@@ -182,3 +197,4 @@ volumes:
   redis-data:
   qdrant-data:
   neo4j-data:
+  temporal-data:

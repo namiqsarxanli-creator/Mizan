@@ -298,14 +298,14 @@ dense `bge-m3`, reranker-siz (ADR-0009). Bax `evals/results/f7_rerank/README.md`
 
 ### Həftə 21
 - [x] **MCP server:** `search_law`, `get_article`, `check_conflicts`, `ask_mizan` tool-ları (`apps/mcp`, API-nin nazik klienti; stdio üzərindən end-to-end yoxlanılıb). Claude Desktop konfiqurasiyası README-də — istifadəçi tərəfindən qoşulmalıdır
-- [ ] **Temporal** ilə durable agent execution (server yenidən başlasa belə axın qaldığı yerdən davam edir)
+- [x] **Temporal** ilə durable agent execution (server yenidən başlasa belə axın qaldığı yerdən davam edir): eyni state machine, addımlar activity kimi, heartbeat, `Idempotency-Key`. End-to-end yoxlanılıb: işçi draft zamanı öldürüldü, yeni işçi `draft`-ı 2-ci cəhddə bitirdi, plan təkrarlanmadı. Bax **ADR-011**
 - [x] Human-in-the-loop: `reviews` növbəsi (confidence < 0.7, imtina, 👎, faithfulness < 0.8), `GET/POST /v1/reviews` (reviewer token)
 
 ### Həftə 22
 - [x] **Semantic cache:** similarity threshold (kalibrə: 0.9431) + TTL + evidence-fingerprint ilə temporal invalidation — gate keçmədi (23.9% < 25%), default söndürülüb; bax `evals/results/f9_cache`
 - [x] **Shadow deployment:** `ShadowRunner` (namizəd model trafik nümunəsində eyni mənbələrlə, istifadəçiyə görünmədən), `shadow_runs`, `mizan-eval shadow` hesabatı + Grafana paneli
 - [~] Feature flags: konfiqurasiya bayraqları (`MIZAN_CACHE__ENABLED`, `RETRIEVAL__GRAPH`, `RETRIEVAL__COURT_DECISIONS`); tenant-səviyyəli tədricən açılma hələ yoxdur
-- [ ] Multi-tenancy: Postgres RLS, tenant başına kvota
+- [x] Multi-tenancy: Postgres RLS (`answers`, rol `mizan_app`, `mizan.tenant`; fail-closed), tenant başına gündəlik token kvotası (Redis). Məhdudiyyət: API hələ owner rolu ilə qoşulur və `SET LOCAL ROLE` edir. Production-da API birbaşa `mizan_app` kimi qoşulmalıdır (README)
 
 **✅ DoD:** Mizan Claude Desktop-dan MCP ilə istifadə olunur, semantic cache xərci ≥ 25% azaldır, shadow test hesabatı avtomatik yaranır.
 

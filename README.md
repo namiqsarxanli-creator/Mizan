@@ -219,6 +219,40 @@ Claude Desktop (`claude_desktop_config.json`), with the API running:
 }
 ```
 
+## Durable agent runs (F9)
+
+With `MIZAN_DURABLE__ENABLED=true`, `/v1/agent/ask` and `/v1/agent/ask/stream` run on Temporal
+([ADR-0011](docs/adr/0011-durable-agent-runs.md)).
+
+- Each step (plan, research, draft, verify) is an activity. A run whose worker dies continues
+  on another worker from the step that was running, without repeating finished LLM calls.
+- An `Idempotency-Key` header makes a retried request join its run, or return its answer,
+  instead of paying for a new one.
+
+```bash
+docker compose --profile durable up -d temporal   # UI: http://127.0.0.1:18233
+uv run mizan-agent-worker                          # any number of workers
+MIZAN_DURABLE__ENABLED=true uv run uvicorn mizan_api.main:create_app --factory
+```
+
+## Multi-tenancy (F9)
+
+- **Tenant id:** every request carries a tenant in `X-Tenant-Id`. Without one, it falls back to
+  `public`.
+- **Quota:** a daily token budget per tenant, in Redis (`MIZAN_LLM__DAILY_TOKENS_PER_TENANT`).
+  The API answers `429` with `Retry-After` when it is spent.
+- **Row-level security:** `answers` is protected in Postgres. Every session of the quality loop
+  works as the role `mizan_app` (no superuser, no `BYPASSRLS`) and sets `mizan.tenant` for its
+  transaction.
+  - Other tenants' rows are invisible and cannot be written.
+  - An unset tenant sees nothing (fail closed). `*` is the reviewer/analytics scope.
+  - Feedback, online evals, reviews and shadow runs are reached through their foreign key to
+    `answers`. A query that reads them without joining `answers` is not filtered.
+- **Limitation:** the API still logs in as the database owner and switches role per
+  transaction (`SET LOCAL ROLE`). A bug that skips `as_tenant` would therefore run unfiltered.
+  In production the API should log in as `mizan_app` itself, so that the owner role is used
+  only by migrations.
+
 ## Quality gates
 
 | Command | What it checks |
@@ -257,6 +291,9 @@ Docker image build. Install the git hooks once with `uv run pre-commit install`.
 | [0006](docs/adr/0006-knowledge-graph.md) | Grammar-extracted temporal citation graph in Neo4j (derived, rebuildable); one reserved top-5 slot, pre-registered test |
 | [0007](docs/adr/0007-agent-orchestration.md) | Own typed state machine; LLMs only for planning, drafting, verification; gateway owns reliability |
 | [0008](docs/adr/0008-observability.md) | OTel GenAI spans → Collector → ClickHouse; quality loop (answers, feedback, online evals) in Postgres |
+| [0009](docs/adr/0009-model-serving.md) | Public bge-m3 dense retrieval, no reranker; trained models stay gated local artefacts |
+| [0010](docs/adr/0010-local-vs-api-models.md) | Narrow, high-volume tasks go local only past a pre-registered gate and the GPU break-even; verification stays on the API for now |
+| [0011](docs/adr/0011-durable-agent-runs.md) | Durable agent runs on Temporal (opt-in): one state machine, steps as activities, idempotent request ids |
 
 ## Disclaimer
 

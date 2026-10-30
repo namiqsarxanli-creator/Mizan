@@ -1,15 +1,20 @@
 """The agent state machine end to end, with a scripted LLM and in-memory tools."""
 
+import asyncio
 import json
 from collections.abc import Collection, Sequence
 from datetime import date
 from types import SimpleNamespace
 from typing import Any
 
+from temporalio import activity
+
 from mizan_agents.agents import confidence, quote_in, research
+from mizan_agents.durable import DraftIn, DraftOut
 from mizan_agents.gateway import LLMGateway
 from mizan_agents.orchestrator import ABSTAIN_TEXT, Event, Limits, Orchestrator, Step
 from mizan_agents.schemas import (
+    AgentAnswer,
     Claim,
     ClaimCheck,
     Evidence,
@@ -243,3 +248,94 @@ def test_elided_quotes_count_when_every_fragment_occurs_in_order() -> None:
     assert quote_in("İşəgötürən … işdən kənar edə bilər", e)
     assert not quote_in("işdən kənar edə bilər ... İşəgötürən", e)  # order matters
     assert not quote_in("İşəgötürən ... işdən azad edə bilər", e)
+
+
+# ---------------------------------------------------------------------- durable (Temporal)
+# The same scripted runs through the Temporal workflow, on a local Temporal dev server (the SDK
+# downloads it once).
+
+
+async def _durable_run(
+    llm: RoleLLM, *, hang_first_draft: bool = False
+) -> tuple[AgentAnswer, list[str]]:
+    from temporalio.client import Client
+    from temporalio.contrib.pydantic import pydantic_data_converter
+    from temporalio.runtime import Runtime, TelemetryConfig
+    from temporalio.testing import WorkflowEnvironment
+    from temporalio.worker import Worker
+
+    from mizan_agents.durable import AgentActivities, AgentRun, DurableAgent
+
+    agent = orchestrator(llm, ["art:51"])
+    events: list[str] = []
+
+    async def sink(event: Event) -> None:
+        events.append(event.step.value)
+
+    class Hanging(AgentActivities):
+        """A worker that dies in the middle of drafting."""
+
+        @activity.defn(name="draft")
+        async def draft(self, inp: DraftIn) -> DraftOut:
+            started.set()
+            await asyncio.Event().wait()
+            raise AssertionError("unreachable")
+
+    started = asyncio.Event()
+    env = await WorkflowEnvironment.start_local(data_converter=pydantic_data_converter)
+    async with env:
+        durable = DurableAgent(env.client, task_queue="test", poll_s=0.05, heartbeat_s=2)
+        if not hang_first_draft:
+            async with Worker(
+                env.client, task_queue="test", workflows=[AgentRun],
+                activities=AgentActivities(agent).all(),
+            ):  # fmt: skip
+                first_answer = await durable.run(
+                    "Sınaq müddəti?", as_of=TODAY, on_event=sink, request_id="r1"
+                )
+                calls = list(llm.calls)
+                # The same request again: the finished run's answer, no new LLM calls.
+                again = await durable.run("Sınaq müddəti?", as_of=TODAY, request_id="r1")
+                assert (again, llm.calls) == (first_answer, calls)
+                return first_answer, events
+        # Another worker process: its own client and SDK runtime, as a real deployment would be.
+        other = await Client.connect(
+            env.client.service_client.config.target_host,
+            data_converter=pydantic_data_converter,
+            runtime=Runtime(telemetry=TelemetryConfig()),
+        )
+        first = Worker(
+            other, task_queue="test", workflows=[AgentRun],
+            activities=Hanging(agent).all(),
+        )  # fmt: skip
+        first_task = asyncio.create_task(first.run())
+        run = asyncio.create_task(durable.run("Sınaq müddəti?", as_of=TODAY, on_event=sink))
+        await started.wait()
+        first_task.cancel()  # the worker is gone mid-draft
+        async with Worker(
+            env.client, task_queue="test", workflows=[AgentRun],
+            activities=AgentActivities(agent).all(),
+        ):  # fmt: skip
+            return await run, events
+
+
+async def test_durable_run_matches_the_in_process_run() -> None:
+    local = await orchestrator(
+        RoleLLM(plan=PLAN, drafts=[GOOD_DRAFT], checks=[SUPPORTED]), ["art:51"]
+    ).run("Sınaq müddəti?", as_of=TODAY)
+    llm = RoleLLM(plan=PLAN, drafts=[GOOD_DRAFT], checks=[SUPPORTED])
+    durable, events = await _durable_run(llm)
+
+    assert durable == local
+    assert events == ["plan", "research", "draft", "verify", "judge", "done"]
+    assert llm.calls == ["planner", "drafter", "verifier"]
+
+
+async def test_durable_run_survives_a_worker_dying_mid_step() -> None:
+    llm = RoleLLM(plan=PLAN, drafts=[GOOD_DRAFT], checks=[SUPPORTED])
+    result, _ = await _durable_run(llm, hang_first_draft=True)
+
+    assert result.verdict is Verdict.ANSWER
+    # The plan finished before the crash and is not paid for twice; drafting is redone.
+    assert llm.calls == ["planner", "drafter", "verifier"]
+    assert result.usage["total"] == 300

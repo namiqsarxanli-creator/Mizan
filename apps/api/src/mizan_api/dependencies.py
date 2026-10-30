@@ -24,7 +24,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from mizan_agents.gateway import LLMGateway
-from mizan_agents.orchestrator import Orchestrator
+from mizan_agents.orchestrator import Agent, Orchestrator
 from mizan_agents.tools import LegalTools
 from mizan_api.budget import TenantBudget
 from mizan_api.quality import QualityLoop
@@ -155,6 +155,22 @@ def _build_shadow(
     return runner
 
 
+async def _durable(settings: Settings, agent: Orchestrator) -> Agent:
+    """Run the agent on Temporal: the API starts runs, ``mizan-agent-worker`` executes them."""
+    from temporalio.client import Client
+    from temporalio.contrib.pydantic import pydantic_data_converter
+
+    from mizan_agents.durable import DurableAgent
+
+    client = await Client.connect(
+        settings.durable.address,
+        namespace=settings.durable.namespace,
+        data_converter=pydantic_data_converter,
+    )
+    log.info("agent_durable", address=settings.durable.address, queue=settings.durable.task_queue)
+    return DurableAgent(client, task_queue=settings.durable.task_queue, limits=agent.limits)
+
+
 def _with_decisions(expand: ArticleExpander, graph: Neo4jGraph) -> ArticleExpander:
     """Whole articles, then the Constitutional Court decisions interpreting them."""
 
@@ -234,7 +250,7 @@ class LegalServices:
     expand: ArticleExpander | None = None
     diff: DiffBackend | None = None
     # Multi-agent research (F5); None without an LLM key or without the graph.
-    agent: Orchestrator | None = None
+    agent: Agent | None = None
     budget: TenantBudget | None = None
     quality: QualityLoop | None = None
     # The agent's tools without the agent (no LLM needed): articles, decisions, collisions.
@@ -331,7 +347,10 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
         graph = Neo4jGraph(driver)
     if graph is not None and settings.retrieval.graph and config.mode is Mode.DENSE:
         searcher = GraphSearcher(searcher, graph, SERVING_POLICY)
-    agent = _build_agent(settings, stack, searcher, config, to_articles, graph)
+    local = _build_agent(settings, stack, searcher, config, to_articles, graph)
+    agent: Agent | None = local
+    if local is not None and settings.durable.enabled:
+        agent = await _durable(settings, local)
     tools = (
         LegalTools(searcher, config, to_articles, graph, graph, settings.retrieval.source_id)
         if graph is not None

@@ -188,6 +188,15 @@ class ShadowSettings(BaseModel):
     sample_rate: float = Field(default=0.1, ge=0.0, le=1.0)
 
 
+class DurableSettings(BaseModel):
+    """Durable agent runs on Temporal (F9). Off: the API runs the agent in process."""
+
+    enabled: bool = False
+    address: str = "127.0.0.1:17233"
+    namespace: str = "default"
+    task_queue: str = "mizan-agent"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="MIZAN_",
@@ -215,6 +224,7 @@ class Settings(BaseSettings):
     quality: QualitySettings = QualitySettings()
     cache: CacheSettings = CacheSettings()
     shadow: ShadowSettings = ShadowSettings()
+    durable: DurableSettings = DurableSettings()
 
     @model_validator(mode="after")
     def _reject_dev_secrets(self) -> Self:

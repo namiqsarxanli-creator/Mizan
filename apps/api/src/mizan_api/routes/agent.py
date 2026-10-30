@@ -6,6 +6,9 @@ POST /v1/agent/ask/stream   -> text/event-stream:
     ...
     event: result  data: <AgentAnswer>
     event: error   data: {"detail": "..."}       (the run failed after streaming began)
+
+With durable runs on (``MIZAN_DURABLE__ENABLED``), an ``Idempotency-Key`` header makes a retried
+request join the run it already started instead of paying for a second one.
 """
 
 from __future__ import annotations
@@ -21,7 +24,8 @@ from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from mizan_agents.orchestrator import Event, Orchestrator
+from mizan_agents.durable import DurableAgent
+from mizan_agents.orchestrator import Agent, Event, EventSink, _noop
 from mizan_agents.schemas import AgentAnswer, Verdict
 from mizan_api.budget import TenantBudget, tenant_of
 from mizan_api.quality import AnswerRecord, QualityLoop
@@ -38,8 +42,8 @@ class AgentRequest(BaseModel):
     as_of: date | None = None
 
 
-def _agent(request: Request) -> Orchestrator:
-    agent: Orchestrator | None = request.app.state.agent
+def _agent(request: Request) -> Agent:
+    agent: Agent | None = request.app.state.agent
     if agent is None:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -54,6 +58,22 @@ async def _check_budget(request: Request) -> tuple[TenantBudget | None, str]:
     if budget is not None:
         await budget.check(tenant)
     return budget, tenant
+
+
+async def _run(
+    request: Request,
+    agent: Agent,
+    tenant: str,
+    question: str,
+    as_of: date,
+    on_event: EventSink = _noop,
+) -> AgentAnswer:
+    key = request.headers.get("Idempotency-Key")
+    if key and isinstance(agent, DurableAgent):
+        return await agent.run(
+            question, as_of=as_of, on_event=on_event, request_id=f"{tenant}-{key}"
+        )
+    return await agent.run(question, as_of=as_of, on_event=on_event)
 
 
 class AgentResponse(AgentAnswer):
@@ -90,7 +110,7 @@ async def ask(request: Request, body: AgentRequest) -> AgentResponse:
     agent = _agent(request)
     budget, tenant = await _check_budget(request)
     started = time.perf_counter()
-    result = await agent.run(body.question, as_of=body.as_of or today_in_baku())
+    result = await _run(request, agent, tenant, body.question, body.as_of or today_in_baku())
     if budget is not None:
         await budget.charge(tenant, result.usage.get("total", 0))
     answer_id = await _record(
@@ -120,7 +140,7 @@ async def ask_stream(request: Request, body: AgentRequest) -> StreamingResponse:
 
     async def run() -> None:
         try:
-            result = await agent.run(body.question, as_of=on, on_event=on_event)
+            result = await _run(request, agent, tenant, body.question, on, on_event)
             if budget is not None:
                 await budget.charge(tenant, result.usage.get("total", 0))
             answer_id = await _record(

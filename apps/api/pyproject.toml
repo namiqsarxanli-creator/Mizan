@@ -17,8 +17,12 @@ dependencies = [
     "neo4j>=5.26",
     "opentelemetry-instrumentation-fastapi>=0.49b0",
     "redis>=5.2",
+    "temporalio>=1.35.0",
     "uvicorn[standard]>=0.32",
 ]
+
+[project.scripts]
+mizan-agent-worker = "mizan_api.agent_worker:main"
 
 [tool.uv.sources]
 mizan-agents = { workspace = true }

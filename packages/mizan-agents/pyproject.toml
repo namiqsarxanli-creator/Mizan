@@ -8,6 +8,7 @@ dependencies = [
     "mizan-graph",
     "mizan-retrieval",
     "pydantic>=2.9",
+    "temporalio>=1.35.0",
 ]
 
 [tool.uv.sources]
