@@ -20,7 +20,7 @@ htmlcov/
 !.env.example
 
 # Data & model artifacts (raw sources, embedding cache, logs; tracked elsewhere, e.g. DVC / HF Hub)
-data/
+/data/
 models/
 wandb/
 
