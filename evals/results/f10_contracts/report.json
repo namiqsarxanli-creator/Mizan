@@ -1,10 +1,10 @@
 {
- "contracts": 9,
- "clauses": 193,
+ "contracts": 10,
+ "clauses": 214,
  "as_of": "2026-10-31",
  "rules": {
   "violations": 17,
-  "lawful_clauses": 175,
+  "lawful_clauses": 196,
   "tp": 17,
   "fp": 0,
   "fn": 0,
@@ -18,7 +18,7 @@
  },
  "llm": {
   "violations": 17,
-  "lawful_clauses": 175,
+  "lawful_clauses": 196,
   "tp": 9,
   "fp": 0,
   "fn": 8,
@@ -73,7 +73,7 @@
  },
  "combined": {
   "violations": 17,
-  "lawful_clauses": 175,
+  "lawful_clauses": 196,
   "tp": 17,
   "fp": 0,
   "fn": 0,
@@ -92,11 +92,11 @@
  },
  "complete": false,
  "llm_calls": {
-  "batches": 53,
+  "batches": 58,
   "failed": 0,
-  "unverified": 10,
-  "input_tokens": 173217,
-  "output_tokens": 48193
+  "unverified": 11,
+  "input_tokens": 190501,
+  "output_tokens": 53385
  },
  "model": "openai/gpt-oss-120b"
 }

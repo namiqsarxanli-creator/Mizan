@@ -19,11 +19,12 @@ generalisation claim; the real-contract test is.
   some deliberately suspicious-looking.
 - **Run:** 2026-10-31, `openai/gpt-oss-120b` on Groq, production settings (batch 6, 9,000
   characters of sources).
-- **Coverage:** Groq's free daily token limit stopped the run after 9 of 12 contracts
-  (c01–c09: 193 clauses, 17 violations). c10–c12 resume with the same command when the limit
-  resets. The numbers below are for the 9 contracts.
+- **Coverage:** Groq's free daily token limit (a rolling 24 hours) allows about 8 contracts a
+  day. 10 of 12 are done: c01–c09 on the first pass, c10 (with the model-form filter) on the
+  second. That is 214 clauses, 17 violations and 196 lawful clauses. c11–c12 resume with the
+  same command.
 
-## Results (9 contracts, clause level, positive = violation)
+## Results (10 contracts, clause level, positive = violation)
 Two runs over the same recorded LLM findings:
 
 - **before:** the pipeline as first run;
@@ -40,9 +41,11 @@ The filter was added on this dev set, so "after" is tuned on the data it is repo
 | **combined, after (what the product reports)** | **17 / 17** | **0** | **0** | **1.00** | **1.00** | **1.00** | **1.00** |
 
 - **Injected instruction:** caught by the screen (1/1); never sent to the model.
-- **LLM cost:** 53 calls, 173k input and 48k output tokens, about 25k tokens per contract.
-  Ten violations or risks were dropped because their quote did not occur in the cited article.
+- **LLM cost:** 58 calls, 191k input and 53k output tokens, about 24k tokens per contract.
+  Eleven violations or risks were dropped because their quote did not occur in the cited article.
   The verification is doing work.
+- **c10 has no violations.** It is the "better than the Code" contract (overtime at 2.5x,
+  30 days of leave, a notice period that can be shortened). The LLM raised nothing on it.
 - **"After" is a re-score, not a re-run.** The recorded findings came from batches that still
   contained the model-form clauses; the filter drops findings on those clauses. A fresh run
   batches slightly differently and costs fewer tokens. Contracts c10–c12 will run with the
