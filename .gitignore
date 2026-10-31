@@ -32,3 +32,4 @@ Thumbs.db
 
 # Real contracts (F10 test set): private, never committed
 evals/datasets/contracts/real/
+evals/results/f10_contracts/run.*
