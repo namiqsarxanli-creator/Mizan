@@ -5,6 +5,7 @@ description = "Agentic, measurable legal research platform for Azerbaijani law."
 requires-python = ">=3.12"
 dependencies = [
     "mizan-agents",
+    "mizan-contracts",
     "mizan-core",
     "mizan-api",
     "mizan-evals",
@@ -24,6 +25,7 @@ members = ["packages/*", "apps/*"]
 
 [tool.uv.sources]
 mizan-agents = { workspace = true }
+mizan-contracts = { workspace = true }
 mizan-core = { workspace = true }
 mizan-api = { workspace = true }
 mizan-ingestion = { workspace = true }
@@ -82,12 +84,15 @@ allowed-confusables = ["ı", "–"]
 "**/migrations/**" = ["E501"]
 # Attack strings: long by nature, and full of look-alike characters on purpose.
 "evals/datasets/redteam/*.py" = ["E501", "RUF001"]
+# Contract text in Azerbaijani: a clause per string.
+"evals/datasets/contracts/*.py" = ["E501"]
 "**/mizan_core/security.py" = ["E501", "RUF001"]
 "**/tests/test_security.py" = ["RUF001"]
 
 [tool.ruff.lint.isort]
 known-first-party = [
     "mizan_agents",
+    "mizan_contracts",
     "mizan_core",
     "mizan_api",
     "mizan_evals",
@@ -106,6 +111,7 @@ warn_unreachable = true
 plugins = ["pydantic.mypy"]
 mypy_path = [
     "packages/mizan-agents/src",
+    "packages/mizan-contracts/src",
     "packages/mizan-core/src",
     "packages/mizan-ingestion/src",
     "packages/mizan-retrieval/src",
@@ -127,7 +133,7 @@ explicit_package_bases = true
 exclude = ['(^|/|\\)conftest\.py$']
 
 [[tool.mypy.overrides]]
-module = ["asyncpg", "asyncpg.*", "onnxruntime", "onnxruntime.*"]
+module = ["asyncpg", "asyncpg.*", "onnxruntime", "onnxruntime.*", "pypdfium2", "pypdfium2.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]
@@ -159,6 +165,7 @@ filterwarnings = [
 branch = true
 source = [
     "mizan_agents",
+    "mizan_contracts",
     "mizan_core",
     "mizan_api",
     "mizan_evals",

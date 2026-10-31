@@ -214,6 +214,17 @@ class DurableSettings(BaseModel):
     task_queue: str = "mizan-agent"
 
 
+class ContractSettings(BaseModel):
+    """Contract analysis (F10). The LLM review and OCR need the Groq key; rules always run."""
+
+    llm_review: bool = True
+    # None: the answering model (``llm.groq_model``).
+    review_model: str | None = None
+    batch_size: int = Field(default=6, ge=1, le=20)
+    ocr: bool = True
+    ocr_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="MIZAN_",
@@ -243,6 +254,7 @@ class Settings(BaseSettings):
     shadow: ShadowSettings = ShadowSettings()
     durable: DurableSettings = DurableSettings()
     auth: AuthSettings = AuthSettings()
+    contracts: ContractSettings = ContractSettings()
 
     @model_validator(mode="after")
     def _reject_dev_secrets(self) -> Self:
