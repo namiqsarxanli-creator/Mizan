@@ -120,8 +120,19 @@ async def test_bad_uploads_are_rejected(data: bytes, name: str) -> None:
 
 
 def test_batches_follow_sections() -> None:
-    cs = [Clause(n, s, "x") for n, s in [("1.1", "a"), ("1.2", "a"), ("1.3", "a"), ("2.1", "b")]]
-    assert [[c.number for c in b] for b in batches(cs, 2)] == [["1.1", "1.2"], ["1.3"], ["2.1"]]
+    sections = [("1.1", "a"), ("1.2", "a"), ("1.3", "a"), ("2.1", "b"), ("3.1", "c")]
+    cs = [Clause(n, s, "x") for n, s in sections]
+    assert [[c.number for c in b] for b in batches(cs, 2)] == [
+        ["1.1", "1.2"],
+        ["1.3"],
+        ["2.1"],
+        ["3.1"],
+    ]
+    # Short sections are packed together until a batch is half full.
+    assert [[c.number for c in b] for b in batches(cs, 4)] == [
+        ["1.1", "1.2", "1.3"],
+        ["2.1", "3.1"],
+    ]
 
 
 def test_review_keeps_only_findings_with_verified_quotes() -> None:
@@ -189,8 +200,8 @@ async def test_pipeline_rules_then_llm_on_the_rest() -> None:
     # 4.1 was decided by a rule and never sent to the model.
     assert not any("ABŞ dolları" in q for q in searcher.queries)
     assert all("ABŞ dolları" not in p for p in client.prompts)
-    assert report.review.batches == 2
-    assert report.review.input_tokens == 200
+    assert report.review.batches == 1  # 4.2 and 7.1 share a batch
+    assert report.review.input_tokens == 100
     assert report.counts == {"ok": 1, "risk": 0, "violation": 2, "injection": 0}
     assert "hüquqi məsləhət deyil" in report.disclaimer
 
@@ -201,7 +212,7 @@ async def test_provider_errors_degrade_the_review_not_the_report() -> None:
     )
     doc = await read_document(CONTRACT.encode(), "c.txt")
     report = await analyse(doc, as_of=AS_OF, reviewer=reviewer)
-    assert report.review.failed == 2
+    assert report.review.failed == 1
     assert {c.number: c.verdict for c in report.clauses}["4.1"] == "violation"
 
 

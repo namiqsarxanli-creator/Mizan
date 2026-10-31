@@ -184,6 +184,11 @@ async def evaluate_llm(
         screened = {f.clause for f in check(clauses) if f.verdict == "injection"}
         pending = [c for c in clauses if c.number not in screened]
         findings, stats = await reviewer.review(pending, as_of=AS_OF, ctx=context_of(clauses))
+        if stats.failed:
+            # Not recorded: a contract with unanswered batches would count as clean. Stop here
+            # (usually the provider's daily limit) and resume on the next run.
+            log.warning("contract_review_incomplete", contract=contract, failed=stats.failed)
+            break
         row = {
             "contract": contract,
             "findings": [
@@ -200,6 +205,9 @@ async def evaluate_llm(
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
         log.info("contract_reviewed", contract=contract, **row["stats"])
 
+    total = len(texts)
+    labels = {k: v for k, v in labels.items() if k[0] in done}  # score what was reviewed
+    texts = {k: v for k, v in texts.items() if k in done}
     llm: dict[Key, list[Finding]] = {}
     for contract, row in done.items():
         for f in row["findings"]:
@@ -223,5 +231,6 @@ async def evaluate_llm(
         "llm": score(llm, labels),
         "combined": score(combined, labels),
         "injections": injections(rules, labels),
+        "complete": len(done) == total,
         "llm_calls": totals,
     }

@@ -66,10 +66,16 @@ class ReviewStats:
 
 
 def batches(clauses: Sequence[Clause], size: int) -> list[list[Clause]]:
-    """Consecutive clauses, a new batch at each section, at most ``size`` per batch."""
+    """Consecutive clauses, at most ``size`` per batch.
+
+    A new section starts a new batch only once the current one is half full: related clauses
+    stay together, and a contract of short sections does not cost one call per section.
+    """
     out: list[list[Clause]] = []
     for c in clauses:
-        if out and len(out[-1]) < size and out[-1][-1].section == c.section:
+        current = out[-1] if out else []
+        same_section = bool(current) and current[-1].section == c.section
+        if current and len(current) < size and (same_section or len(current) < size / 2):
             out[-1].append(c)
         else:
             out.append([c])
