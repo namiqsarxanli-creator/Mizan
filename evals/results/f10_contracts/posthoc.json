@@ -1,0 +1,101 @@
+{
+ "contracts": 10,
+ "clauses": 214,
+ "as_of": "2026-10-31",
+ "rules": {
+  "violations": 17,
+  "lawful_clauses": 196,
+  "tp": 17,
+  "fp": 0,
+  "fn": 0,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 1.0,
+  "right_article": 1.0,
+  "risk_on_lawful": 0,
+  "misses": [],
+  "false_positives": []
+ },
+ "llm": {
+  "violations": 17,
+  "lawful_clauses": 196,
+  "tp": 9,
+  "fp": 0,
+  "fn": 8,
+  "precision": 1.0,
+  "recall": 0.529,
+  "f1": 0.692,
+  "right_article": 0.889,
+  "risk_on_lawful": 2,
+  "misses": [
+   {
+    "contract": "c03",
+    "clause": "4.3",
+    "issue": "overtime_pay"
+   },
+   {
+    "contract": "c03",
+    "clause": "5.4",
+    "issue": "overtime_limit"
+   },
+   {
+    "contract": "c05",
+    "clause": "8.3",
+    "issue": "termination_at_will"
+   },
+   {
+    "contract": "c06",
+    "clause": "6.1",
+    "issue": "leave_too_short"
+   },
+   {
+    "contract": "c06",
+    "clause": "8.4",
+    "issue": "protected_dismissal"
+   },
+   {
+    "contract": "c08",
+    "clause": "4.2",
+    "issue": "wage_in_kind"
+   },
+   {
+    "contract": "c08",
+    "clause": "8.4",
+    "issue": "severance_waiver"
+   },
+   {
+    "contract": "c09",
+    "clause": "5.4",
+    "issue": "overtime_limit"
+   }
+  ],
+  "false_positives": []
+ },
+ "combined": {
+  "violations": 17,
+  "lawful_clauses": 196,
+  "tp": 17,
+  "fp": 0,
+  "fn": 0,
+  "precision": 1.0,
+  "recall": 1.0,
+  "f1": 1.0,
+  "right_article": 1.0,
+  "risk_on_lawful": 2,
+  "misses": [],
+  "false_positives": []
+ },
+ "injections": {
+  "expected": 1,
+  "caught": 1,
+  "false": 0
+ },
+ "complete": false,
+ "llm_calls": {
+  "batches": 58,
+  "failed": 0,
+  "unverified": 11,
+  "input_tokens": 190501,
+  "output_tokens": 53385
+ }
+}

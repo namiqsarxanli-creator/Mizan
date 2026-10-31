@@ -16,11 +16,24 @@ Each rule names the article it enforces. The limits are those in force on 2026-1
 | overtime | ≤ 4 h in two consecutive working days | 100.1 |
 | overtime pay | ≥ 2x the hourly rate, never replaced by time off | 165 |
 | basic leave | ≥ 21 days; 30 for doctors, agriculture, education staff ... | 114 |
+| basic leave, teachers | ≥ 56 days | 118 |
+| basic leave, minors | ≥ 35 days (16-17), ≥ 42 (under 16) | 119 |
+| unused leave | never waived; compensated on any termination | 135, 144 |
+| night work, overtime | none for minors; pregnant women only with written consent | 254, 242 |
+| fines | only if a collective agreement provides, ≤ 1/4 of monthly wage | 186 |
+| changes to wages | not unilateral, not without a month's notice | 56 |
+| waivers of statutory rights | void | 9 |
 | wages | in manat; ≤ 20% in kind | 174 |
 | deductions | only the listed grounds (no fines); ≤ 20% per payment | 175, 176 |
 | resignation | the employee's notice is one calendar month | 69 |
 | dismissal | only on the grounds of art. 70, with the guarantees of art. 77 | 70, 77 |
-| dismissal | not of pregnant women or parents of children under 3 | 79 |
+| dismissal | not of pregnant women, parents of children under 3, union members | 79, 16 |
+
+**Facts, not phrasings.** Contracts state the same fact many ways: an age or a birth date, a
+term or two dates, "gündə 9 saat" or "08:00–18:00 with an hour for lunch". The rules read the
+fact (``Context``, ``daily_hours``) and compare it with the limit. The first version matched
+its author's phrasing and found 4 of 29 violations in another author's contracts
+(evals/results/f10_contracts/test).
 """
 
 from __future__ import annotations
@@ -28,7 +41,9 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 from mizan_contracts.clauses import Clause
 from mizan_core.security import screen
@@ -55,14 +70,15 @@ class Context:
 
     term_months: float | None  # fixed-term length; None when open-ended or not stated
     minor_age: int | None
-    long_leave_job: str | None  # the job title that earns 30 days of basic leave (114.3)
+    long_leave_job: str | None  # a job title with longer basic leave (114.3, 118)
+    pregnant: bool = False
 
 
 _WORDS = {
     "bir": 1, "iki": 2, "üç": 3, "dörd": 4, "beş": 5, "altı": 6, "yeddi": 7, "səkkiz": 8,
     "doqquz": 9, "on": 10, "on iki": 12, "on dörd": 14, "on beş": 15, "iyirmi": 20,
     "iyirmi bir": 21, "iyirmi səkkiz": 28, "otuz": 30, "qırx": 40, "qırx səkkiz": 48,
-    "əlli": 50, "yarım": 0.5, "bir yarım": 1.5,
+    "əlli": 50, "yarım": 0.5, "bir yarım": 1.5, "on altı": 16, "on yeddi": 17,
 }  # fmt: skip
 _WORD_RX = "|".join(sorted((re.escape(w) for w in _WORDS), key=len, reverse=True))
 _NUM = rf"(\d+(?:[.,]\d+)?|(?<![a-zçəğıöşü])(?:{_WORD_RX})(?![a-zçəğıöşü]))"
@@ -74,11 +90,31 @@ _MULTIPLE = re.compile(rf"{_NUM}\s*(?:misli|qat)|(ikiqat|üçqat)")
 
 _DAYS = {"gün": 1.0, "həftə": 7.0, "ay": 30.0, "il": 365.0}
 
-# Art. 114.3: jobs with 30 calendar days of basic leave (the common ones).
-_LONG_LEAVE = (
-    "həkim", "tibb bacısı", "orta tibb", "əczaçı", "kənd təsərrüfatı", "laborant",
-    "kitabxanaçı", "metodist", "dayə", "elmi işçi", "istehsalat təlimi ustası",
-)  # fmt: skip
+# Jobs with longer basic leave: art. 118 (56 days for teachers) and 114.3 (30 days).
+LEAVE_BY_JOB: dict[str, tuple[int, str]] = {
+    "müəllim": (56, "art:118"),
+    "həkim": (30, "art:114"), "tibb bacısı": (30, "art:114"), "orta tibb": (30, "art:114"),
+    "əczaçı": (30, "art:114"), "kənd təsərrüfatı": (30, "art:114"), "laborant": (30, "art:114"),
+    "kitabxanaçı": (30, "art:114"), "metodist": (30, "art:114"), "dayə": (30, "art:114"),
+    "elmi işçi": (30, "art:114"), "istehsalat təlimi ustası": (30, "art:114"),
+}  # fmt: skip
+
+_MONTHS = {
+    "yanvar": 1, "fevral": 2, "mart": 3, "aprel": 4, "may": 5, "iyun": 6, "iyul": 7,
+    "avqust": 8, "sentyabr": 9, "oktyabr": 10, "noyabr": 11, "dekabr": 12,
+}  # fmt: skip
+_MONTH_RX = "|".join(_MONTHS)
+_DATES = (
+    # "1 iyun 2026", "10 dekabr 2009-cu"
+    (re.compile(rf"\b(\d{{1,2}})\s+({_MONTH_RX})[a-zçəğıöşü]*\s+(\d{{4}})"), (3, 2, 1)),
+    # "2026-cı il noyabrın 3"
+    (
+        re.compile(rf"\b(\d{{4}})-c[ıiuü]\s+il\s+({_MONTH_RX})[a-zçəğıöşü]*\s+(\d{{1,2}})"),
+        (1, 2, 3),
+    ),
+    # "01.06.2026"
+    (re.compile(r"\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b"), (3, 2, 1)),
+)
 
 
 def number(token: str) -> float:
@@ -92,27 +128,62 @@ def durations_days(text: str) -> list[float]:
     return [number(m.group(1)) * _DAYS[m.group(2)] for m in _DURATION.finditer(text)]
 
 
+def dates_in(text: str) -> list[date]:
+    """Calendar dates in Azerbaijani text, in order of appearance."""
+    found: list[tuple[int, date]] = []
+    for rx, (y, m, d) in _DATES:
+        for match in rx.finditer(text):
+            month = match.group(m)
+            try:
+                when = date(
+                    int(match.group(y)),
+                    _MONTHS[month] if month in _MONTHS else int(month),
+                    int(match.group(d)),
+                )
+            except ValueError:
+                continue
+            found.append((match.start(), when))
+    return [d for _, d in sorted(found)]
+
+
+def _years(born: date, on: date) -> int:
+    return on.year - born.year - ((on.month, on.day) < (born.month, born.day))
+
+
 def _fmt(n: float) -> str:
     return str(int(n)) if n == int(n) else str(n).replace(".", ",")
 
 
-def context_of(clauses: Sequence[Clause]) -> Context:
+def context_of(clauses: Sequence[Clause], as_of: date | None = None) -> Context:
+    on = as_of or datetime.now(ZoneInfo("Asia/Baku")).date()
     term: float | None = None
     minor: int | None = None
     job: str | None = None
+    pregnant = False
     for c in clauses:
         low = az_lower(c.text)
         if term is None and "bağlan" in low and ("müddətinə" in low or "müddətli" in low):
             days = durations_days(low)
             if days:
                 term = round(max(days) / 30, 1)
+        if term is None and "müqavilə" in low and re.search(r"(?:dək|qədər)\b", low):
+            # "1 iyun 2026-cı ildən 31 iyul 2026-cı ilədək bağlanır"
+            span = dates_in(low)
+            if len(span) >= 2 and span[1] > span[0]:
+                term = round(((span[1] - span[0]).days + 1) / 30.4, 1)
         if minor is None:
             m = re.search(r"\((1[0-7])\s*yaş", low) or re.search(r"(1[0-7])\s*yaşında", low)
             if m:
                 minor = int(m.group(1))
+            elif "doğum tarixi" in low or "təvəllüd" in low:
+                born = dates_in(low)
+                if born and _years(born[0], on) < 18:
+                    minor = _years(born[0], on)
         if job is None and ("vəzifəsinə" in low or "peşəsinə" in low or "işə qəbul" in low):
-            job = next((k for k in _LONG_LEAVE if k in low), None)
-    return Context(term, minor, job)
+            job = next((k for k in LEAVE_BY_JOB if k in low), None)
+        if re.search(r"\bhamilə", low) and not re.search(r"hamilə\s+(?:qadınlar|işçilər)", low):
+            pregnant = True
+    return Context(term, minor, job, pregnant)
 
 
 Rule = Callable[[Clause, str, Context], list[Finding]]
@@ -123,12 +194,13 @@ def _f(c: Clause, issue: str, articles: tuple[str, ...], why: str) -> Finding:
 
 
 def probation(c: Clause, low: str, ctx: Context) -> list[Finding]:
-    if "sınaq" not in low:
+    if "sınaq" not in low and "sınağ" not in low:
         return []
     days = durations_days(low)
     if not days:
         return []
-    longest = max(days)
+    # "üç aylıq sınaq … əlavə üç ay uzadıla bilər": an extension adds up.
+    longest = sum(days) if "uzad" in low else max(days)
     if ctx.minor_age is not None:
         why = "18 yaşından az şəxslə əmək müqaviləsində sınaq müddəti müəyyən edilmir."
         return [_f(c, "probation_not_allowed", ("art:52",), why)]
@@ -146,15 +218,54 @@ def probation(c: Clause, low: str, ctx: Context) -> list[Finding]:
     return []
 
 
-def working_time(c: Clause, low: str, ctx: Context) -> list[Finding]:
-    if "saat" not in low or "artıq" in low or "nahar" in low:
+_TIME = r"(\d{1,2})[:.](\d{2})"
+_SPAN = re.compile(rf"{_TIME}\s*(?:[–—-]|-?dan\s+|-?dən\s+)\s*{_TIME}")
+_START_END = re.compile(rf"{_TIME}[^.;]*?başla[^.;]*?{_TIME}[^.;]*?qurtar")
+_OVERTIME = re.compile(r"iş\s+vaxtından\s+artıq|artıq\s+iş|əlavə\s+iş")
+
+
+def _hours(match: re.Match[str], first: int) -> float:
+    start = int(match.group(first)) + int(match.group(first + 1)) / 60
+    end = int(match.group(first + 2)) + int(match.group(first + 3)) / 60
+    return (end - start) % 24
+
+
+def daily_hours(low: str) -> list[float]:
+    """Hours of work per day: stated ("hər gün 9 saat") or from a schedule minus lunch."""
+    stated = [
+        number(m.group(1))
+        for m in re.finditer(rf"(?:gündə|hər\s+gün)\s+{_NUM}{_PAREN}\s+saat", low)
+    ]
+    if stated:
+        return stated
+    spans = [_hours(m, 1) for m in _SPAN.finditer(low)]
+    se = _START_END.search(low)
+    if se:
+        spans.insert(0, _hours(se, 1))
+    if not spans:
         return []
-    daily = [number(m.group(1)) for m in re.finditer(rf"gündə\s+{_NUM}{_PAREN}\s+saat", low)]
+    work, *rest = spans
+    lunch = 0.0
+    if "nahar" in low or "fasilə" in low:
+        stated_break = re.search(rf"{_NUM}{_PAREN}\s+saat(?:lıq)?\s+(?:nahar|fasilə)", low)
+        if stated_break:
+            lunch = number(stated_break.group(1))
+        elif rest:
+            lunch = rest[0]
+    return [round(work - lunch, 2)] if work > lunch else []
+
+
+def working_time(c: Clause, low: str, ctx: Context) -> list[Finding]:
+    if ("saat" not in low and not _SPAN.search(low)) or _OVERTIME.search(low):
+        return []
+    daily = daily_hours(low)
     weekly = [
         number(m.group(1))
         for m in re.finditer(rf"həftə(?:də|\s+ərzində)(?:[^.;]*?\s)?{_NUM}{_PAREN}\s+saat", low)
     ]
-    days = re.search(rf"həftədə\s+{_NUM}{_PAREN}\s+gün", low)
+    days = re.search(
+        rf"(?:həftədə|iş\s+həftəsi)\s+(?:[^.;]*?\s)?{_NUM}{_PAREN}\s+gün", low
+    ) or re.search(rf"həftə[^.;]*?{_NUM}{_PAREN}\s+gündən\s+ibarət", low)
     if days and daily:
         weekly.append(number(days.group(1)) * max(daily))
     week = max(weekly, default=0.0)
@@ -179,11 +290,13 @@ def working_time(c: Clause, low: str, ctx: Context) -> list[Finding]:
 
 
 def overtime(c: Clause, low: str, ctx: Context) -> list[Finding]:
-    if "iş vaxtından artıq" not in low:
+    if not _OVERTIME.search(low):
         return []
     out: list[Finding] = []
-    pair = re.search(rf"iki\s+iş\s+günü\s+ərzində\s+{_NUM}{_PAREN}\s+saat", low)
-    per_day = re.search(rf"(?:hər\s+gün|gündə)\s+{_NUM}{_PAREN}\s+saat", low)
+    pair = re.search(
+        rf"iki\s+(?:ardıcıl\s+)?(?:iş\s+)?günü?\s+ərzində\s+{_NUM}{_PAREN}\s+saat", low
+    )
+    per_day = re.search(rf"(?:hər\s+gün|gündə|hər\s+birində)\s+{_NUM}{_PAREN}\s+saat", low)
     two_days = number(pair.group(1)) if pair else 2 * number(per_day.group(1)) if per_day else 0.0
     if two_days > 4:
         why = (
@@ -216,21 +329,38 @@ def overtime(c: Clause, low: str, ctx: Context) -> list[Finding]:
 def leave(c: Clause, low: str, ctx: Context) -> list[Finding]:
     if "məzuniyyət" not in low or "ödənişsiz" in low:
         return []
-    if "əlavə" in low and "əsas" not in low:
-        return []
+    out: list[Finding] = []
+    if "imtina" in low:
+        why = (
+            "İşçinin əmək məzuniyyətindən imtinası etibarsızdır; məzuniyyətin verilməməsi "
+            "qadağandır."
+        )
+        out.append(_f(c, "leave_waiver", ("art:135",), why))
+    if "istifadə edilməmiş" in low and re.search(r"verilmir|ödənilmir|ödənmir", low):
+        why = (
+            "Əmək müqaviləsinə xitam verilərkən istifadə edilməmiş əsas məzuniyyətə görə "
+            "kompensasiya hər hansı şərt qoyulmadan ödənilməlidir."
+        )
+        out.append(_f(c, "unused_leave_compensation", ("art:144",), why))
+    if out or ("əlavə" in low and "əsas" not in low) or "uşağ" in low or "doğuş" in low:
+        return out
     days = [number(m.group(1)) for m in re.finditer(rf"{_NUM}{_PAREN}\s+(?:təqvim\s+)?gün", low)]
     if not days:
         return []
     least = min(days)
-    if least < 21:
-        why = f"Əsas məzuniyyət {_fmt(least)} gündür; ən azı 21 təqvim günü olmalıdır."
-        return [_f(c, "leave_too_short", ("art:114",), why)]
-    if ctx.long_leave_job and least < 30:
+    need, article, who = 21, "art:114", "işçi"
+    if ctx.minor_age is not None:
+        need, article = (42 if ctx.minor_age < 16 else 35), "art:119"
+        who = f"{ctx.minor_age} yaşlı işçi"
+    if ctx.long_leave_job is not None and LEAVE_BY_JOB[ctx.long_leave_job][0] > need:
+        need, article = LEAVE_BY_JOB[ctx.long_leave_job]
+        who = f"«{ctx.long_leave_job}»"
+    if least < need:
         why = (
-            f"«{ctx.long_leave_job}» üçün ödənişli əsas məzuniyyət 30 təqvim günüdür; bənddə "
-            f"{_fmt(least)} gün yazılıb."
+            f"Ödənişli əsas məzuniyyət {who} üçün ən azı {need} təqvim günüdür; "
+            f"bənddə {_fmt(least)} gün yazılıb."
         )
-        return [_f(c, "leave_too_short", ("art:114",), why)]
+        return [_f(c, "leave_too_short", (article,), why)]
     return []
 
 
@@ -238,7 +368,7 @@ _FOREIGN = re.compile(r"dollar|avro|euro|\busd\b|\beur\b|rubl|lirə|\$|€")
 
 
 def wages(c: Clause, low: str, ctx: Context) -> list[Finding]:
-    if "əmək haqq" not in low and "maaş" not in low:
+    if "əmək haqq" not in low and "əməkhaqq" not in low and "maaş" not in low:
         return []
     out: list[Finding] = []
     if _FOREIGN.search(low):
@@ -248,7 +378,8 @@ def wages(c: Clause, low: str, ctx: Context) -> list[Finding]:
     if ("natura" in low or "mallarla" in low) and any(p > 20 for p in percents):
         why = "Əmək haqqının natura formasında verilən hissəsi 20 faizdən çox ola bilməz."
         out.append(_f(c, "wage_in_kind", ("art:174",), why))
-    if re.search(r"\btut(ul|a\b|ar|ma)", low):
+    # "nəzərdə tutulur" (provided for) is not a deduction.
+    if re.search(r"\btut(ul|a\b|ar|ma)", low.replace("nəzərdə tutul", "")):
         articles: list[str] = []
         reasons: list[str] = []
         if "cərimə" in low:
@@ -264,8 +395,17 @@ def wages(c: Clause, low: str, ctx: Context) -> list[Finding]:
 
 
 def resignation(c: Clause, low: str, ctx: Context) -> list[Finding]:
-    if "xəbərdar" not in low or "işəgötürəni" not in low:
+    employee_notice = ("xəbərdar" in low and "işəgötürəni" in low) or (
+        "ərizə" in low and re.search(r"öz\s+təşəbbüsü|işdən\s+çıx|xitam", low)
+    )
+    if not employee_notice:
         return []  # only the employee's notice to the employer
+    if "tarixsiz" in low:
+        why = (
+            "Əmək müqaviləsinə işçinin təşəbbüsü ilə xitam onun öz iradəsi ilə verilir; "
+            "əvvəlcədən tarixsiz ərizə tələb etmək işçini işdən çıxmağa məcbur etməkdir."
+        )
+        return [_f(c, "forced_resignation", ("art:69",), why)]
     days = durations_days(low)
     if days and max(days) > 31:
         why = (
@@ -276,11 +416,80 @@ def resignation(c: Clause, low: str, ctx: Context) -> list[Finding]:
     return []
 
 
+_NIGHT = re.compile(r"gecə|\b(?:2[0-3]|0?[0-6])[:.]\d{2}\s*[–—-]\s*(?:0?[0-9])[:.]\d{2}")
+_NO_CONSENT = re.compile(
+    r"razılığı\s+olmadan|razılıq\s+tələb\s+(?:olunmur|edilmir)|razılığı\s+tələb\s+(?:olunmur|edilmir)"
+)
+
+
+def protected_hours(c: Clause, low: str, ctx: Context) -> list[Finding]:
+    """Night work and overtime: never for minors (254), pregnant women only by consent (242)."""
+    hours = [(_hours(m, 1), int(m.group(1))) for m in _SPAN.finditer(low)]
+    late = any(start >= 20 or start + span > 22 for span, start in hours)
+    night = bool(_NIGHT.search(low)) or late
+    extra = bool(_OVERTIME.search(low)) or "istirahət günü" in low
+    if not (night or extra):
+        return []
+    assigned = re.search(r"cəlb|təyin|məcburi|iştirak\s+etməlidir|işləyir|işləməlidir", low)
+    if ctx.minor_age is not None and assigned and "qadağan" not in low:
+        why = (
+            "18 yaşından az işçinin gecə vaxtı (20:00–07:00), iş vaxtından artıq və istirahət "
+            "günlərində işə cəlb edilməsi qadağandır."
+        )
+        return [_f(c, "minor_night_or_overtime", ("art:254",), why)]
+    pregnant = ctx.pregnant or "hamilə" in low
+    if pregnant and _NO_CONSENT.search(low):
+        why = (
+            "Hamilə qadının gecə işinə və iş vaxtından artıq işə cəlb edilməsinə yalnız onun "
+            "yazılı razılığı və həkim rəyi ilə yol verilir."
+        )
+        return [_f(c, "pregnant_night_or_overtime", ("art:242",), why)]
+    return []
+
+
+def discipline(c: Clause, low: str, ctx: Context) -> list[Finding]:
+    if "cərimə" not in low:
+        return []
+    provided = re.search(r"kollektiv\s+müqavilə(?:də|si\s+ilə)\s+nəzərdə\s+tutul", low)
+    quarter = re.search(r"dörddə\s+bir|1/4|25\s*faiz", low)
+    if provided and quarter:
+        return []
+    why = (
+        "Cərimə intizam tənbehi kimi yalnız kollektiv müqavilədə nəzərdə tutulduqda və aylıq "
+        "əmək haqqının 1/4-dən çox olmamaqla tətbiq edilə bilər."
+    )
+    return [_f(c, "fine", ("art:186",), why)]
+
+
+def waivers_and_changes(c: Clause, low: str, ctx: Context) -> list[Finding]:
+    out: list[Finding] = []
+    waiver = re.search(r"hüququndan\s+(?:tam\s+)?imtina|hüquqlarından\s+(?:tam\s+)?imtina", low)
+    if waiver and "məzuniyyət" not in low and "müavinət" not in low:
+        why = (
+            "İşçinin Əmək Məcəlləsi ilə təmin edilmiş hüquqlarından (məhkəməyə, əmək "
+            "müfəttişliyinə müraciət, əmək haqqı tələbi və s.) imtinası etibarsızdır."
+        )
+        out.append(_f(c, "rights_waiver", ("art:9",), why))
+    if (
+        re.search(r"birtərəfli", low)
+        and re.search(r"azal|dəyiş", low)
+        and ("əmək haqq" in low or "əməkhaqq" in low or "maaş" in low)
+    ):
+        why = (
+            "Əmək şəraitinin şərtləri, o cümlədən əmək haqqı, işçi azı bir ay əvvəl yazılı "
+            "xəbərdar edilmədən birtərəfli dəyişdirilə bilməz."
+        )
+        out.append(_f(c, "unilateral_change", ("art:56",), why))
+    return out
+
+
 def dismissal(c: Clause, low: str, ctx: Context) -> list[Finding]:
-    if "xitam" not in low:
+    if "xitam" not in low and "işdən azad" not in low:
         return []
     out: list[Finding] = []
-    allowed = re.search(r"xitam\s+ver(ə|il[əe])\s+bil(ər|ər\b)|xitam\s+verilir", low)
+    allowed = re.search(
+        r"xitam\s+ver(ə|il[əe])\s+bil(ər|ər\b)|xitam\s+verilir|işdən\s+azad\s+edilə\s+bilər", low
+    )
     forbidden = re.search(r"bilməz|qadağan", low)
     if (
         allowed and not forbidden and
@@ -291,6 +500,12 @@ def dismissal(c: Clause, low: str, ctx: Context) -> list[Finding]:
             "müqaviləsinə işəgötürənin təşəbbüsü ilə xitam verilməsi qadağandır."
         )
         out.append(_f(c, "protected_dismissal", ("art:79",), why))
+    if "həmkarlar ittifaq" in low and not forbidden and re.search(r"xitam|azad", low):
+        why = (
+            "Həmkarlar ittifaqına üzvlüyə görə ayrı-seçkilik və bu motivlə əmək müqaviləsinə "
+            "xitam verilməsi qadağandır."
+        )
+        out.append(_f(c, "union_dismissal", ("art:16", "art:79"), why))
     articles: list[str] = []
     if re.search(r"səbəb\s+göstərmədən|əsas\s+göstərmədən|istənilən\s+vaxt", low):
         articles.append("art:70")
@@ -312,7 +527,8 @@ def dismissal(c: Clause, low: str, ctx: Context) -> list[Finding]:
 
 
 RULES: tuple[Rule, ...] = (
-    probation, working_time, overtime, leave, wages, resignation, dismissal,
+    probation, working_time, overtime, protected_hours, leave, wages, discipline, resignation,
+    dismissal, waivers_and_changes,
 )  # fmt: skip
 
 
@@ -327,8 +543,10 @@ def injection(c: Clause) -> Finding | None:
     return Finding(c.number, "injection", "injection", (), why, "screen")
 
 
-def check(clauses: Sequence[Clause], ctx: Context | None = None) -> list[Finding]:
-    ctx = ctx or context_of(clauses)
+def check(
+    clauses: Sequence[Clause], ctx: Context | None = None, as_of: date | None = None
+) -> list[Finding]:
+    ctx = ctx or context_of(clauses, as_of)
     out: list[Finding] = []
     for c in clauses:
         flagged = injection(c)

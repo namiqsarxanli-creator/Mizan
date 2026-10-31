@@ -83,7 +83,7 @@ def verdict_of(findings: Sequence[Finding]) -> ClauseVerdict:
 
 async def analyse(document: Document, *, as_of: date, reviewer: Reviewer | None = None) -> Report:
     clauses = split_clauses(document.text)
-    ctx = context_of(clauses)
+    ctx = context_of(clauses, as_of)
     findings = check(clauses, ctx)
     flagged = {f.clause for f in findings}
     template = {c.number: model_form_clause(c.text) for c in clauses}

@@ -1,0 +1,193 @@
+{
+ "contracts": 10,
+ "clauses": 200,
+ "as_of": "2026-10-31",
+ "rules": {
+  "violations": 29,
+  "lawful_clauses": 170,
+  "tp": 27,
+  "fp": 0,
+  "fn": 2,
+  "precision": 1.0,
+  "recall": 0.931,
+  "f1": 0.964,
+  "right_article": 1.0,
+  "risk_on_lawful": 0,
+  "misses": [
+   {
+    "contract": "t04",
+    "clause": "2.5",
+    "issue": "maternity_offsets_annual_leave"
+   },
+   {
+    "contract": "t05",
+    "clause": "2.4",
+    "issue": "unauthorized_dismissal_ground"
+   }
+  ],
+  "false_positives": []
+ },
+ "llm": {
+  "violations": 29,
+  "lawful_clauses": 170,
+  "tp": 6,
+  "fp": 0,
+  "fn": 23,
+  "precision": 1.0,
+  "recall": 0.207,
+  "f1": 0.343,
+  "right_article": 1.0,
+  "risk_on_lawful": 1,
+  "misses": [
+   {
+    "contract": "t01",
+    "clause": "2.2",
+    "issue": "excessive_normal_hours"
+   },
+   {
+    "contract": "t01",
+    "clause": "2.4",
+    "issue": "waiver_of_judicial_protection"
+   },
+   {
+    "contract": "t02",
+    "clause": "2.2",
+    "issue": "minor_excessive_hours"
+   },
+   {
+    "contract": "t02",
+    "clause": "2.3",
+    "issue": "minor_probation"
+   },
+   {
+    "contract": "t02",
+    "clause": "2.4",
+    "issue": "minor_night_work"
+   },
+   {
+    "contract": "t02",
+    "clause": "2.5",
+    "issue": "minor_insufficient_leave"
+   },
+   {
+    "contract": "t03",
+    "clause": "2.2",
+    "issue": "excessive_overtime"
+   },
+   {
+    "contract": "t03",
+    "clause": "2.4",
+    "issue": "unauthorized_disciplinary_fine"
+   },
+   {
+    "contract": "t03",
+    "clause": "2.5",
+    "issue": "excessive_wage_deduction"
+   },
+   {
+    "contract": "t04",
+    "clause": "2.2",
+    "issue": "pregnant_night_work"
+   },
+   {
+    "contract": "t04",
+    "clause": "2.3",
+    "issue": "pregnant_overtime"
+   },
+   {
+    "contract": "t04",
+    "clause": "2.4",
+    "issue": "pregnant_redundancy_dismissal"
+   },
+   {
+    "contract": "t04",
+    "clause": "2.5",
+    "issue": "maternity_offsets_annual_leave"
+   },
+   {
+    "contract": "t05",
+    "clause": "2.2",
+    "issue": "teacher_insufficient_leave"
+   },
+   {
+    "contract": "t05",
+    "clause": "2.3",
+    "issue": "unilateral_wage_reduction"
+   },
+   {
+    "contract": "t06",
+    "clause": "2.1",
+    "issue": "excessive_normal_hours"
+   },
+   {
+    "contract": "t06",
+    "clause": "2.2",
+    "issue": "excessive_resignation_notice"
+   },
+   {
+    "contract": "t06",
+    "clause": "2.3",
+    "issue": "waiver_of_wage_rights"
+   },
+   {
+    "contract": "t06",
+    "clause": "2.4",
+    "issue": "union_discrimination"
+   },
+   {
+    "contract": "t07",
+    "clause": "2.1",
+    "issue": "short_contract_probation"
+   },
+   {
+    "contract": "t07",
+    "clause": "2.4",
+    "issue": "no_unused_leave_compensation"
+   },
+   {
+    "contract": "t08",
+    "clause": "2.2",
+    "issue": "probation_extension"
+   },
+   {
+    "contract": "t08",
+    "clause": "2.3",
+    "issue": "unauthorized_disciplinary_fine"
+   }
+  ],
+  "false_positives": []
+ },
+ "combined": {
+  "violations": 29,
+  "lawful_clauses": 170,
+  "tp": 28,
+  "fp": 0,
+  "fn": 1,
+  "precision": 1.0,
+  "recall": 0.966,
+  "f1": 0.982,
+  "right_article": 1.0,
+  "risk_on_lawful": 1,
+  "misses": [
+   {
+    "contract": "t04",
+    "clause": "2.5",
+    "issue": "maternity_offsets_annual_leave"
+   }
+  ],
+  "false_positives": []
+ },
+ "injections": {
+  "expected": 0,
+  "caught": 0,
+  "false": 0
+ },
+ "complete": true,
+ "llm_calls": {
+  "batches": 40,
+  "failed": 0,
+  "unverified": 16,
+  "input_tokens": 155324,
+  "output_tokens": 43043
+ }
+}

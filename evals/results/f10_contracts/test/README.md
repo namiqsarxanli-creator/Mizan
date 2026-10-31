@@ -89,3 +89,38 @@ all missed.
 4. **A second independent test set,** written by the other author before those fixes are
    scored, so the fixed pipeline is also measured once on contracts it has not seen. This set
    is now development data.
+
+## Post-hoc (2026-10-31): fact-based rules; this set is now development data
+The changes after this run:
+
+- **Rules read facts.** Age from a birth date, term from a date range, daily hours from a
+  schedule minus lunch, pregnancy, teachers. New checks:
+  - minors' and teachers' leave (art. 119, 118);
+  - night work and overtime for minors and pregnant women (art. 254, 242);
+  - fines (art. 186);
+  - waivers of rights (art. 9, 135);
+  - unpaid leave compensation (art. 144);
+  - unilateral wage cuts (art. 56);
+  - union dismissal (art. 16, 79);
+  - forced resignation and notice in any phrasing (art. 69).
+- **Dropped LLM findings are recorded.** Each finding discarded by quote verification is
+  kept with its quote and the source it named.
+- **Retrieval sees the facts.** The search query carries them, for example "hamilə qadın" or
+  "yaşı 18-dən az olan işçi".
+
+**Re-scoring.** The re-score ran the new rules over the LLM findings recorded in the run above;
+no new LLM calls ([`posthoc.json`](posthoc.json)):
+
+| layer | found | false alarms | precision | recall |
+|---|---|---|---|---|
+| rules | 27 / 29 | 0 | 1.00 | 0.93 |
+| combined | 28 / 29 | 0 | 1.00 | 0.97 |
+
+- **This is tuned on the data it is reported on.** It shows that the misses had fixable
+  causes, not that the fixed pipeline generalises.
+- **Rules on the development set:** 21/21 with no false alarm. One label there was wrong.
+  c11 6.1 (21 days of leave for a 17-year-old) is a violation of art. 119. It had been labelled
+  lawful, and the new minors' rule found the mistake.
+
+**Next.** The fixed pipeline is measured once on a second unseen set
+([`../../../datasets/contracts/test2/BRIEF.md`](../../../datasets/contracts/test2/BRIEF.md)).

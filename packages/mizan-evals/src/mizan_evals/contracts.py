@@ -126,7 +126,7 @@ def _group(findings: Iterable[Finding], contract: str) -> dict[Key, list[Finding
 def rule_predictions(texts: dict[str, str]) -> dict[Key, list[Finding]]:
     predicted: dict[Key, list[Finding]] = {}
     for contract, text in texts.items():
-        predicted |= _group(check(split_clauses(text)), contract)
+        predicted |= _group(check(split_clauses(text), as_of=AS_OF), contract)
     return predicted
 
 
@@ -187,7 +187,9 @@ async def evaluate_llm(
         pending = [
             c for c in clauses if c.number not in screened and model_form_clause(c.text) is None
         ]
-        findings, stats = await reviewer.review(pending, as_of=AS_OF, ctx=context_of(clauses))
+        findings, stats = await reviewer.review(
+            pending, as_of=AS_OF, ctx=context_of(clauses, AS_OF)
+        )
         if stats.failed:
             # Not recorded: a contract with unanswered batches would count as clean. Stop here
             # (usually the provider's daily limit) and resume on the next run.
@@ -203,6 +205,11 @@ async def evaluate_llm(
             "stats": {"batches": stats.batches, "failed": stats.failed,
                       "unverified": stats.unverified, "input_tokens": stats.input_tokens,
                       "output_tokens": stats.output_tokens},
+            "dropped": [
+                {"clause": d.clause, "verdict": d.verdict, "source": d.source, "quote": d.quote,
+                 "explanation": d.explanation}
+                for d in stats.dropped
+            ],
         }  # fmt: skip
         done[contract] = row
         with raw.open("a", encoding="utf-8") as f:

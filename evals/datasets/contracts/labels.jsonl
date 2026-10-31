@@ -226,7 +226,7 @@
 {"contract": "c11", "sector": "istehsal", "clause": "5.1", "expect": "violation", "issue": "hours_minor", "articles": ["art:91"]}
 {"contract": "c11", "sector": "istehsal", "clause": "5.2", "expect": "ok", "issue": null, "articles": []}
 {"contract": "c11", "sector": "istehsal", "clause": "5.3", "expect": "ok", "issue": null, "articles": []}
-{"contract": "c11", "sector": "istehsal", "clause": "6.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "c11", "sector": "istehsal", "clause": "6.1", "expect": "violation", "issue": "leave_too_short", "articles": ["art:119"]}
 {"contract": "c11", "sector": "istehsal", "clause": "6.2", "expect": "ok", "issue": null, "articles": []}
 {"contract": "c11", "sector": "istehsal", "clause": "7.1", "expect": "ok", "issue": null, "articles": []}
 {"contract": "c11", "sector": "istehsal", "clause": "8.1", "expect": "ok", "issue": null, "articles": []}

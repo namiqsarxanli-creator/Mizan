@@ -327,6 +327,9 @@ CONTRACTS: list[Contract] = [
         labels={
             "2.3": ("probation_not_allowed", ("art:52",)),
             "5.1": ("hours_minor", ("art:91",)),
+            # Labelled ok until 2026-10-31: 21 days is the general minimum, but a 17-year-old
+            # is owed 35 (art. 119). Found when the fact-based rules flagged it.
+            "6.1": ("leave_too_short", ("art:119",)),
         },
     ),
     Contract(

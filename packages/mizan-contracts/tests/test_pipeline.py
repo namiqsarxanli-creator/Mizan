@@ -147,11 +147,13 @@ def test_review_keeps_only_findings_with_verified_quotes() -> None:
             {"clause": "4.2", "verdict": "ok"},
         ]
     })  # fmt: skip
-    found, unverified = parse_review(content, batch, [SOURCE])
+    found, dropped = parse_review(content, batch, [SOURCE])
     assert [(f.clause, f.verdict, f.articles) for f in found] == [("7.1", "violation", ("art:9",))]
     assert found[0].quote == "İşçi əmək müqaviləsi bağlamaq hüququna malikdir"
-    assert unverified == 1
-    assert parse_review("not json", batch, [SOURCE]) == ([], 0)
+    assert [(d.clause, d.source, d.quote) for d in dropped] == [
+        ("4.2", "art:9/part:1", "uydurma sitat")
+    ]
+    assert parse_review("not json", batch, [SOURCE]) == ([], [])
 
 
 class FakeSearcher:

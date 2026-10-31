@@ -57,12 +57,25 @@ log = get_logger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
+class Dropped:
+    """A violation or risk the model asserted but could not back with a verifiable quote."""
+
+    clause: str
+    verdict: str
+    source: str | None  # the provision key of the source it named, if any
+    quote: str
+    explanation: str
+
+
+@dataclass(frozen=True, slots=True)
 class ReviewStats:
     batches: int = 0
     failed: int = 0  # batches the provider did not answer (rate limit, outage)
     unverified: int = 0  # violations/risks dropped for lack of a verified quote
     input_tokens: int = 0
     output_tokens: int = 0
+    # Kept for analysis: how many correct findings does quote verification discard, and why.
+    dropped: tuple[Dropped, ...] = ()
 
 
 def batches(clauses: Sequence[Clause], size: int) -> list[list[Clause]]:
@@ -94,20 +107,36 @@ def _facts(ctx: Context) -> str:
         facts.append(f"işçi {ctx.minor_age} yaşındadır")
     if ctx.long_leave_job is not None:
         facts.append(f"işçinin vəzifəsi: {ctx.long_leave_job}")
+    if ctx.pregnant:
+        facts.append("işçi hamilədir")
     return ("Müqavilə haqqında: " + "; ".join(facts) + ".\n") if facts else ""
+
+
+def query_terms(ctx: Context) -> str:
+    """Words that steer retrieval to the provisions protecting this employee."""
+    terms = []
+    if ctx.minor_age is not None:
+        terms.append("yaşı 18-dən az olan işçi")
+    if ctx.pregnant:
+        terms.append("hamilə qadın")
+    if ctx.term_months is not None:
+        terms.append("müddətli əmək müqaviləsi")
+    if ctx.long_leave_job is not None:
+        terms.append(ctx.long_leave_job)
+    return " ".join(terms)
 
 
 def parse_review(
     content: str, batch: Sequence[Clause], hits: Sequence[Hit]
-) -> tuple[list[Finding], int]:
-    """Findings with verified quotes; the count of violations/risks dropped as unverified."""
+) -> tuple[list[Finding], list[Dropped]]:
+    """Findings with verified quotes, and the violations/risks dropped as unverified."""
     try:
         items = json.loads(content)["clauses"]
     except (json.JSONDecodeError, KeyError, TypeError):
-        return [], 0
+        return [], []
     numbers = {c.number for c in batch}
     findings: list[Finding] = []
-    unverified = 0
+    dropped: list[Dropped] = []
     for item in items if isinstance(items, list) else []:
         if not isinstance(item, dict):
             continue
@@ -119,7 +148,17 @@ def parse_review(
             [{"source": item.get("source"), "quote": item.get("quote")}], hits
         )
         if not cited:
-            unverified += 1
+            source = item.get("source")
+            index = source if isinstance(source, int) else -1
+            dropped.append(
+                Dropped(
+                    clause=number,
+                    verdict=str(verdict),
+                    source=hits[index - 1].key if 1 <= index <= len(hits) else None,
+                    quote=str(item.get("quote", ""))[:400],
+                    explanation=str(item.get("explanation", "")).strip()[:400],
+                )
+            )
             continue
         article = cited[0].key.split("/", 1)[0]
         findings.append(
@@ -133,7 +172,7 @@ def parse_review(
                 quote=cited[0].quote,
             )
         )
-    return findings, unverified
+    return findings, dropped
 
 
 class ClauseReviewer:
@@ -161,13 +200,14 @@ class ClauseReviewer:
         self._k = hits_per_clause
         self._max_chars = max_context_chars
 
-    async def _sources(self, batch: Sequence[Clause], as_of: date) -> list[Hit]:
+    async def _sources(self, batch: Sequence[Clause], as_of: date, ctx: Context) -> list[Hit]:
         seen: set[str] = set()
         ranked: list[list[Hit]] = []
+        terms = query_terms(ctx)
         for c in batch:
+            query = f"{terms} {c.text[:500]}".strip()
             found = await self._searcher.search(
-                c.text[:500], source_id=self._source_id, as_of=as_of, config=self._config,
-                k=self._k,
+                query, source_id=self._source_id, as_of=as_of, config=self._config, k=self._k,
             )  # fmt: skip
             ranked.append(found)
         hits: list[Hit] = []
@@ -184,7 +224,7 @@ class ClauseReviewer:
         findings: list[Finding] = []
         stats = ReviewStats()
         for batch in batches(clauses, self._batch_size):
-            hits = await self._sources(batch, as_of)
+            hits = await self._sources(batch, as_of, ctx)
             if not hits:
                 continue
             user = (
@@ -208,12 +248,13 @@ class ClauseReviewer:
                     span, model=self._model, input_tokens=tokens_in, output_tokens=tokens_out,
                     response_model=response.model, finish_reason=response.choices[0].finish_reason,
                 )  # fmt: skip
-            found, unverified = parse_review(response.choices[0].message.content or "", batch, hits)
+            found, dropped = parse_review(response.choices[0].message.content or "", batch, hits)
             findings.extend(found)
             stats = replace(
                 stats,
                 batches=stats.batches + 1,
-                unverified=stats.unverified + unverified,
+                unverified=stats.unverified + len(dropped),
+                dropped=stats.dropped + tuple(dropped),
                 input_tokens=stats.input_tokens + tokens_in,
                 output_tokens=stats.output_tokens + tokens_out,
             )
