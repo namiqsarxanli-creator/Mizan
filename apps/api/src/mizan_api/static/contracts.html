@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mizan · Müqavilə yoxlaması</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e3e2dd;
+    --ok: #2f7d4a; --ok-bg: #eaf5ee; --risk: #9a6700; --risk-bg: #fdf4e0;
+    --bad: #b42318; --bad-bg: #fdecea; --inj: #6941c6; --inj-bg: #f2edfc; --accent: #1f4e8c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161615; --panel: #1f1f1d; --text: #ececea; --muted: #a3a39d; --line: #34342f;
+      --ok: #6fcf8e; --ok-bg: #1b2d21; --risk: #f0b54a; --risk-bg: #2f2615;
+      --bad: #f1857a; --bad-bg: #351c19; --inj: #b49cf5; --inj-bg: #251d38; --accent: #8db4ea;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .disclaimer { border: 1px solid var(--risk); background: var(--risk-bg); border-radius: 8px;
+                padding: 12px 14px; margin-bottom: 20px; }
+  form { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+         padding: 16px; display: grid; gap: 12px; }
+  label { display: grid; gap: 4px; font-weight: 600; font-size: 14px; }
+  input[type=text], input[type=date], input[type=password] {
+    font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--bg); color: var(--text); }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; }
+  .row > * { flex: 1 1 200px; }
+  .check { display: flex; gap: 8px; align-items: center; font-weight: 400; }
+  button { font: inherit; font-weight: 600; padding: 10px 16px; border: 0; border-radius: 6px;
+           background: var(--accent); color: #fff; cursor: pointer; justify-self: start; }
+  button:disabled { opacity: .6; cursor: wait; }
+  #status { color: var(--muted); min-height: 1.5em; }
+  #status.error { color: var(--bad); }
+  .summary { display: flex; gap: 8px; flex-wrap: wrap; margin: 20px 0 8px; }
+  .pill { border-radius: 999px; padding: 4px 12px; font-weight: 600; font-size: 14px; }
+  .ok { color: var(--ok); background: var(--ok-bg); }
+  .risk { color: var(--risk); background: var(--risk-bg); }
+  .violation { color: var(--bad); background: var(--bad-bg); }
+  .injection { color: var(--inj); background: var(--inj-bg); }
+  .notes { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+  .filters { display: flex; gap: 12px; margin: 8px 0 12px; flex-wrap: wrap; font-size: 14px; }
+  h2.section { font-size: 16px; margin: 22px 0 8px; color: var(--muted); }
+  .clause { background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--line);
+            border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; }
+  .clause.v-ok { border-left-color: var(--ok); }
+  .clause.v-risk { border-left-color: var(--risk); }
+  .clause.v-violation { border-left-color: var(--bad); }
+  .clause.v-injection { border-left-color: var(--inj); }
+  .head { display: flex; gap: 10px; align-items: baseline; }
+  .num { font-weight: 700; min-width: 3em; }
+  .tag { font-size: 12px; font-weight: 700; border-radius: 4px; padding: 1px 6px; margin-left: auto;
+         white-space: nowrap; }
+  .finding { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 14px; }
+  .finding .arts { font-weight: 600; }
+  .finding blockquote { margin: 6px 0 0; padding: 4px 10px; border-left: 3px solid var(--line);
+                        color: var(--muted); }
+  .origin { color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Əmək müqaviləsinin yoxlanması</h1>
+  <p class="sub">Müqaviləni yükləyin: hər bənd Azərbaycan Respublikasının Əmək Məcəlləsi ilə müqayisə edilir.</p>
+  <div class="disclaimer" id="disclaimer">
+    Bu hesabat avtomatik hazırlanmış tədqiqat vasitəsidir, hüquqi məsləhət deyil. Hər nəticəni
+    göstərilən maddənin mətni ilə yoxlayın; qərar verməzdən əvvəl hüquqşünasa müraciət edin.
+    Yüklədiyiniz sənəddə şəxsi məlumatları (FİN, ünvan, telefon) əvvəlcədən silin.
+  </div>
+  <form id="form">
+    <label>Müqavilə faylı (.pdf, .docx, .txt, .png, .jpg; 10 MB-a qədər)
+      <input type="file" name="file" id="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" required>
+    </label>
+    <div class="row">
+      <label>Tarix (hansı tarixdə qüvvədə olan qanunla)
+        <input type="date" name="as_of" id="as_of">
+      </label>
+      <label>Giriş tokeni (auth aktivdirsə)
+        <input type="password" id="token" autocomplete="off" placeholder="Bearer token">
+      </label>
+    </div>
+    <label class="check"><input type="checkbox" id="llm" checked> Süni intellektlə əlavə yoxlama (qaydalardan başqa)</label>
+    <button type="submit" id="submit">Yoxla</button>
+    <div id="status" role="status" aria-live="polite"></div>
+  </form>
+  <section id="result" hidden>
+    <div class="summary" id="summary"></div>
+    <p class="notes" id="notes"></p>
+    <div class="filters">
+      <label class="check"><input type="checkbox" id="only-issues"> Yalnız problemli bəndlər</label>
+    </div>
+    <div id="clauses"></div>
+  </section>
+</main>
+<script>
+(() => {
+  const LABELS = { ok: "Uyğun", risk: "Risk", violation: "Pozuntu", injection: "Şübhəli göstəriş" };
+  const ORIGIN = { rule: "qayda", llm: "süni intellekt, sitat yoxlanılıb", screen: "təhlükəsizlik skrininqi" };
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text !== undefined) node.textContent = text;  // never innerHTML: the text is untrusted
+    return node;
+  };
+  const article = (key) => key.startsWith("art:") ? "Maddə " + key.slice(4) : key;
+  try { $("token").value = sessionStorage.getItem("mizan-token") || ""; } catch (_) {}
+
+  let last = null;
+  function render(report) {
+    last = report;
+    $("result").hidden = false;
+    const summary = $("summary");
+    summary.replaceChildren();
+    for (const v of ["violation", "risk", "injection", "ok"]) {
+      if (report.counts[v]) summary.append(el("span", "pill " + v, LABELS[v] + ": " + report.counts[v]));
+    }
+    const notes = [];
+    notes.push(report.llm_reviewed ? "Qaydalar və süni intellekt yoxlaması." : "Yalnız qaydalar (süni intellekt yoxlaması aparılmayıb).");
+    if (report.review_failed_batches) notes.push("Süni intellekt yoxlamasının " + report.review_failed_batches + " hissəsi alınmadı; həmin bəndlər yalnız qaydalarla yoxlanıb.");
+    if (report.ocr_pages.length) notes.push("Skan edilmiş səhifələr (OCR): " + report.ocr_pages.join(", ") + ".");
+    if (report.unreadable_pages.length) notes.push("Oxunmayan səhifələr: " + report.unreadable_pages.join(", ") + ".");
+    notes.push("Tarix: " + report.as_of + ".");
+    $("notes").textContent = notes.join(" ");
+    $("disclaimer").textContent = report.disclaimer;
+    draw();
+  }
+  function draw() {
+    const box = $("clauses");
+    box.replaceChildren();
+    const onlyIssues = $("only-issues").checked;
+    let section = null;
+    for (const c of last.clauses) {
+      if (onlyIssues && c.verdict === "ok") continue;
+      if (c.section && c.section !== section) {
+        section = c.section;
+        box.append(el("h2", "section", section));
+      }
+      const card = el("article", "clause v-" + c.verdict);
+      const head = el("div", "head");
+      head.append(el("span", "num", c.number), el("span", "", c.text), el("span", "tag " + c.verdict, LABELS[c.verdict]));
+      card.append(head);
+      for (const f of c.findings) {
+        const div = el("div", "finding");
+        if (f.articles.length) div.append(el("span", "arts", f.articles.map(article).join(", ") + ": "));
+        div.append(el("span", "", f.explanation));
+        if (f.quote) div.append(el("blockquote", "", "«" + f.quote + "»"));
+        div.append(el("div", "origin", "Mənbə: " + (ORIGIN[f.origin] || f.origin)));
+        card.append(div);
+      }
+      box.append(card);
+    }
+  }
+  $("only-issues").addEventListener("change", () => last && draw());
+  $("form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = $("status");
+    const body = new FormData();
+    body.append("file", $("file").files[0]);
+    if ($("as_of").value) body.append("as_of", $("as_of").value);
+    body.append("llm", $("llm").checked ? "true" : "false");
+    const headers = {};
+    const token = $("token").value.trim();
+    if (token) headers["Authorization"] = "Bearer " + token;
+    try { sessionStorage.setItem("mizan-token", token); } catch (_) {}
+    status.className = ""; status.textContent = "Yoxlanılır… (süni intellektlə bir neçə dəqiqə çəkə bilər)";
+    $("submit").disabled = true;
+    try {
+      const res = await fetch("/v1/contracts/analyze", { method: "POST", body, headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "HTTP " + res.status);
+      status.textContent = "";
+      render(data);
+    } catch (err) {
+      status.className = "error"; status.textContent = "Xəta: " + err.message;
+    } finally {
+      $("submit").disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

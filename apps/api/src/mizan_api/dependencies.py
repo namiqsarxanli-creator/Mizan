@@ -32,6 +32,9 @@ from mizan_api.budget import TenantBudget
 from mizan_api.quality import QualityLoop
 from mizan_api.routes.legal import ASK_PROMPT_VERSION
 from mizan_api.shadow import ShadowRunner
+from mizan_contracts.document import Ocr
+from mizan_contracts.ocr import GroqVisionOcr
+from mizan_contracts.review import ClauseReviewer
 from mizan_core.config import Settings
 from mizan_core.health import DependencyCheck
 from mizan_core.logging import get_logger
@@ -291,6 +294,9 @@ class LegalServices:
     # F10: requests per minute per subject, and who called what.
     rate_limiter: RateLimiter | None = None
     audit: AuditLog | None = None
+    # F10 contract analysis: the LLM review and OCR; rules run without them.
+    contract_reviewer: ClauseReviewer | None = None
+    ocr: Ocr | None = None
 
 
 def search_config(settings: Settings) -> SearchConfig:
@@ -330,6 +336,32 @@ def _build_answerer(settings: Settings, stack: AsyncExitStack) -> AnswerBackend 
         return ClaudeAnswerer(claude, model=llm.anthropic_model, effort=llm.effort)
     log.warning("answering_disabled", provider=llm.provider, reason="no API key")
     return None
+
+
+def _build_contracts(
+    settings: Settings, stack: AsyncExitStack, searcher: SearchBackend, config: SearchConfig
+) -> tuple[ClauseReviewer | None, Ocr | None]:
+    llm, c = settings.llm, settings.contracts
+    if llm.groq_api_key is None:
+        return None, None
+    client = groq.AsyncGroq(api_key=llm.groq_api_key.get_secret_value())
+    stack.push_async_callback(client.close)
+    reviewer = (
+        ClauseReviewer(
+            client,
+            searcher,
+            config,
+            source_id=settings.retrieval.source_id,
+            model=c.review_model or llm.groq_model,
+            reasoning_effort=llm.effort,
+            batch_size=c.batch_size,
+            max_context_chars=llm.max_context_chars,
+        )
+        if c.llm_review
+        else None
+    )
+    ocr = GroqVisionOcr(client, model=c.ocr_model) if c.ocr else None
+    return reviewer, ocr
 
 
 def _build_rewriter(settings: Settings, stack: AsyncExitStack) -> QueryRewriter | None:
@@ -410,6 +442,7 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
     shadow = _build_shadow(settings, stack, session_factory(engine))
     limiter = RateLimiter(redis, settings.auth.requests_per_minute)
     audit = _build_audit(settings, stack, session_factory(engine))
+    contract_reviewer, ocr = _build_contracts(settings, stack, searcher, config)
     return LegalServices(
         searcher,
         config,
@@ -426,4 +459,6 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
         shadow,
         limiter,
         audit,
+        contract_reviewer,
+        ocr,
     )

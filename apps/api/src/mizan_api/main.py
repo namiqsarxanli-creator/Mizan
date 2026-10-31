@@ -18,6 +18,7 @@ from mizan_api.budget import BudgetExhaustedError
 from mizan_api.dependencies import LegalServices, build_dependency_checks, build_legal_services
 from mizan_api.middleware import TraceIdHeaderMiddleware
 from mizan_api.routes import agent as agent_routes
+from mizan_api.routes import contracts as contract_routes
 from mizan_api.routes import feedback as feedback_routes
 from mizan_api.routes import health
 from mizan_api.routes import law as law_routes
@@ -74,6 +75,8 @@ def create_app(
             app.state.shadow = services.shadow
             app.state.rate_limiter = services.rate_limiter
             app.state.audit = services.audit
+            app.state.contract_reviewer = services.contract_reviewer
+            app.state.ocr = services.ocr
             app.state.checks = (
                 list(checks)
                 if checks is not None
@@ -103,6 +106,7 @@ def create_app(
     app.include_router(agent_routes.router)
     app.include_router(feedback_routes.router)
     app.include_router(review_routes.router)
+    app.include_router(contract_routes.router)
 
     # Wraps the whole middleware stack, so every request (including TraceIdHeaderMiddleware)
     # runs inside a server span.

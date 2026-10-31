@@ -9,6 +9,7 @@ dependencies = [
     "fastapi>=0.115",
     "groq>=0.30",
     "mizan-agents",
+    "mizan-contracts",
     "httpx>=0.28",
     "mizan-core",
     "mizan-graph",
@@ -20,6 +21,7 @@ dependencies = [
     "temporalio>=1.35.0",
     "uvicorn[standard]>=0.32",
     "pyjwt>=2.10",
+    "python-multipart>=0.0.20",
 ]
 
 [project.scripts]
@@ -28,6 +30,7 @@ mizan-token = "mizan_api.auth:main"
 
 [tool.uv.sources]
 mizan-agents = { workspace = true }
+mizan-contracts = { workspace = true }
 mizan-core = { workspace = true }
 mizan-graph = { workspace = true }
 mizan-ingestion = { workspace = true }
