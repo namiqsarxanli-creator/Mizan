@@ -1,0 +1,200 @@
+{"contract": "t01", "clause": "1.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "1.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "1.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "1.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "1.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "2.1", "expect": "violation", "issue": "excessive_probation", "articles": ["art:51"], "note": "Probation exceeds three months."}
+{"contract": "t01", "clause": "2.2", "expect": "violation", "issue": "excessive_normal_hours", "articles": ["art:89"], "note": "The normal schedule exceeds both eight hours daily and forty hours weekly."}
+{"contract": "t01", "clause": "2.3", "expect": "violation", "issue": "wages_in_foreign_currency", "articles": ["art:174"], "note": "Wages must be paid in manat."}
+{"contract": "t01", "clause": "2.4", "expect": "violation", "issue": "waiver_of_judicial_protection", "articles": ["art:9"], "note": "The employee cannot contract away statutory judicial protection."}
+{"contract": "t01", "clause": "2.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "3.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "3.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "3.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "3.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "3.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "4.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "4.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "4.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "4.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t01", "clause": "4.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "1.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "1.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "1.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "1.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "1.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "2.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "2.2", "expect": "violation", "issue": "minor_excessive_hours", "articles": ["art:91"], "note": "A sixteen-year-old employee may work at most thirty-six hours weekly; this schedule requires forty-two."}
+{"contract": "t02", "clause": "2.3", "expect": "violation", "issue": "minor_probation", "articles": ["art:52"], "note": "Probation is prohibited for an employee under eighteen."}
+{"contract": "t02", "clause": "2.4", "expect": "violation", "issue": "minor_night_work", "articles": ["art:254"], "note": "Employees under eighteen may not be assigned night work."}
+{"contract": "t02", "clause": "2.5", "expect": "violation", "issue": "minor_insufficient_leave", "articles": ["art:119"], "note": "An employee aged sixteen to eighteen is entitled to thirty-five calendar days of leave."}
+{"contract": "t02", "clause": "3.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "3.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "3.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "3.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "3.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "4.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "4.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "4.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "4.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t02", "clause": "4.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "1.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "1.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "1.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "1.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "1.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "2.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "2.2", "expect": "violation", "issue": "excessive_overtime", "articles": ["art:100"], "note": "Six overtime hours across two consecutive days exceed the four-hour limit."}
+{"contract": "t03", "clause": "2.3", "expect": "risk", "issue": "unpaid_safety_training", "articles": ["art:219"], "note": "Mandatory unpaid safety training raises a labour-law concern, but the precise payment basis needs legal verification."}
+{"contract": "t03", "clause": "2.4", "expect": "violation", "issue": "unauthorized_disciplinary_fine", "articles": ["art:186"], "note": "A disciplinary fine cannot be imposed without the required collective-agreement basis."}
+{"contract": "t03", "clause": "2.5", "expect": "violation", "issue": "excessive_wage_deduction", "articles": ["art:176"], "note": "An ordinary deduction may not exceed twenty percent of each wage payment."}
+{"contract": "t03", "clause": "3.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "3.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "3.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "3.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "3.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "4.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "4.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "4.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "4.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t03", "clause": "4.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "1.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "1.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "1.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "1.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "1.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "2.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "2.2", "expect": "violation", "issue": "pregnant_night_work", "articles": ["art:242"], "note": "A pregnant employee cannot be required to work the stated night shifts."}
+{"contract": "t04", "clause": "2.3", "expect": "violation", "issue": "pregnant_overtime", "articles": ["art:242"], "note": "Compulsory overtime for this pregnant employee is prohibited."}
+{"contract": "t04", "clause": "2.4", "expect": "violation", "issue": "pregnant_redundancy_dismissal", "articles": ["art:79"], "note": "A pregnant employee is protected against redundancy dismissal while the employer continues operating."}
+{"contract": "t04", "clause": "2.5", "expect": "violation", "issue": "maternity_offsets_annual_leave", "articles": ["art:125"], "note": "Maternity leave is a separate entitlement and cannot consume annual leave."}
+{"contract": "t04", "clause": "3.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "3.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "3.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "3.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "3.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "4.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "4.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "4.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "4.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t04", "clause": "4.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "1.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "1.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "1.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "1.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "1.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "2.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "2.2", "expect": "violation", "issue": "teacher_insufficient_leave", "articles": ["art:118"], "note": "A general-school teacher is entitled to fifty-six calendar days of annual leave."}
+{"contract": "t05", "clause": "2.3", "expect": "violation", "issue": "unilateral_wage_reduction", "articles": ["art:56"], "note": "Essential working conditions cannot be reduced immediately without the statutory procedure and notice."}
+{"contract": "t05", "clause": "2.4", "expect": "violation", "issue": "unauthorized_dismissal_ground", "articles": ["art:68", "art:70"], "note": "A single parental complaint is not an independent statutory dismissal ground."}
+{"contract": "t05", "clause": "2.5", "expect": "violation", "issue": "forced_resignation", "articles": ["art:69"], "note": "An employer may not compel an employee to submit a resignation."}
+{"contract": "t05", "clause": "3.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "3.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "3.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "3.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "3.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "4.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "4.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "4.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "4.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t05", "clause": "4.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "1.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "1.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "1.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "1.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "1.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "2.1", "expect": "violation", "issue": "excessive_normal_hours", "articles": ["art:89"], "note": "The normal schedule requires nine working hours a day and forty-five a week."}
+{"contract": "t06", "clause": "2.2", "expect": "violation", "issue": "excessive_resignation_notice", "articles": ["art:69"], "note": "The contract cannot replace the statutory one-calendar-month resignation notice with three months."}
+{"contract": "t06", "clause": "2.3", "expect": "violation", "issue": "waiver_of_wage_rights", "articles": ["art:9"], "note": "Statutory wage and protection rights cannot be waived by contract."}
+{"contract": "t06", "clause": "2.4", "expect": "violation", "issue": "union_discrimination", "articles": ["art:16"], "note": "Union membership cannot be used as a discriminatory dismissal condition."}
+{"contract": "t06", "clause": "2.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "3.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "3.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "3.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "3.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "3.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "4.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "4.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "4.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "4.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t06", "clause": "4.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "1.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "1.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "1.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "1.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "1.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "2.1", "expect": "violation", "issue": "short_contract_probation", "articles": ["art:52"], "note": "A contract of up to two months cannot include probation."}
+{"contract": "t07", "clause": "2.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "2.3", "expect": "violation", "issue": "insufficient_basic_leave", "articles": ["art:114"], "note": "The annual basic leave norm cannot be reduced below twenty-one calendar days."}
+{"contract": "t07", "clause": "2.4", "expect": "violation", "issue": "no_unused_leave_compensation", "articles": ["art:144"], "note": "Seasonal status does not eliminate compensation for unused basic leave on termination."}
+{"contract": "t07", "clause": "2.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "3.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "3.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "3.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "3.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "3.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "4.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "4.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "4.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "4.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t07", "clause": "4.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "1.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "1.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "1.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "1.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "1.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "2.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "2.2", "expect": "violation", "issue": "probation_extension", "articles": ["art:51"], "note": "Extending probation to six months exceeds the statutory maximum."}
+{"contract": "t08", "clause": "2.3", "expect": "violation", "issue": "unauthorized_disciplinary_fine", "articles": ["art:186"], "note": "The stated disciplinary fine lacks a collective-agreement basis and exceeds the permitted fine ceiling."}
+{"contract": "t08", "clause": "2.4", "expect": "violation", "issue": "waiver_of_annual_leave", "articles": ["art:135"], "note": "An employee cannot be deprived of the statutory right to annual leave."}
+{"contract": "t08", "clause": "2.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "3.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "3.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "3.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "3.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "3.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "4.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "4.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "4.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "4.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t08", "clause": "4.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "1.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "1.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "1.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "1.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "1.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "2.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "2.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "2.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "2.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "2.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "3.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "3.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "3.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "3.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "3.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "4.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "4.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "4.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "4.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t09", "clause": "4.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "1.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "1.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "1.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "1.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "1.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "2.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "2.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "2.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "2.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "2.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "3.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "3.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "3.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "3.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "3.5", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "4.1", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "4.2", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "4.3", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "4.4", "expect": "ok", "issue": null, "articles": []}
+{"contract": "t10", "clause": "4.5", "expect": "ok", "issue": null, "articles": []}

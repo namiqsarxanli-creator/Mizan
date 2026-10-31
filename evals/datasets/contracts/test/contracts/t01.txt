@@ -1,0 +1,27 @@
+Proqram təminatı üzrə əmək müqaviləsi
+Bütün adlar, ünvanlar və VÖEN-lər test üçün uydurulmuşdur.
+
+1. Tərəflər və işə qəbul
+1.1. İşəgötürən “Çinar Piksel” MMC, VÖEN 1900000101, ünvan: Bakı şəhəri, Uydurma Çeşmə küçəsi 18, bu müqavilədə işəgötürən adlanır.
+1.2. İşçi Nərmin Əlvan qızı Səfərova bu müqaviləni şəxsən imzalayır; tərəflərin əlaqə məlumatları kadr uçotunda saxlanılır.
+1.3. İşçi proqramçı vəzifəsinə qəbul edilir; əsas iş yeri işəgötürənin yuxarıda göstərilən ünvanındadır.
+1.4. Müqavilə 1 fevral 2026-cı ildən müddətsiz bağlanır.
+1.5. Aylıq vəzifə maaşı vergilər və qanuni tutulmalar çıxılmadan 2400 manatdır; xüsusi ödəniş şərti olduqda aşağıdakı bənddə göstərilir.
+2. İşin təşkili
+2.1. İşçi üçün altı təqvim ayı sınaq müddəti müəyyən edilir.
+2.2. Normal iş həftəsi beş gündən ibarətdir; hər gün doqquz saat iş və bir saat nahar fasiləsi nəzərdə tutulur.
+2.3. Aylıq əməkhaqqı yalnız ABŞ dolları ilə, 1400 dollar məbləğində ödənilir; manatla göstərilən məbləğ uçot üçündür.
+2.4. Əmək müqaviləsinə xitam verildikdən sonra işçi iki il ərzində öz ərizəsi ilə işdən çıxma qərarını məhkəmədə mübahisələndirmək hüququndan imtina edir.
+2.5. Əsas illik ödənişli məzuniyyət 30 təqvim günüdür.
+3. Xüsusi şərtlər
+3.1. İş yeri həftənin üç günü ofis, iki günü işçinin razılaşdırılmış ev ünvanıdır.
+3.2. Tapşırıqlar həftəlik planlaşdırma görüşündə bölüşdürülür, işçi görülən işi elektron jurnalda qeyd edir.
+3.3. İş üçün noutbuk və lisenziyalı proqramları işəgötürən verir.
+3.4. Müştərilərin parollarını şəxsi poçta göndərmək qadağandır.
+3.5. İşçinin yaratdığı kodun təhvil verilməsi aktla rəsmiləşdirilir.
+4. Uçot və rəsmiləşdirmə
+4.1. Əməkhaqqı ayda bir dəfə, ayın son iş günündə ödənilir; xüsusi ödəniş cədvəli müəyyən edilmişdirsə, həmin cədvəl tətbiq edilir.
+4.2. İşəgötürən iş vaxtının və işçiyə hesablanmış ödənişlərin uçotunu aparır, işçiyə hesablamalar barədə məlumat verir.
+4.3. İşçi əmək funksiyasını şəxsən yerinə yetirir və ona təqdim edilmiş avadanlıqdan təyinatı üzrə istifadə edir.
+4.4. Bu müqavilədə ayrıca tənzimlənməyən məsələlər Azərbaycan Respublikasının Əmək Məcəlləsinə uyğun həll edilir.
+4.5. Müqavilənin bağlanması qanunla tələb olunan elektron rəsmiləşdirmə qaydasında tamamlanır; tərəflər müqavilənin mətnini əldə edirlər.
