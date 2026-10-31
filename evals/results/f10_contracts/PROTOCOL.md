@@ -108,3 +108,16 @@ the chain.
 - **Reporting:** the report records which providers served the run.
 - A run started on Groq alone was stopped before any contract finished, so no test result
   exists from it.
+
+## Amendment 3 (2026-10-31): a second unseen set for the fixed pipeline
+The first test set failed the DoD (recall 0.28), and the fixes were made while looking at it.
+It is now development data.
+
+- **Set.** The fixed pipeline is scored once on a second set by the same independent author:
+  [`test2/BRIEF.md`](../../datasets/contracts/test2/BRIEF.md). The author is told not to read
+  the first set.
+- **Procedure:** as in amendment 1, with the label check first.
+- **Thresholds:** unchanged.
+- **Provider chain:** as in amendment 2.
+
+Frozen at: `4c1abf3` (2026-10-31).
