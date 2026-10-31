@@ -96,3 +96,58 @@ def client_for(provider: str, settings: LLMSettings) -> OpenAICompatible:
     if key is None:
         raise ValueError(f"no API key for {provider}: set MIZAN_LLM__{provider.upper()}_API_KEY")
     return OpenAICompatible(provider, key.get_secret_value())
+
+
+# Status codes worth trying the next provider for: quota, rate limits, provider failures.
+FAILOVER_STATUS = frozenset({402, 408, 409, 429, 500, 502, 503, 504})
+
+
+class FailoverClient:
+    """One chat client over several providers serving the same model, tried in order.
+
+    Free tiers cap tokens per day per provider. When the current provider answers with a rate
+    limit or a server error, the request goes to the next one, and the client stays there: a
+    daily limit does not lift for hours, so retrying the exhausted provider first wastes a
+    call. Each entry pairs a client with the model name *that provider* uses (Groq's
+    ``openai/gpt-oss-120b`` is Cerebras' ``gpt-oss-120b``). Only providers serving the same
+    weights belong in one chain; a different model is a different system, not a fallback.
+    """
+
+    def __init__(self, chain: list[tuple[Any, str]]) -> None:
+        if not chain:
+            raise ValueError("an empty provider chain")
+        self._chain = chain
+        self._current = 0
+        self.chat = SimpleNamespace(completions=self)
+
+    @property
+    def model(self) -> str:
+        return self._chain[self._current][1]
+
+    async def create(self, **request: Any) -> Any:
+        last: Exception | None = None
+        for index in range(self._current, len(self._chain)):
+            client, model = self._chain[index]
+            try:
+                response = await client.chat.completions.create(**{**request, "model": model})
+            except Exception as exc:
+                status = getattr(exc, "status_code", None)
+                if status is not None and status not in FAILOVER_STATUS:
+                    raise  # a bad request fails the same way everywhere
+                last = exc
+                continue
+            self._current = index
+            return response
+        raise last if last is not None else RuntimeError("no provider answered")
+
+
+def failover_chain(specs: list[str], settings: LLMSettings) -> list[tuple[OpenAICompatible, str]]:
+    """Clients for the specs whose provider has a key, e.g. ``"cerebras:gpt-oss-120b"``."""
+    chain = []
+    for spec in specs:
+        provider, model = split_model(spec)
+        try:
+            chain.append((client_for(provider, settings), model))
+        except ValueError:
+            continue  # no key for this provider: skip it
+    return chain

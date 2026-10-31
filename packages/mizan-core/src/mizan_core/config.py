@@ -221,6 +221,9 @@ class ContractSettings(BaseModel):
     # None: the answering model (``llm.groq_model``).
     review_model: str | None = None
     batch_size: int = Field(default=6, ge=1, le=20)
+    # Other providers serving the *same* review model, tried when Groq rate-limits
+    # (``mizan_core.llm_clients.FailoverClient``). Providers without a key are skipped.
+    fallback_models: list[str] = ["openrouter:openai/gpt-oss-120b"]
     ocr: bool = True
     ocr_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
 

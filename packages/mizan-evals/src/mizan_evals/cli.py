@@ -32,6 +32,7 @@ from mizan_agents.orchestrator import Orchestrator
 from mizan_agents.schemas import Verdict
 from mizan_agents.tools import LegalTools
 from mizan_core.config import get_settings
+from mizan_core.llm_clients import FailoverClient, failover_chain
 from mizan_core.logging import configure_logging
 from mizan_evals import shadow as shadow_report
 from mizan_evals.agent_eval import (
@@ -544,24 +545,31 @@ async def _contracts(out: Path, pace: float, model: str | None, dataset: Path) -
     key = settings.qdrant.api_key.get_secret_value() if settings.qdrant.api_key else None
     qdrant = AsyncQdrantClient(url=settings.qdrant.url, api_key=key, timeout=120)
     client = groq.AsyncGroq(api_key=settings.llm.groq_api_key.get_secret_value())
+    review_model = model or settings.contracts.review_model or settings.llm.groq_model
+    # Same weights on other providers when Groq's daily limit is spent (FailoverClient).
+    fallbacks = [] if model else failover_chain(settings.contracts.fallback_models, settings.llm)
+    chain = FailoverClient([(client, review_model), *fallbacks])
     try:
         reranker = Reranker() if config.rerank_top else None
         reviewer = ClauseReviewer(
-            PacedClient(client, pace),
+            PacedClient(chain, pace),
             Searcher(qdrant, {config.dense_model: embedder}, reranker),
             config,
             source_id=settings.retrieval.source_id,
-            model=model or settings.contracts.review_model or settings.llm.groq_model,
+            model=review_model,
             reasoning_effort=settings.llm.effort,
             batch_size=settings.contracts.batch_size,
             max_context_chars=settings.llm.max_context_chars,
         )
         report = await evaluate_llm(reviewer, out, dataset)
-        report["model"] = model or settings.contracts.review_model or settings.llm.groq_model
+        report["model"] = review_model
+        report["providers"] = ["groq", *(c.provider for c, _ in fallbacks)]
         return report
     finally:
         await qdrant.close()
         await client.close()
+        for other, _ in fallbacks:
+            await other.close()
 
 
 def main(argv: list[str] | None = None) -> int:

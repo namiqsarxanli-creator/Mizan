@@ -37,6 +37,7 @@ from mizan_contracts.ocr import GroqVisionOcr
 from mizan_contracts.review import ClauseReviewer
 from mizan_core.config import Settings
 from mizan_core.health import DependencyCheck
+from mizan_core.llm_clients import FailoverClient, failover_chain
 from mizan_core.logging import get_logger
 from mizan_evals.agent_eval import FaithfulnessJudge
 from mizan_graph.decisions import attach_decisions
@@ -346,13 +347,17 @@ def _build_contracts(
         return None, None
     client = groq.AsyncGroq(api_key=llm.groq_api_key.get_secret_value())
     stack.push_async_callback(client.close)
+    model = c.review_model or llm.groq_model
+    fallbacks = failover_chain(c.fallback_models, llm)
+    for other, _ in fallbacks:
+        stack.push_async_callback(other.close)
     reviewer = (
         ClauseReviewer(
-            client,
+            FailoverClient([(client, model), *fallbacks]),
             searcher,
             config,
             source_id=settings.retrieval.source_id,
-            model=c.review_model or llm.groq_model,
+            model=model,
             reasoning_effort=llm.effort,
             batch_size=c.batch_size,
             max_context_chars=llm.max_context_chars,

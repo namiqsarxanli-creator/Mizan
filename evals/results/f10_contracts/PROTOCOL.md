@@ -90,3 +90,21 @@ therefore **synthetic, written by a different author**:
 Frozen at: `eb4257f` (2026-10-31). The rules, review prompt, batch size, retrieval
 configuration and model are those of that commit. The evaluation harness gained only a
 `--dataset` option afterwards.
+
+## Amendment 2 (2026-10-31, before the scored run produced any result)
+Groq's free daily token limit cannot cover the test set in one day. The review model is
+therefore served by a chain of providers (`FailoverClient`):
+
+1. Groq first.
+2. OpenRouter for the rest, once Groq rate-limits. OpenRouter's paid tier costs about $0.05
+   for this run.
+
+The model is the same open-weight `gpt-oss-120b`, with the same prompt, batch size,
+retrieval and rules. Cerebras offers it too, but asks for payment (HTTP 402), so it is not in
+the chain.
+
+- **What may differ:** the serving stack. Quantisation and sampling details can vary by
+  provider.
+- **Reporting:** the report records which providers served the run.
+- A run started on Groq alone was stopped before any contract finished, so no test result
+  exists from it.
