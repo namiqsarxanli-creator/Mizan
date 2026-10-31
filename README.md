@@ -268,6 +268,27 @@ See [ADR-0012](docs/adr/0012-tenancy-and-access.md).
   In production the API should log in as `mizan_app` itself, so that the owner role is used
   only by migrations.
 
+## Contract analysis (F10)
+
+See [ADR-0013](docs/adr/0013-contract-analysis.md).
+
+Upload an employment contract at `http://127.0.0.1:18000/contracts` (or
+`POST /v1/contracts/analyze`, multipart `file`). The report lists every clause as OK, risk,
+violation or suspicious instruction, with the article and a verified quote of the law.
+
+- **Formats:** PDF, DOCX, plain text and photos. Scanned pages are read by a vision model
+  (`MIZAN_CONTRACTS__OCR_MODEL`).
+- **Two layers:**
+  - Deterministic rules cover the numeric limits of the Labour Code: probation, working hours,
+    overtime, leave, wages in kind or in foreign currency, deductions, notice and protected
+    dismissals.
+  - An LLM reviews the remaining clauses against retrieved articles. A finding is kept only if
+    its quote occurs verbatim in the cited article.
+- **Hidden instructions** inside a contract are flagged, not obeyed, and never reach a model.
+- **Evaluation:** `uv run mizan-eval contracts` scores the rules on the synthetic contract set,
+  and CI fails if one stops firing; `--llm` measures the LLM layer
+  ([results](evals/results/f10_contracts/README.md)).
+
 ## Security (F10)
 
 - **Prompt injection.** Questions are screened before any spend, and attacks get `400`. The
@@ -289,6 +310,7 @@ See [ADR-0012](docs/adr/0012-tenancy-and-access.md).
 | `uv run pytest --cov` | unit tests + coverage |
 | `MIZAN_INTEGRATION=1 uv run pytest -m integration` | real Postgres: migrations + `alembic check`, ingestion pipeline end to end, dependency checks |
 | `uv run mizan-eval redteam --gate` | prompt-injection screen vs the pre-registered red-team test split |
+| `uv run mizan-eval contracts --gate` | contract rules still catch every planted violation, with no false positive |
 | `uv run mizan-graph gate` | quality of the serving path (dense + graph) vs the committed baseline (paired bootstrap) |
 
 All of the above run in CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)), followed by a
@@ -322,6 +344,7 @@ Docker image build. Install the git hooks once with `uv run pre-commit install`.
 | [0010](docs/adr/0010-local-vs-api-models.md) | Narrow, high-volume tasks go local only past a pre-registered gate and the GPU break-even; verification stays on the API for now |
 | [0011](docs/adr/0011-durable-agent-runs.md) | Durable agent runs on Temporal (opt-in): one state machine, steps as activities, idempotent request ids |
 | [0012](docs/adr/0012-tenancy-and-access.md) | JWT identity with scopes, tenant from the token only; Postgres RLS; per-subject rate limit; append-only audit log |
+| [0013](docs/adr/0013-contract-analysis.md) | Contract analysis: rules for numeric limits, LLM review for the rest, every finding quoting the law; injected clauses reported, never sent |
 
 ## Disclaimer
 

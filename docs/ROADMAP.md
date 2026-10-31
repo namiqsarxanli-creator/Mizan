@@ -314,19 +314,19 @@ dense `bge-m3`, reranker-siz (ADR-0009). Bax `evals/results/f7_rerank/README.md`
 ## F10 — Müqavilə analizi + təhlükəsizlik (Həftə 23)
 
 ### Məhsul funksiyası
-- [ ] PDF yükləmə + OCR / vision model (skan edilmiş sənədlər üçün)
-- [ ] Müqaviləni bəndlərə bölmək, hər bəndi qanunla yoxlamaq
-- [ ] Risk hesabatı: *"7.2-ci bənd Əmək Məcəlləsinin 77-ci maddəsinə ziddir"*
-- [ ] UI: bəndlər rəng kodu ilə + istinadlar
+- [x] PDF/DOCX/TXT/foto yükləmə; mətn qatı olmayan (skan) səhifələr vision model ilə OCR edilir (`mizan_contracts.document`, `ocr`)
+- [x] Müqaviləni bəndlərə bölmək, hər bəndi qanunla yoxlamaq: rəqəmsal limitlər üçün deterministik qaydalar (12 qayda, 14 maddə), qalanı üçün LLM yoxlaması; LLM-in hər iddiası maddədən hərfi sitatla yoxlanılır. Bax **ADR-013**
+- [x] Risk hesabatı: *"7.2-ci bənd Əmək Məcəlləsinin 77-ci maddəsinə ziddir"* (`POST /v1/contracts/analyze`); müqavilədəki gizli təlimatlar `injection` kimi göstərilir, modelə göndərilmir
+- [x] UI: bəndlər rəng kodu ilə + istinadlar (`/contracts`, yalnız mətn kimi render)
 
 ### Təhlükəsizlik
 - [x] **OWASP LLM Top 10** üzrə audit: 8/10 nəzarətdə, 2-si qismən (supply chain scan, mənbənin müstəqil yoxlanması); bax `docs/security/owasp-llm-top10.md`
 - [x] Prompt injection müdafiəsi: sualların skrininqi (400 + audit `injection`), etibarsız mətnin neytrallaşdırılması, mənbələr "data" kimi işarələnir, read-only tool allowlist, JSON/quote output validation, sistem promptunun sızmasının bloklanması
 - [x] Avtomatik red-teaming dataset-i CI-də işləyir (yüklənən müqavilələrdə gizli təlimatlar da daxil): pre-registered gate test-də **keçdi**: hücumların 98.2%-i bloklandı, 0/281 yanlış bloklama. Skrininqi keçən 20 hücumun heç birinə model itaət etmədi. Bax `evals/results/f10_redteam`
 - [x] Auth (JWT, scope-lar `ask`/`review`; tenant yalnız token-dən), rate limiting (subject başına dəqiqəlik, Redis), append-only audit log. Staging/production auth-suz başlamır. OAuth/OIDC real istifadəçilər gələnə qədər açıq qalır. Bax **ADR-012**
-- [ ] Hüquqi disclaimer və məsuliyyət sərhədləri UI-da
+- [x] Hüquqi disclaimer və məsuliyyət sərhədləri UI-da və hər hesabatda
 
-**✅ DoD:** Red-team dataset-inin ≥ 95%-i bloklanır, müqavilə analizi 10 real nümunədə düzgün işləyir.
+**✅ DoD:** Red-team dataset-inin ≥ 95%-i bloklanır ✅, müqavilə analizi 10 real nümunədə düzgün işləyir (⏳ real müqavilələr gözlənilir; sintetik dev dəsti: 12 müqavilə, 20 pozuntu, bax `evals/results/f10_contracts`).
 
 ---
 

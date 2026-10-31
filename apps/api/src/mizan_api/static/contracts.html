@@ -56,6 +56,8 @@
   .clause.v-injection { border-left-color: var(--inj); }
   .head { display: flex; gap: 10px; align-items: baseline; }
   .num { font-weight: 700; min-width: 3em; }
+  .body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .finding { overflow-wrap: anywhere; }
   .tag { font-size: 12px; font-weight: 700; border-radius: 4px; padding: 1px 6px; margin-left: auto;
          white-space: nowrap; }
   .finding { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 14px; }
@@ -145,7 +147,7 @@
       }
       const card = el("article", "clause v-" + c.verdict);
       const head = el("div", "head");
-      head.append(el("span", "num", c.number), el("span", "", c.text), el("span", "tag " + c.verdict, LABELS[c.verdict]));
+      head.append(el("span", "num", c.number), el("span", "body", c.text), el("span", "tag " + c.verdict, LABELS[c.verdict]));
       card.append(head);
       for (const f of c.findings) {
         const div = el("div", "finding");
