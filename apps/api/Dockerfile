@@ -14,6 +14,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 # Every workspace member's manifest must exist for uv to resolve the workspace.
 COPY packages/mizan-agents/pyproject.toml packages/mizan-agents/
+COPY packages/mizan-contracts/pyproject.toml packages/mizan-contracts/
 COPY packages/mizan-core/pyproject.toml packages/mizan-core/
 COPY packages/mizan-ingestion/pyproject.toml packages/mizan-ingestion/
 COPY packages/mizan-retrieval/pyproject.toml packages/mizan-retrieval/
@@ -30,6 +31,7 @@ COPY packages/mizan-ingestion packages/mizan-ingestion
 COPY packages/mizan-retrieval packages/mizan-retrieval
 COPY packages/mizan-graph packages/mizan-graph
 COPY packages/mizan-agents packages/mizan-agents
+COPY packages/mizan-contracts packages/mizan-contracts
 COPY apps/api apps/api
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-editable --package mizan-api
