@@ -3,9 +3,10 @@
 1. Read the document (``document.py``); scanned pages go through OCR.
 2. Split it into clauses (``clauses.py``).
 3. Screen every clause for injected instructions; flagged clauses are reported and skipped.
-4. Run the deterministic rules (``rules.py``).
-5. Review the remaining clauses with the LLM (``review.py``), when one is configured. Clauses
-   a rule already flagged are not sent: the rule's verdict stands, and the tokens are saved.
+4. Run the deterministic rules (``rules.py``) on every clause.
+5. Review the remaining clauses with the LLM (``review.py``), when one is configured. Not sent:
+   clauses a rule already flagged (the rule's verdict stands) and clauses that reproduce the
+   Code's model form (``model_form.py``), which cannot contradict the Code by themselves.
 6. One verdict per clause, the most severe of its findings: injection > violation > risk > ok.
 
 The report always carries the disclaimer. It is a research aid that points at provisions, not
@@ -21,6 +22,7 @@ from typing import Literal, Protocol
 
 from mizan_contracts.clauses import Clause, split_clauses
 from mizan_contracts.document import Document
+from mizan_contracts.model_form import model_form_clause
 from mizan_contracts.review import ReviewStats
 from mizan_contracts.rules import Context, Finding, check, context_of
 
@@ -48,6 +50,7 @@ class ClauseResult:
     text: str
     verdict: ClauseVerdict
     findings: tuple[Finding, ...]
+    model_form: str | None = None  # the annex-1 clause it reproduces
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,9 +86,10 @@ async def analyse(document: Document, *, as_of: date, reviewer: Reviewer | None 
     ctx = context_of(clauses)
     findings = check(clauses, ctx)
     flagged = {f.clause for f in findings}
+    template = {c.number: model_form_clause(c.text) for c in clauses}
     stats = ReviewStats()
     if reviewer is not None:
-        pending = [c for c in clauses if c.number not in flagged]
+        pending = [c for c in clauses if c.number not in flagged and template[c.number] is None]
         llm_findings, stats = await reviewer.review(pending, as_of=as_of, ctx=ctx)
         findings += llm_findings
     by_clause: dict[str, list[Finding]] = {}
@@ -98,6 +102,7 @@ async def analyse(document: Document, *, as_of: date, reviewer: Reviewer | None 
             text=c.text,
             verdict=verdict_of(by_clause.get(c.number, [])),
             findings=tuple(by_clause.get(c.number, [])),
+            model_form=template[c.number],
         )
         for c in clauses
     )

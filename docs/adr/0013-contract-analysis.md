@@ -90,7 +90,7 @@ are read. Until they exist, F10's DoD item stays open.
 ## Consequences
 - **Fixed cost per rule.** Adding a check is a function and a test row. The rules are the
   cheapest, most reliable part, and each one says which article it enforces.
-- **Lower LLM cost.** Clauses a rule flagged are not sent to the model. A typical contract
+- **Lower LLM cost.** Clauses a rule flagged, and clauses reproducing the model form (annex 1), are not sent to the model. A typical contract
   costs about four LLM calls.
 - **Known gaps:**
   - The rules read Azerbaijani phrasing and numbers. An unusual wording ("yarım il") falls

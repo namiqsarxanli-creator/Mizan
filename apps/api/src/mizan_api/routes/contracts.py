@@ -49,6 +49,9 @@ class ClauseOut(BaseModel):
     text: str
     verdict: str = Field(examples=["violation"])
     findings: list[FindingOut]
+    model_form: str | None = Field(
+        default=None, description="the clause of the Code's model form (annex 1) it reproduces"
+    )
 
 
 class ContractReport(BaseModel):
@@ -86,6 +89,7 @@ def _out(report: Report) -> ContractReport:
                     )
                     for f in c.findings
                 ],
+                model_form=c.model_form,
             )
             for c in report.clauses
         ],

@@ -20,11 +20,11 @@
   "violations": 17,
   "lawful_clauses": 175,
   "tp": 9,
-  "fp": 6,
+  "fp": 0,
   "fn": 8,
-  "precision": 0.6,
+  "precision": 1.0,
   "recall": 0.529,
-  "f1": 0.562,
+  "f1": 0.692,
   "right_article": 0.889,
   "risk_on_lawful": 2,
   "misses": [
@@ -69,119 +69,21 @@
     "issue": "overtime_limit"
    }
   ],
-  "false_positives": [
-   {
-    "contract": "c01",
-    "clause": "8.1",
-    "articles": [
-     "art:76"
-    ],
-    "explanation": "Maddə 76‑da yalnız bir əsasla xitam verilməsi icazə verilir, bənd isə bir neçə əsasla xitam verilməsini nəzərdə tutur."
-   },
-   {
-    "contract": "c02",
-    "clause": "8.1",
-    "articles": [
-     "art:76"
-    ],
-    "explanation": "Qanun yalnız bir əsasın istifadə edilməsinə icazə verir, bənd isə bir neçə əsasla xitam verilməsini nəzərdə tutur."
-   },
-   {
-    "contract": "c03",
-    "clause": "8.1",
-    "articles": [
-     "art:76"
-    ],
-    "explanation": "Maddə 76‑da xitam yalnız bir əsasla verilə bilər, bənd isə bir neçə əsasın eyni anda istifadə olunmasına icazə verir."
-   },
-   {
-    "contract": "c04",
-    "clause": "8.1",
-    "articles": [
-     "art:76"
-    ],
-    "explanation": "Qanun yalnız bir əsasla xitam verilməsinə icazə verir, bənd isə bir neçə əsasla xitam verilməsini nəzərdə tutur."
-   },
-   {
-    "contract": "c07",
-    "clause": "8.1",
-    "articles": [
-     "art:76"
-    ],
-    "explanation": "Qanun işəgötürənin yalnız bir əsasla xitam verməsinə icazə verir, bənd isə bir neçə əsasın eyni anda tətbiq olunmasına imkan verir, bu isə işçinin hüququna ziddir."
-   },
-   {
-    "contract": "c08",
-    "clause": "8.1",
-    "articles": [
-     "art:76"
-    ],
-    "explanation": "Qanun yalnız bir əsasla xitam verilməsinə icazə verir, bənd isə bir neçə əsasla xitam verilməsini nəzərdə tutur."
-   }
-  ]
+  "false_positives": []
  },
  "combined": {
   "violations": 17,
   "lawful_clauses": 175,
   "tp": 17,
-  "fp": 6,
+  "fp": 0,
   "fn": 0,
-  "precision": 0.739,
+  "precision": 1.0,
   "recall": 1.0,
-  "f1": 0.85,
+  "f1": 1.0,
   "right_article": 1.0,
   "risk_on_lawful": 2,
   "misses": [],
-  "false_positives": [
-   {
-    "contract": "c01",
-    "clause": "8.1",
-    "articles": [
-     "art:76"
-    ],
-    "explanation": "Maddə 76‑da yalnız bir əsasla xitam verilməsi icazə verilir, bənd isə bir neçə əsasla xitam verilməsini nəzərdə tutur."
-   },
-   {
-    "contract": "c02",
-    "clause": "8.1",
-    "articles": [
-     "art:76"
-    ],
-    "explanation": "Qanun yalnız bir əsasın istifadə edilməsinə icazə verir, bənd isə bir neçə əsasla xitam verilməsini nəzərdə tutur."
-   },
-   {
-    "contract": "c03",
-    "clause": "8.1",
-    "articles": [
-     "art:76"
-    ],
-    "explanation": "Maddə 76‑da xitam yalnız bir əsasla verilə bilər, bənd isə bir neçə əsasın eyni anda istifadə olunmasına icazə verir."
-   },
-   {
-    "contract": "c04",
-    "clause": "8.1",
-    "articles": [
-     "art:76"
-    ],
-    "explanation": "Qanun yalnız bir əsasla xitam verilməsinə icazə verir, bənd isə bir neçə əsasla xitam verilməsini nəzərdə tutur."
-   },
-   {
-    "contract": "c07",
-    "clause": "8.1",
-    "articles": [
-     "art:76"
-    ],
-    "explanation": "Qanun işəgötürənin yalnız bir əsasla xitam verməsinə icazə verir, bənd isə bir neçə əsasın eyni anda tətbiq olunmasına imkan verir, bu isə işçinin hüququna ziddir."
-   },
-   {
-    "contract": "c08",
-    "clause": "8.1",
-    "articles": [
-     "art:76"
-    ],
-    "explanation": "Qanun yalnız bir əsasla xitam verilməsinə icazə verir, bənd isə bir neçə əsasla xitam verilməsini nəzərdə tutur."
-   }
-  ]
+  "false_positives": []
  },
  "injections": {
   "expected": 1,

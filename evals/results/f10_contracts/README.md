@@ -24,16 +24,29 @@ generalisation claim; the real-contract test is.
   resets. The numbers below are for the 9 contracts.
 
 ## Results (9 contracts, clause level, positive = violation)
+Two runs over the same recorded LLM findings:
+
+- **before:** the pipeline as first run;
+- **after:** with the model-form filter (point 2 below).
+
+The filter was added on this dev set, so "after" is tuned on the data it is reported on.
+
 | layer | found | false alarms | missed | precision | recall | F1 | right article |
 |---|---|---|---|---|---|---|---|
 | rules | 17 / 17 | 0 | 0 | 1.00 | 1.00 | 1.00 | 1.00 |
-| LLM alone (every clause) | 9 / 17 | 6 | 8 | 0.60 | 0.53 | 0.56 | 0.89 |
-| **combined (what the product reports)** | **17 / 17** | **6** | **0** | **0.74** | **1.00** | **0.85** | **1.00** |
+| LLM alone, before | 9 / 17 | 6 | 8 | 0.60 | 0.53 | 0.56 | 0.89 |
+| LLM alone, after | 9 / 17 | 0 | 8 | 1.00 | 0.53 | 0.69 | 0.89 |
+| combined, before | 17 / 17 | 6 | 0 | 0.74 | 1.00 | 0.85 | 1.00 |
+| **combined, after (what the product reports)** | **17 / 17** | **0** | **0** | **1.00** | **1.00** | **1.00** | **1.00** |
 
 - **Injected instruction:** caught by the screen (1/1); never sent to the model.
 - **LLM cost:** 53 calls, 173k input and 48k output tokens, about 25k tokens per contract.
   Ten violations or risks were dropped because their quote did not occur in the cited article.
   The verification is doing work.
+- **"After" is a re-score, not a re-run.** The recorded findings came from batches that still
+  contained the model-form clauses; the filter drops findings on those clauses. A fresh run
+  batches slightly differently and costs fewer tokens. Contracts c10–c12 will run with the
+  filter.
 
 ## What the numbers say
 **1. The LLM alone is not good enough, and the rules are why the product works.**
@@ -60,10 +73,17 @@ generalisation claim; the real-contract test is.
 - The model read article 76 as "termination on one ground only" and flagged the clause in 6 of
   the 9 contracts. The quote was real; the reading was wrong.
 - The clause is the Code's own template wording, so it cannot contradict the Code.
-- This is the next fix, on dev: clauses that reproduce the model form verbatim are marked
-  `ok` without a model call. Without the fix, combined precision would be 0.74. That is below
-  the 0.80 the real-contract test requires ([`PROTOCOL.md`](PROTOCOL.md)), so it is fixed
-  before the freeze.
+- **The fix** ([`model_form.py`](../../../packages/mizan-contracts/src/mizan_contracts/model_form.py)):
+  a clause whose words are a subsequence of an annex-1 clause, with nothing that bounds a right
+  dropped ("çox olmayaraq", "yalnız", "bilməz" …), is not sent to the model.
+  - The rules still run on it. Clause 5.1 of c11 is the form's own 40-hour week, unlawful for
+    a 17-year-old, and the minors rule still flags it.
+  - The report says which annex clause it reproduces.
+- Without the fix, combined precision was 0.74, below the 0.80 the real-contract test
+  requires ([`PROTOCOL.md`](PROTOCOL.md)).
+- **Its risk:** a clause that is the form word for word is never questioned by the model.
+  That is wrong only when the context makes the form unlawful. The rules cover the known cases
+  of this (minors, short contracts, 30-day-leave jobs).
 
 **3. Risks on lawful clauses: 2.**
 

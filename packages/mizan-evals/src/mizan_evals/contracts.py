@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Any
 
 from mizan_contracts.clauses import split_clauses
+from mizan_contracts.model_form import model_form_clause
 from mizan_contracts.review import ClauseReviewer
 from mizan_contracts.rules import Finding, check, context_of
 from mizan_core.logging import get_logger
@@ -182,7 +183,9 @@ async def evaluate_llm(
             continue
         clauses = split_clauses(text)
         screened = {f.clause for f in check(clauses) if f.verdict == "injection"}
-        pending = [c for c in clauses if c.number not in screened]
+        pending = [
+            c for c in clauses if c.number not in screened and model_form_clause(c.text) is None
+        ]
         findings, stats = await reviewer.review(pending, as_of=AS_OF, ctx=context_of(clauses))
         if stats.failed:
             # Not recorded: a contract with unanswered batches would count as clean. Stop here
@@ -208,9 +211,19 @@ async def evaluate_llm(
     total = len(texts)
     labels = {k: v for k, v in labels.items() if k[0] in done}  # score what was reviewed
     texts = {k: v for k, v in texts.items() if k in done}
+    # Rows recorded before the model-form filter may hold findings on such clauses: the product
+    # never sends them, so they are not counted.
+    skipped = {
+        (contract, c.number)
+        for contract, text in texts.items()
+        for c in split_clauses(text)
+        if model_form_clause(c.text) is not None
+    }
     llm: dict[Key, list[Finding]] = {}
     for contract, row in done.items():
         for f in row["findings"]:
+            if (contract, f["clause"]) in skipped:
+                continue
             llm.setdefault((contract, f["clause"]), []).append(
                 Finding(f["clause"], f["verdict"], "llm", tuple(f["articles"]),
                         f["explanation"], "llm", f["quote"])
