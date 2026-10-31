@@ -29,3 +29,6 @@ wandb/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Real contracts (F10 test set): private, never committed
+evals/datasets/contracts/real/
