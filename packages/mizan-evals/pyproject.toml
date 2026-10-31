@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "groq>=0.30",
     "mizan-agents",
+    "mizan-contracts",
     "mizan-core",
     "mizan-graph",
     "mizan-retrieval",
@@ -16,6 +17,7 @@ mizan-eval = "mizan_evals.cli:main"
 
 [tool.uv.sources]
 mizan-agents = { workspace = true }
+mizan-contracts = { workspace = true }
 mizan-core = { workspace = true }
 mizan-graph = { workspace = true }
 mizan-retrieval = { workspace = true }

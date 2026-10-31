@@ -1972,6 +1972,7 @@ source = { editable = "packages/mizan-evals" }
 dependencies = [
     { name = "groq" },
     { name = "mizan-agents" },
+    { name = "mizan-contracts" },
     { name = "mizan-core" },
     { name = "mizan-graph" },
     { name = "mizan-retrieval" },
@@ -1981,6 +1982,7 @@ dependencies = [
 requires-dist = [
     { name = "groq", specifier = ">=0.30" },
     { name = "mizan-agents", editable = "packages/mizan-agents" },
+    { name = "mizan-contracts", editable = "packages/mizan-contracts" },
     { name = "mizan-core", editable = "packages/mizan-core" },
     { name = "mizan-graph", editable = "packages/mizan-graph" },
     { name = "mizan-retrieval", editable = "packages/mizan-retrieval" },

@@ -529,6 +529,41 @@ async def _cache() -> dict[str, Any]:
     return report
 
 
+async def _contracts(out: Path, pace: float, model: str | None) -> dict[str, Any]:
+    from mizan_contracts.review import ClauseReviewer
+    from mizan_evals.contracts import PacedClient, evaluate_llm
+    from mizan_retrieval.rerank import Reranker
+
+    settings = get_settings()
+    if settings.llm.groq_api_key is None:
+        raise SystemExit("set MIZAN_LLM__GROQ_API_KEY")
+    config = serving_variant()
+    embedder = Embedder(
+        MODELS[config.dense_model], EmbeddingCache(Path(settings.retrieval.embeddings_cache))
+    )
+    key = settings.qdrant.api_key.get_secret_value() if settings.qdrant.api_key else None
+    qdrant = AsyncQdrantClient(url=settings.qdrant.url, api_key=key, timeout=120)
+    client = groq.AsyncGroq(api_key=settings.llm.groq_api_key.get_secret_value())
+    try:
+        reranker = Reranker() if config.rerank_top else None
+        reviewer = ClauseReviewer(
+            PacedClient(client, pace),
+            Searcher(qdrant, {config.dense_model: embedder}, reranker),
+            config,
+            source_id=settings.retrieval.source_id,
+            model=model or settings.contracts.review_model or settings.llm.groq_model,
+            reasoning_effort=settings.llm.effort,
+            batch_size=settings.contracts.batch_size,
+            max_context_chars=settings.llm.max_context_chars,
+        )
+        report = await evaluate_llm(reviewer, out)
+        report["model"] = model or settings.contracts.review_model or settings.llm.groq_model
+        return report
+    finally:
+        await qdrant.close()
+        await client.close()
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mizan-eval")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -561,6 +596,14 @@ def main(argv: list[str] | None = None) -> int:
     p_red.add_argument("--split", choices=["dev", "test"], default="dev")
     p_red.add_argument("--gate", action="store_true", help="score test; exit 1 on failure")
     p_red.add_argument("--out", type=Path, help="write the report as JSON")
+    p_con = sub.add_parser("contracts", help="contract analysis vs the labelled contracts")
+    p_con.add_argument("--llm", action="store_true", help="also run the LLM review (Groq, slow)")
+    p_con.add_argument(
+        "--gate", action="store_true", help="rules regression gate; exit 1 on failure"
+    )
+    p_con.add_argument("--pace", type=float, default=20.0, help="seconds between LLM calls")
+    p_con.add_argument("--model", help="review model (default: settings)")
+    p_con.add_argument("--out", type=Path, default=Path("evals/results/f10_contracts"))
     p_report = sub.add_parser("report")
     p_report.add_argument("--out", type=Path, default=DEFAULT_OUT)
     p_label = sub.add_parser("label")
@@ -608,6 +651,21 @@ def main(argv: list[str] | None = None) -> int:
             args.out.write_text(json.dumps(report, indent=1, ensure_ascii=False), encoding="utf-8")
         print(json.dumps(report, indent=1, ensure_ascii=False))
         return 0 if not args.gate or all(report["gate"].values()) else 1
+    if args.command == "contracts":
+        from mizan_evals.contracts import evaluate_rules
+
+        if args.llm:
+            report = asyncio.run(_contracts(args.out, args.pace, args.model))
+            args.out.mkdir(parents=True, exist_ok=True)
+            (args.out / "report.json").write_text(
+                json.dumps(report, indent=1, ensure_ascii=False), encoding="utf-8"
+            )
+        else:
+            report = evaluate_rules()
+        print(json.dumps(report, indent=1, ensure_ascii=False))
+        rules, caught = report["rules"], report["injections"]
+        passed = rules["fn"] == 0 and rules["fp"] == 0 and caught["caught"] == caught["expected"]
+        return 0 if not args.gate or passed else 1
     if args.command == "cache":
         report = asyncio.run(_cache())
         args.out.parent.mkdir(parents=True, exist_ok=True)

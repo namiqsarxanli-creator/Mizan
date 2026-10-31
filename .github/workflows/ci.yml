@@ -45,6 +45,8 @@ jobs:
       - run: uv run pytest --cov --cov-report=term --cov-report=xml
       # Pre-registered prompt-injection gate (evals/results/f10_redteam): no LLM, no services.
       - run: uv run mizan-eval redteam --gate > /dev/null
+      # Contract rules still find every planted violation, with no false positive (regression).
+      - run: uv run mizan-eval contracts --gate > /dev/null
       - uses: actions/upload-artifact@v4
         with:
           name: coverage
