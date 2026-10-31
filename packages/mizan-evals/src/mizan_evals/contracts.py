@@ -46,7 +46,8 @@ class Label:
 
 
 def load(dataset: Path = DATASET) -> tuple[dict[str, str], dict[Key, Label]]:
-    texts = {p.stem: p.read_text(encoding="utf-8") for p in sorted((dataset / "v1").glob("*.txt"))}
+    folder = dataset / "v1" if (dataset / "v1").is_dir() else dataset / "contracts"
+    texts = {p.stem: p.read_text(encoding="utf-8") for p in sorted(folder.glob("*.txt"))}
     labels: dict[Key, Label] = {}
     for line in (dataset / "labels.jsonl").read_text(encoding="utf-8").splitlines():
         if line:

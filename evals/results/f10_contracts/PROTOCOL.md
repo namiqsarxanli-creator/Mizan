@@ -62,4 +62,31 @@ point estimates.
 - Fixes made afterwards are reported as post-hoc and do not replace the frozen result. This
   follows the F10 red-team report.
 
-Frozen at: _(set when the contracts arrive)_
+## Amendment 1 (2026-10-31, before any test contract exists): an independent-author test set
+Real contracts are not available: the project owner cannot obtain any. The test set is
+therefore **synthetic, written by a different author**:
+
+- **Author.** Another model (OpenAI Codex), working from
+  [`evals/datasets/contracts/test/BRIEF.md`](../../datasets/contracts/test/BRIEF.md). It has
+  not seen the rules, the review prompt or the development set.
+- **Labels.** The author labels its own clauses: `ok` / `violation` / `risk`, with articles.
+- **Label check.** Before the system runs, the project author checks every `violation` and
+  every hard-lawful label against the text of the cited article.
+  - Only clear legal errors are corrected: a wrong article number, or a limit the Code does
+    not state.
+  - Each correction is logged in `test/LABEL_CHANGES.md` with its reason.
+  - The check reads the Code and the labels only, never the system's output.
+- **Storage.** The set lives in `evals/datasets/contracts/test/`: `contracts/*.txt` and
+  `labels.jsonl`. It is committed, since nothing in it is private.
+- **Scoring:** `mizan-eval contracts --llm --dataset evals/datasets/contracts/test --out
+  evals/results/f10_contracts/test`, run once. The thresholds above apply unchanged.
+
+**What this changes in the claim.**
+
+- The DoD said "10 real samples". This set tests generalisation to another author's wording
+  and choice of violations. It does not test real-world drafting, scans or OCR.
+- The report states this as a deviation, not as the DoD being met.
+
+Frozen at: `eb4257f` (2026-10-31). The rules, review prompt, batch size, retrieval
+configuration and model are those of that commit. The evaluation harness gained only a
+`--dataset` option afterwards.

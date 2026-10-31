@@ -529,7 +529,7 @@ async def _cache() -> dict[str, Any]:
     return report
 
 
-async def _contracts(out: Path, pace: float, model: str | None) -> dict[str, Any]:
+async def _contracts(out: Path, pace: float, model: str | None, dataset: Path) -> dict[str, Any]:
     from mizan_contracts.review import ClauseReviewer
     from mizan_evals.contracts import PacedClient, evaluate_llm
     from mizan_retrieval.rerank import Reranker
@@ -556,7 +556,7 @@ async def _contracts(out: Path, pace: float, model: str | None) -> dict[str, Any
             batch_size=settings.contracts.batch_size,
             max_context_chars=settings.llm.max_context_chars,
         )
-        report = await evaluate_llm(reviewer, out)
+        report = await evaluate_llm(reviewer, out, dataset)
         report["model"] = model or settings.contracts.review_model or settings.llm.groq_model
         return report
     finally:
@@ -603,6 +603,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_con.add_argument("--pace", type=float, default=20.0, help="seconds between LLM calls")
     p_con.add_argument("--model", help="review model (default: settings)")
+    p_con.add_argument(
+        "--dataset",
+        type=Path,
+        default=Path("evals/datasets/contracts"),
+        help="a folder with labels.jsonl and v1/ or contracts/ of .txt files",
+    )
     p_con.add_argument("--out", type=Path, default=Path("evals/results/f10_contracts"))
     p_report = sub.add_parser("report")
     p_report.add_argument("--out", type=Path, default=DEFAULT_OUT)
@@ -655,13 +661,13 @@ def main(argv: list[str] | None = None) -> int:
         from mizan_evals.contracts import evaluate_rules
 
         if args.llm:
-            report = asyncio.run(_contracts(args.out, args.pace, args.model))
+            report = asyncio.run(_contracts(args.out, args.pace, args.model, args.dataset))
             args.out.mkdir(parents=True, exist_ok=True)
             (args.out / "report.json").write_text(
                 json.dumps(report, indent=1, ensure_ascii=False), encoding="utf-8"
             )
         else:
-            report = evaluate_rules()
+            report = evaluate_rules(args.dataset)
         print(json.dumps(report, indent=1, ensure_ascii=False))
         rules, caught = report["rules"], report["injections"]
         passed = rules["fn"] == 0 and rules["fp"] == 0 and caught["caught"] == caught["expected"]
