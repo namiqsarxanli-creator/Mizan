@@ -175,10 +175,16 @@ def context_of(clauses: Sequence[Clause], as_of: date | None = None) -> Context:
             m = re.search(r"\((1[0-7])\s*yaş", low) or re.search(r"(1[0-7])\s*yaşında", low)
             if m:
                 minor = int(m.group(1))
-            elif "doğum tarixi" in low or "təvəllüd" in low:
+            elif ("doğum tarixi" in low or "təvəllüd" in low) and not re.search(
+                r"uşağ|övlad|qızı(?:nın)?\s+doğum|oğlu(?:nun)?\s+doğum", low
+            ):
+                # Only the employee's own birth date, and only a plausible working age: a
+                # child's birth date read as the employee's once made a "0-year-old" employee
+                # (evals/results/f10_contracts/test3).
                 born = dates_in(low)
-                if born and _years(born[0], on) < 18:
-                    minor = _years(born[0], on)
+                age = _years(born[0], on) if born else None
+                if age is not None and 14 <= age < 18:
+                    minor = age
         if job is None and ("vəzifəsinə" in low or "peşəsinə" in low or "işə qəbul" in low):
             job = next((k for k in LEAVE_BY_JOB if k in low), None)
         if re.search(r"\bhamilə", low) and not re.search(r"hamilə\s+(?:qadınlar|işçilər)", low):

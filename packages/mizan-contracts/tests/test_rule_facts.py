@@ -153,3 +153,14 @@ def test_fact_rules(text: str, ctx: Context, expected: str | None) -> None:
         assert found == set()
     else:
         assert expected in found, found
+
+
+def test_a_childs_birth_date_is_not_the_employees_age() -> None:
+    clauses = split_clauses(
+        "1.4. İşçi 30 mart 2026-cı ildə 4 fevral 2026-cı il təvəllüdlü uşağı övladlığa "
+        "götürmüşdür.\n"
+        "2.1. İşçinin doğum tarixi 10 dekabr 2009-cu ildir.\n"
+    )
+    assert context_of(clauses, AS_OF).minor_age == 16
+    only_child = split_clauses(clauses[0].text.join(["1.4. ", "\n"]))
+    assert context_of(only_child, AS_OF).minor_age is None
