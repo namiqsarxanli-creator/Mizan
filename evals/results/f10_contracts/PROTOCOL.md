@@ -121,3 +121,15 @@ It is now development data.
 - **Provider chain:** as in amendment 2.
 
 Frozen at: `4c1abf3` (2026-10-31).
+
+## Amendment 4 (2026-11-01): a third unseen set, and the last run
+The second set failed the DoD: precision 0.67, recall 0.50. Changes after it are recorded in
+[`test2/README.md`](test2/README.md).
+
+- **Set.** The pipeline is scored once on a third set by the independent author
+  ([`test3/BRIEF.md`](../../datasets/contracts/test3/BRIEF.md)).
+- **Procedure, thresholds and provider chain:** unchanged.
+- **Commitment.** This is the last scored run for F10. Whatever the result, F10 closes with
+  it, and the result is reported as is. There will be no fourth set.
+
+Frozen at: `1d94082` (2026-11-01).
