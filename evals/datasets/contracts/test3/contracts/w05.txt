@@ -1,0 +1,27 @@
+RƏQƏMSAL ÇAPDA SİFARİŞ OPERATORUNUN MÜQAVİLƏSİ
+Uydurma təlim nümunəsi: adlar, ünvanlar və VÖEN-lər real şəxsləri və müəssisələri göstərmir.
+
+1. Sifarişin qəbul masası
+1.1. Fərdi sahibkar Afiq Şahin oğlu Bədirçay, uydurma VÖEN 3900000305, Qax şəhəri, Xəyali Çap döngəsi 15 ünvanında işəgötürən kimi çıxış edir.
+1.2. İşçi Ülkər Sabir qızı Sərinay 9 fevral 2026-cı ildən sifariş operatorudur; müqavilə müəyyən son tarix olmadan bağlanır.
+1.3. Operator yalnız faylı qəbul edir və hazır sifarişi təqdim edir; çap maşınının kimyəvi maddələri ilə təmas və istehsal avadanlığına xidmət onun işi deyil.
+1.4. İşçi birinci iş ilindədir, başqa əmək stajı və ya xüsusi əlavə məzuniyyət statusu yoxdur; əsas məzuniyyət norması 21 təqvim günüdür.
+
+2. Məzuniyyət hesabının qaydası
+2.1. İşçi məzuniyyəti iki hissə istədikdə bütün 21 gün yalnız 11 və 10 günlük hissələrə ayrılır; hissələrdən heç birinin 14 gün olması tələb edilmir.
+2.2. Məzuniyyət üçün orta aylıq əməkhaqqı qanuni qaydada müəyyən olunduqdan sonra bir günlük məbləğ onu 31-ə bölməklə tapılır; 30,4 göstəricisi tətbiq edilmir.
+2.3. Tibbi sənədlə təsdiqlənmiş müvəqqəti əmək qabiliyyətsizlik günləri, iş yeri saxlanılsa belə, məzuniyyət hüququ verən stajdan çıxılır.
+2.4. Məzuniyyətin qalan sənədləri və ödəniş vaxtı qanuni tələblərə uyğun hazırlanır.
+2.5. Şəxsi məqsədlə beş aylıq ödənişsiz məzuniyyət işçinin sərbəst ərizəsi və sahibkarla qarşılıqlı razılığı əsasında verilə bilər; bu, işəgötürənin məcburi göndərişi deyil.
+
+3. Adi iş günü
+3.1. Həftədə beş gün 10:00–19:00 işlənir, 14:00–15:00 aralığında yemək üçün işdən sərbəst ayrılmaq olar.
+3.2. Razılaşdırılmış aylıq maaş 1200 manatdır; ayın 17-si və növbəti ayın 2-si yarı hissələr ödənilir.
+3.3. Qəbul edilmiş fayl müştəri təsdiqi gələnədək istehsala göndərilmir, təsdiq vaxtı sifariş kartında yazılır.
+3.4. Müştəri kartı və kompüterə giriş kodu şəxsi telefon proqramına köçürülmür.
+3.5. Operatoru istirahət günündə işlətmək zərurəti qanuni əsas və müvafiq ödəniş qaydası ilə ayrıca rəsmiləşdirilir.
+
+4. Sənədlərin bağlanması
+4.1. Sifariş səhvinin səbəbi araşdırılarkən işçinin izahatı və faylın əvvəlki versiyası birlikdə yoxlanılır.
+4.2. İşdən ayrılma halında istifadə edilməmiş əsas məzuniyyət günlərinin qanuni pul əvəzi silinmir.
+4.3. Sahibkar və işçi elektron əmək müqaviləsini qanunla müəyyən edilmiş qaydada imzalayır; işçi imzalı mətni əldə edə bilir.
