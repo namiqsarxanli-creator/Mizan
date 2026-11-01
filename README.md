@@ -6,19 +6,53 @@ Mizan answers legal questions with citations to the exact article of the law in 
 given date, verifies every claim against its source, and measures its own quality
 continuously. See [docs/ROADMAP.md](docs/ROADMAP.md) for the full 24-week plan.
 
-> **Status:** F4 done. The citation graph gives +17% Recall@5 on multi-hop questions
-> (pre-registered test). Constitutional Court decisions in the context raise correctness on
-> questions they govern from 0.27 to 0.91. Next: F5, the multi-agent system. F3's judge
-> calibration awaits human labels.
+> **Status:** F0–F10 done, F11 (launch) in progress. The technical report is
+> [docs/REPORT.md](docs/REPORT.md): methodology, every result, and the negative results.
+> Mizan is a research aid, not legal advice.
 
-## Architecture (target)
+## Architecture
 
+```mermaid
+flowchart LR
+    src[e-qanun.az] --> ing[Ingestion<br/>versioned, content-addressed]
+    ing --> pg[(Postgres<br/>versions, quality log, audit)]
+    ing --> qd[(Qdrant<br/>chunks with validity intervals)]
+    ing --> neo[(Neo4j<br/>citation graph, Court decisions)]
+
+    client(["client, MCP, /contracts page"]) --> api[FastAPI<br/>JWT, rate limit, budget, audit]
+    api --> screen[injection screen]
+    screen --> ret[retrieval<br/>bge-m3 dense, as_of filter<br/>+ graph slot + decisions]
+    ret --> qd
+    ret --> neo
+    ret --> ask["/v1/ask<br/>single-shot answerer"]
+    ret --> agent["/v1/agent<br/>planner, researchers,<br/>drafter, verifier"]
+    ret --> con["/v1/contracts<br/>clauses, rules, LLM review"]
+    ask --> verify{verbatim quote<br/>verification}
+    agent --> verify
+    con --> verify
+    agent -. optional .-> tmp[(Temporal<br/>durable runs)]
+    verify --> llm[LLM gateway<br/>Groq, failover to OpenRouter]
+    api --> otel[OpenTelemetry traces<br/>online eval, review queue]
 ```
- client ──▶ API gateway (FastAPI) ──▶ agent orchestrator ──▶ retrieval (Qdrant + BM25 + rerank)
-                │                          │                      knowledge graph (Neo4j)
-                │                          └──▶ LLM gateway (routing, caching, budgets)
-                └── every step traced (OpenTelemetry) ──▶ observability + online eval
-```
+
+## Results
+
+Each row is a frozen or pre-registered measurement; details and confidence intervals are in
+the linked reports.
+
+| area | result | |
+|---|---|---|
+| retrieval (200 human questions) | bge-m3 dense: Recall@5 **0.946**, MRR@10 0.894; hybrid, rerank and rewriting measured and off | [F2/F3](evals/results/f3_retrieval_v1/report.md) |
+| answers (58 questions) | correct **0.914**; abstains on 4/4 out-of-scope; 0.84 of citations verbatim | [F3](evals/results/f3_generation/report.md) |
+| citation graph (multi-hop, pre-registered) | Recall@5 **+0.075** and **+0.117** on two sets | [F4](evals/results/f4_graph/) |
+| Constitutional Court decisions | correct 0.27 → **0.91** on the questions they govern | [F4](evals/results/f4_decisions/README.md) |
+| multi-agent vs single-shot | correct **−0.118** (significant), citation accuracy 0.64 → 0.92 ❌ | [F5](evals/results/f5_agent/README.md) |
+| fine-tuned embedder / distilled reranker | both gates missed ❌ | [F7](evals/results/f7_embed/README.md) |
+| local 2B verifier (LoRA) | **98.4%** of the API's macro-F1, 7.3x cheaper ✅ | [F8](evals/results/f8_verifier/README.md) |
+| semantic cache | 23.9% saved vs 25% target, ships off ❌ | [F9](evals/results/f9_cache/README.md) |
+| prompt-injection screen | **98.2%** of held-out attacks blocked, 0/281 real questions ✅ | [F10](evals/results/f10_redteam/README.md) |
+| contract analysis (3 held-out sets) | recall 0.28 / 0.50 / 0.61 vs 0.70; DoD not met ❌ | [F10](evals/results/f10_contracts/test3/README.md) |
+| load (1 process, CPU) | 0 errors; ~25 concurrent users; limit is query embedding (88 ms) | [F11](evals/results/f11_load/README.md) |
 
 ## Repository layout
 
@@ -310,7 +344,7 @@ violation or suspicious instruction, with the article and a verified quote of th
 | `uv run pytest --cov` | unit tests + coverage |
 | `MIZAN_INTEGRATION=1 uv run pytest -m integration` | real Postgres: migrations + `alembic check`, ingestion pipeline end to end, dependency checks |
 | `uv run mizan-eval redteam --gate` | prompt-injection screen vs the pre-registered red-team test split |
-| `uv run mizan-eval contracts --gate` | contract rules still catch every planted violation, with no false positive |
+| `uv run mizan-eval contracts --gate` | contract rules: no regression on the development contracts |
 | `uv run mizan-graph gate` | quality of the serving path (dense + graph) vs the committed baseline (paired bootstrap) |
 
 All of the above run in CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)), followed by a
