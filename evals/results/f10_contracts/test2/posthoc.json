@@ -1,0 +1,245 @@
+{
+ "note": "post-hoc: elided quotes re-verified against article text from the corpus; new rules",
+ "recovered": [
+  [
+   "u01",
+   "2.5",
+   "violation",
+   "violation"
+  ],
+  [
+   "u01",
+   "2.6",
+   "risk",
+   "ok"
+  ],
+  [
+   "u03",
+   "3.1",
+   "violation",
+   "violation"
+  ],
+  [
+   "u04",
+   "1.3",
+   "violation",
+   "ok"
+  ],
+  [
+   "u05",
+   "2.1",
+   "violation",
+   "violation"
+  ],
+  [
+   "u06",
+   "3.2",
+   "violation",
+   "violation"
+  ],
+  [
+   "u06",
+   "4.6",
+   "violation",
+   "violation"
+  ],
+  [
+   "u08",
+   "3.2",
+   "violation",
+   "violation"
+  ]
+ ],
+ "llm": {
+  "violations": 28,
+  "lawful_clauses": 197,
+  "tp": 20,
+  "fp": 5,
+  "fn": 8,
+  "precision": 0.8,
+  "recall": 0.714,
+  "f1": 0.755,
+  "right_article": 0.65,
+  "risk_on_lawful": 6,
+  "misses": [
+   {
+    "contract": "u01",
+    "clause": "2.2",
+    "issue": "probation_for_mother_under_three"
+   },
+   {
+    "contract": "u01",
+    "clause": "3.2",
+    "issue": "sex_based_wage_difference"
+   },
+   {
+    "contract": "u02",
+    "clause": "3.3",
+    "issue": "holiday_work_paid_at_single_rate"
+   },
+   {
+    "contract": "u03",
+    "clause": "3.3",
+    "issue": "liability_for_normal_business_risk"
+   },
+   {
+    "contract": "u03",
+    "clause": "3.5",
+    "issue": "multiple_termination_grounds"
+   },
+   {
+    "contract": "u05",
+    "clause": "3.3",
+    "issue": "minor_denied_early_first_year_leave"
+   },
+   {
+    "contract": "u07",
+    "clause": "5.2",
+    "issue": "education_exit_date_denied"
+   },
+   {
+    "contract": "u08",
+    "clause": "4.1",
+    "issue": "minute_lateness_as_full_day_absence"
+   }
+  ],
+  "false_positives": [
+   {
+    "contract": "u02",
+    "clause": "1.3",
+    "articles": [
+     "art:51"
+    ],
+    "explanation": "Müqavilə 3 ay sınaq müddətini nəzərdə tutur, lakin 6 aydan qısa müqavilələr üçün sınaq müddəti ən çox iki həftə ola bilər; buna görə qanuna ziddir."
+   },
+   {
+    "contract": "u02",
+    "clause": "2.4",
+    "articles": [
+     "art:103"
+    ],
+    "explanation": "Fasilənin iş vaxtına daxil edilməsi Maddə 103‑ə ziddir."
+   },
+   {
+    "contract": "u03",
+    "clause": "2.5",
+    "articles": [
+     "art:89"
+    ],
+    "explanation": "Əsas iş 8 saat, əlavə 4 saatlıq əvəzçilik gündəlik iş vaxtını 12 saat edir, bu isə Maddə 89‑a ziddir."
+   },
+   {
+    "contract": "u04",
+    "clause": "1.3",
+    "articles": [
+     "art:45"
+    ],
+    "explanation": "Daimi xarakterli iş üçün müddətli müqavilə bağlanması qanunun 45‑ci maddəsinə ziddir."
+   },
+   {
+    "contract": "u09",
+    "clause": "3.1",
+    "articles": [
+     "art:172"
+    ],
+    "explanation": "Maddə 172‑1 tələb edir ki, əməkhaqqı mütəmadi olaraq ödənilsin; görülmüş işin nəticəsi bəyənilməsə də maaşın saxlanılması işçinin qanuni haqqını pozur."
+   }
+  ]
+ },
+ "combined": {
+  "violations": 28,
+  "lawful_clauses": 197,
+  "tp": 20,
+  "fp": 5,
+  "fn": 8,
+  "precision": 0.8,
+  "recall": 0.714,
+  "f1": 0.755,
+  "right_article": 0.65,
+  "risk_on_lawful": 6,
+  "misses": [
+   {
+    "contract": "u01",
+    "clause": "2.2",
+    "issue": "probation_for_mother_under_three"
+   },
+   {
+    "contract": "u01",
+    "clause": "3.2",
+    "issue": "sex_based_wage_difference"
+   },
+   {
+    "contract": "u02",
+    "clause": "3.3",
+    "issue": "holiday_work_paid_at_single_rate"
+   },
+   {
+    "contract": "u03",
+    "clause": "3.3",
+    "issue": "liability_for_normal_business_risk"
+   },
+   {
+    "contract": "u03",
+    "clause": "3.5",
+    "issue": "multiple_termination_grounds"
+   },
+   {
+    "contract": "u05",
+    "clause": "3.3",
+    "issue": "minor_denied_early_first_year_leave"
+   },
+   {
+    "contract": "u07",
+    "clause": "5.2",
+    "issue": "education_exit_date_denied"
+   },
+   {
+    "contract": "u08",
+    "clause": "4.1",
+    "issue": "minute_lateness_as_full_day_absence"
+   }
+  ],
+  "false_positives": [
+   {
+    "contract": "u02",
+    "clause": "1.3",
+    "articles": [
+     "art:51"
+    ],
+    "explanation": "Müqavilə 3 ay sınaq müddətini nəzərdə tutur, lakin 6 aydan qısa müqavilələr üçün sınaq müddəti ən çox iki həftə ola bilər; buna görə qanuna ziddir."
+   },
+   {
+    "contract": "u02",
+    "clause": "2.4",
+    "articles": [
+     "art:103"
+    ],
+    "explanation": "Fasilənin iş vaxtına daxil edilməsi Maddə 103‑ə ziddir."
+   },
+   {
+    "contract": "u03",
+    "clause": "2.5",
+    "articles": [
+     "art:89"
+    ],
+    "explanation": "Əsas iş 8 saat, əlavə 4 saatlıq əvəzçilik gündəlik iş vaxtını 12 saat edir, bu isə Maddə 89‑a ziddir."
+   },
+   {
+    "contract": "u04",
+    "clause": "1.3",
+    "articles": [
+     "art:45"
+    ],
+    "explanation": "Daimi xarakterli iş üçün müddətli müqavilə bağlanması qanunun 45‑ci maddəsinə ziddir."
+   },
+   {
+    "contract": "u09",
+    "clause": "3.1",
+    "articles": [
+     "art:172"
+    ],
+    "explanation": "Maddə 172‑1 tələb edir ki, əməkhaqqı mütəmadi olaraq ödənilsin; görülmüş işin nəticəsi bəyənilməsə də maaşın saxlanılması işçinin qanuni haqqını pozur."
+   }
+  ]
+ }
+}

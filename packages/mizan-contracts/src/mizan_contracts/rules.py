@@ -196,7 +196,13 @@ def _f(c: Clause, issue: str, articles: tuple[str, ...], why: str) -> Finding:
 def probation(c: Clause, low: str, ctx: Context) -> list[Finding]:
     if "sınaq" not in low and "sınağ" not in low:
         return []
-    days = durations_days(low)
+    # "Bu dörd aylıq müqavilədə … on günlük sınaq": the contract's own length is not the
+    # probation. Durations naming the contract, project or term are left out.
+    days = [
+        number(m.group(1)) * _DAYS[m.group(2)]
+        for m in _DURATION.finditer(low)
+        if not re.match(r"[a-zçəğıöşü]*\s+(?:müqavilə|layihə|müddətli|müddətinə)", low[m.end() :])
+    ]
     if not days:
         return []
     # "üç aylıq sınaq … əlavə üç ay uzadıla bilər": an extension adds up.
@@ -246,12 +252,13 @@ def daily_hours(low: str) -> list[float]:
         return []
     work, *rest = spans
     lunch = 0.0
-    if "nahar" in low or "fasilə" in low:
-        stated_break = re.search(rf"{_NUM}{_PAREN}\s+saat(?:lıq)?\s+(?:nahar|fasilə)", low)
-        if stated_break:
-            lunch = number(stated_break.group(1))
-        elif rest:
-            lunch = rest[0]
+    stated_break = re.search(rf"{_NUM}{_PAREN}\s+saat(?:lıq)?\s+(?:nahar|fasilə)", low)
+    if stated_break:
+        lunch = number(stated_break.group(1))
+    elif rest and rest[0] <= 2:
+        # A short span inside the working day is its break, named or not ("12:30–13:30
+        # aralığında əvəzedici xidmət göstərir").
+        lunch = rest[0]
     return [round(work - lunch, 2)] if work > lunch else []
 
 
@@ -382,7 +389,7 @@ def wages(c: Clause, low: str, ctx: Context) -> list[Finding]:
     if re.search(r"\btut(ul|a\b|ar|ma)", low.replace("nəzərdə tutul", "")):
         articles: list[str] = []
         reasons: list[str] = []
-        if "cərimə" in low:
+        if "cərimə" in low and not _COLLECTIVE.search(low):
             articles.append("art:175")
             reasons.append("cərimə əmək haqqından tutulmanın qanuni əsasları sırasında deyil")
         if any(p > 20 for p in percents):
@@ -447,12 +454,33 @@ def protected_hours(c: Clause, low: str, ctx: Context) -> list[Finding]:
     return []
 
 
+# A fine the collective agreement provides for ("kollektiv müqavilədə nəzərdə tutulduğu üçün").
+_COLLECTIVE = re.compile(r"kollektiv\s+müqavilə(?:də|si\s+ilə)\s+nəzərdə\s+tutul")
+_DENOMINATORS = {"ikidə": 2, "üçdə": 3, "dörddə": 4, "beşdə": 5, "altıda": 6, "onda": 10}
+
+
+def _fine_share(low: str) -> float | None:
+    """The fine as a share of the monthly wage: "dörddə biri", "1/5", "20 faiz"."""
+    word = re.search(r"(ikidə|üçdə|dörddə|beşdə|altıda|onda)\s+bir", low)
+    if word:
+        return 1 / _DENOMINATORS[word.group(1)]
+    fraction = re.search(r"\b(\d+)\s*/\s*(\d+)\b", low)
+    if fraction and int(fraction.group(2)):
+        return int(fraction.group(1)) / int(fraction.group(2))
+    percent = _PERCENT.search(low)
+    if percent:
+        return number(percent.group(1)) / 100
+    if "yarı" in low:
+        return 0.5
+    return None
+
+
 def discipline(c: Clause, low: str, ctx: Context) -> list[Finding]:
     if "cərimə" not in low:
         return []
-    provided = re.search(r"kollektiv\s+müqavilə(?:də|si\s+ilə)\s+nəzərdə\s+tutul", low)
-    quarter = re.search(r"dörddə\s+bir|1/4|25\s*faiz", low)
-    if provided and quarter:
+    provided = _COLLECTIVE.search(low)
+    share = _fine_share(low)
+    if provided and share is not None and share <= 0.25:
         return []
     why = (
         "Cərimə intizam tənbehi kimi yalnız kollektiv müqavilədə nəzərdə tutulduqda və aylıq "

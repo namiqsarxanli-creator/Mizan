@@ -289,3 +289,18 @@ async def test_provider_errors_become_answer_unavailable(
     with pytest.raises(AnswerUnavailableError, match=message) as info:
         await GroqAnswerer(client).answer("?", HITS, as_of=date(2026, 1, 1))
     assert info.value.retry_after_s == retry_after
+
+
+def test_elided_quotes_are_verified_segment_by_segment() -> None:
+    raw = [
+        # Each segment verbatim, in order: kept, shown in the statute's words.
+        {"source": 1, "quote": "İşçi bir təqvim … xəbərdar edir"},
+        {"source": 1, "quote": "işçi bir təqvim [...] xəbərdar edir"},
+        # Segments out of order, a segment the source lacks, a segment too short to mean much.
+        {"source": 1, "quote": "xəbərdar edir … İşçi bir təqvim"},
+        {"source": 1, "quote": "İşçi bir təqvim … iki həftə qabaqcadan"},
+        {"source": 2, "quote": "Sınaq müddəti … üç"},
+    ]
+    accepted, rejected = verify_citations(raw, HITS)
+    assert [c.quote for c in accepted] == ["İşçi bir təqvim … xəbərdar edir"]
+    assert rejected == 3

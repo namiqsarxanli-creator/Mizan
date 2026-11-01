@@ -15,6 +15,7 @@ This is the F2 baseline; F5 replaces it with the planner / researcher / verifier
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from datetime import date
@@ -155,8 +156,40 @@ def render_sources(hits: Sequence[Hit]) -> str:
     )
 
 
+_ELISION = re.compile(r"\s*(?:\[\s*(?:\.\.\.|…)\s*\]|\.\.\.|…)\s*")
+# A quoted fragment must carry words, not a stray particle that matches anywhere.
+MIN_SEGMENT_CHARS = 12
+
+
+def _locate(source: str, quote: str) -> str | None:
+    """The source's own words for ``quote``, or None if it is not a quotation of it.
+
+    Models shorten long provisions with "…" ("hamilə … qadınlara, … sınaq müddəti"). Each
+    elided segment must then occur verbatim, in order. Segments are compared with az_lower,
+    which keeps string length, so match positions are valid in the original text.
+    """
+    parts = [p.strip(' "«»“”,;') for p in _ELISION.split(quote)]
+    parts = [p for p in parts if p]
+    if not parts or (len(parts) > 1 and any(len(p) < MIN_SEGMENT_CHARS for p in parts)):
+        return None
+    lowered = az_lower(source)
+    found: list[str] = []
+    at = 0
+    for part in parts:
+        start = lowered.find(az_lower(part), at)
+        if start < 0:
+            return None
+        found.append(source[start : start + len(part)])
+        at = start + len(part)
+    return " … ".join(found)
+
+
 def verify_citations(raw: Any, hits: Sequence[Hit]) -> tuple[list[Citation], int]:
-    """Keep only citations whose quote occurs (whitespace-insensitively) in the named source."""
+    """Keep only citations whose quote occurs in the named source.
+
+    Matching ignores whitespace and case. A quote elided with "…" passes when every segment
+    occurs verbatim and in order.
+    """
     accepted: list[Citation] = []
     rejected = 0
     seen: set[tuple[str, str]] = set()
@@ -171,15 +204,14 @@ def verify_citations(raw: Any, hits: Sequence[Hit]) -> tuple[list[Citation], int
             rejected += 1
             continue
         hit = hits[index - 1]
-        source = normalize(hit.text)
         # az_lower, not casefold: casefold turns "İ" into "i" + combining dot. az_lower keeps
         # string length, so the match position is valid in the original text too.
-        start = az_lower(source).find(az_lower(quote))
-        if start < 0:
+        located = _locate(normalize(hit.text), quote)
+        if located is None:
             rejected += 1  # paraphrased or invented: not a quotation
             continue
         # Show the statute's own wording, not the model's rendition of it.
-        quote = source[start : start + len(quote)]
+        quote = located
         if (hit.key, quote) not in seen:
             seen.add((hit.key, quote))
             accepted.append(Citation(hit.key, source_title(hit), quote))

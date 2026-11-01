@@ -73,3 +73,35 @@ off by one provision. This is what drags the right-article rate to 0.64.
   - Two components cost it: verification that is too literal, and rules that are too brittle.
 - **This is a negative result.** It stays the result of record. Changes made after reading it
   are post-hoc and reported as such.
+
+## Post-hoc (2026-11-01): elided quotes, safer rules; this set is now development data
+Changes after this run:
+
+- **Quote verification accepts elided quotes.** A quote shortened with "…" passes when each
+  segment, of at least 12 characters, occurs verbatim and in order in the cited source. The
+  displayed quote is the statute's own words, joined with " … ". `/v1/ask` uses the same check.
+- **The rules lost their 3 false alarms:**
+  - the contract's own length is no longer read as the probation;
+  - a short span inside the working day counts as its break;
+  - a fine's share is read in any form ("beşdə biri", 1/5, 20%), and a fine the collective
+    agreement provides for is not a forbidden deduction.
+
+  No rule was added for this set's violation types. Encoding them would fit the rules to this
+  set again; they are left to the LLM layer.
+
+**Re-scoring.** The re-score used the recorded findings plus the dropped ones that pass the
+new check. Dropped quotes were re-verified against the article text from the corpus, not the
+exact chunk the model saw, so the result is approximate
+([`posthoc.json`](posthoc.json)).
+
+- **Recovered findings:** 8 of 13. 6 are true violations and 2 hit lawful clauses (u01 2.6 as a
+  risk, u04 1.3 as a violation).
+
+| layer | found | false alarms | precision | recall | right article |
+|---|---|---|---|---|---|
+| combined, post-hoc | 20 / 28 | 5 | 0.80 | 0.71 | 0.65 |
+
+That is at the precision and recall thresholds, and still below the right-article threshold.
+It is an estimate made after seeing the data. The fixed pipeline is measured once more on a
+third unseen set ([`../../../datasets/contracts/test3/BRIEF.md`](../../../datasets/contracts/test3/BRIEF.md)).
+The project committed in advance to closing F10 after that run, whatever the result.

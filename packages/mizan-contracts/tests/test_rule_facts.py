@@ -120,6 +120,31 @@ def test_daily_hours(text: str, hours: list[float]) -> None:
         ("İşəgötürən əməkhaqqını birtərəfli qaydada 20 faiz azalda bilər.", OPEN, "art:56"),
         ("İşçi həmkarlar ittifaqına üzv olduqda müqaviləyə dərhal xitam verilir.", OPEN, "art:79"),
         ("Həmkarlar ittifaqına üzvlüyə görə xitam verilə bilməz.", OPEN, None),
+        # The second unseen set's false alarms (post-hoc): lawful, must stay silent.
+        (
+            "Gündüz postu bazar ertəsi–cümə günləri 08:30–17:30 işləyir; 12:30–13:30 "
+            "aralığında əvəzedici nəzarətçi xidmət göstərir.",
+            OPEN,
+            None,
+        ),
+        (
+            "Kollektiv müqavilədə nəzərdə tutulduğu üçün intizam xətasına aylıq əməkhaqqının "
+            "beşdə biri həcmində cərimə tətbiq oluna bilər; bütün adi tutulmalar hər ödənişin "
+            "20 faizindən çox olmur.",
+            OPEN,
+            None,
+        ),
+        (
+            "Bu dörd aylıq müqavilədə on təqvim günlük sınaq razılaşdırılır.",
+            Context(4.0, None, None),
+            None,
+        ),
+        (
+            "Kollektiv müqavilədə nəzərdə tutulduqda aylıq maaşın yarısı həcmində cərimə "
+            "tətbiq edilir.",
+            OPEN,
+            "art:186",
+        ),
     ],
 )
 def test_fact_rules(text: str, ctx: Context, expected: str | None) -> None:
