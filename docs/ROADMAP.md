@@ -334,7 +334,7 @@ dense `bge-m3`, reranker-siz (ADR-0009). Bax `evals/results/f7_rerank/README.md`
 
 - [ ] **AzLegalBench**: golden + adversarial dataset Hugging Face-də dərc olunur (dataset card, lisenziya, baseline nəticələr)
 - [ ] Fine-tuned modellər Hugging Face-də (model card-larla)
-- [ ] **Load test** (k6 / Locust): 10 / 50 / 100 eyni vaxtda istifadəçi, p50 / p95 / p99
+- [x] **Load test** (Locust): 10 / 50 / 100 eyni vaxtda istifadəçi, p50 / p95 / p99 — 0 xəta; bir proses ~25 istifadəçiyə qədər rahatdır, darboğaz CPU-da bge-m3 sorğu embedding-idir (88 ms, ~11/s); növbəti addım micro-batching (~2x). Bax `evals/results/f11_load`
 - [ ] Production deploy + monitoring
 - [ ] **Texniki hesabat** (blog və ya arXiv formatında): metodologiya, nəticələr, trade-off-lar
 - [ ] README: arxitektura diaqramı, nəticə cədvəli, demo GIF
