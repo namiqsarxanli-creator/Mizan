@@ -1,0 +1,521 @@
+{
+ "contracts": 10,
+ "clauses": 240,
+ "as_of": "2026-10-31",
+ "rules": {
+  "violations": 28,
+  "lawful_clauses": 212,
+  "tp": 4,
+  "fp": 5,
+  "fn": 24,
+  "precision": 0.444,
+  "recall": 0.143,
+  "f1": 0.216,
+  "right_article": 0.0,
+  "risk_on_lawful": 0,
+  "misses": [
+   {
+    "contract": "w01",
+    "clause": "1.4",
+    "issue": "unrelated_family_documents_required"
+   },
+   {
+    "contract": "w01",
+    "clause": "2.1",
+    "issue": "special_medical_work_week_exceeded"
+   },
+   {
+    "contract": "w01",
+    "clause": "2.3",
+    "issue": "feeding_break_below_minimum_duration"
+   },
+   {
+    "contract": "w01",
+    "clause": "3.1",
+    "issue": "mandatory_protective_equipment_employee_funded"
+   },
+   {
+    "contract": "w02",
+    "clause": "2.2",
+    "issue": "discipline_for_refusing_immediate_danger"
+   },
+   {
+    "contract": "w02",
+    "clause": "4.2",
+    "issue": "overtime_hours_not_recorded"
+   },
+   {
+    "contract": "w02",
+    "clause": "4.3",
+    "issue": "limited_material_liability_cap_exceeded"
+   },
+   {
+    "contract": "w03",
+    "clause": "2.2",
+    "issue": "attestation_more_frequent_than_three_years"
+   },
+   {
+    "contract": "w03",
+    "clause": "3.1",
+    "issue": "redundancy_notice_for_long_service_too_short"
+   },
+   {
+    "contract": "w03",
+    "clause": "3.2",
+    "issue": "paid_job_search_day_denied"
+   },
+   {
+    "contract": "w03",
+    "clause": "3.3",
+    "issue": "redundancy_priority_ignored"
+   },
+   {
+    "contract": "w04",
+    "clause": "2.2",
+    "issue": "preholiday_hour_reduction_denied"
+   },
+   {
+    "contract": "w04",
+    "clause": "3.5",
+    "issue": "statutory_public_duty_leave_unpaid"
+   },
+   {
+    "contract": "w04",
+    "clause": "4.2",
+    "issue": "disciplinary_sanction_kept_twelve_months"
+   },
+   {
+    "contract": "w04",
+    "clause": "5.3",
+    "issue": "employment_certificate_refused"
+   },
+   {
+    "contract": "w05",
+    "clause": "2.3",
+    "issue": "certified_sickness_excluded_from_leave_service"
+   },
+   {
+    "contract": "w06",
+    "clause": "3.2",
+    "issue": "two_children_additional_leave_denied"
+   },
+   {
+    "contract": "w06",
+    "clause": "4.2",
+    "issue": "pregnancy_light_work_average_pay_not_preserved"
+   },
+   {
+    "contract": "w07",
+    "clause": "3.1",
+    "issue": "ownership_change_ends_ordinary_employee_contract"
+   },
+   {
+    "contract": "w07",
+    "clause": "3.2",
+    "issue": "military_callup_termination_ground_denied"
+   },
+   {
+    "contract": "w07",
+    "clause": "3.4",
+    "issue": "final_settlement_deferred_fifteen_days"
+   },
+   {
+    "contract": "w08",
+    "clause": "2.1",
+    "issue": "adoption_postnatal_leave_reduced"
+   },
+   {
+    "contract": "w08",
+    "clause": "4.2",
+    "issue": "leave_followed_by_voluntary_termination_denied"
+   },
+   {
+    "contract": "w08",
+    "clause": "4.4",
+    "issue": "termination_order_missing_legal_basis"
+   }
+  ],
+  "false_positives": [
+   {
+    "contract": "w04",
+    "clause": "2.1",
+    "articles": [
+     "art:89"
+    ],
+    "explanation": "Gündəlik iş vaxtı 9 saatdır; normal iş günü 8 saatdan artıq ola bilməz."
+   },
+   {
+    "contract": "w08",
+    "clause": "3.3",
+    "articles": [
+     "art:91"
+    ],
+    "explanation": "0 yaşlı işçi üçün iş həftəsi 24 saatdan artıq olmamalıdır."
+   },
+   {
+    "contract": "w08",
+    "clause": "4.1",
+    "articles": [
+     "art:119"
+    ],
+    "explanation": "Ödənişli əsas məzuniyyət 0 yaşlı işçi üçün ən azı 42 təqvim günüdür; bənddə 23 gün yazılıb."
+   },
+   {
+    "contract": "w09",
+    "clause": "1.4",
+    "articles": [
+     "art:51"
+    ],
+    "explanation": "Sınaq müddəti ən çoxu üç ay ola bilər."
+   },
+   {
+    "contract": "w10",
+    "clause": "4.3",
+    "articles": [
+     "art:114"
+    ],
+    "explanation": "Ödənişli əsas məzuniyyət işçi üçün ən azı 21 təqvim günüdür; bənddə 14 gün yazılıb."
+   }
+  ]
+ },
+ "llm": {
+  "violations": 28,
+  "lawful_clauses": 212,
+  "tp": 13,
+  "fp": 8,
+  "fn": 15,
+  "precision": 0.619,
+  "recall": 0.464,
+  "f1": 0.531,
+  "right_article": 1.0,
+  "risk_on_lawful": 4,
+  "misses": [
+   {
+    "contract": "w01",
+    "clause": "3.1",
+    "issue": "mandatory_protective_equipment_employee_funded"
+   },
+   {
+    "contract": "w02",
+    "clause": "2.2",
+    "issue": "discipline_for_refusing_immediate_danger"
+   },
+   {
+    "contract": "w02",
+    "clause": "3.2",
+    "issue": "hazardous_work_additional_leave_shortfall"
+   },
+   {
+    "contract": "w02",
+    "clause": "4.2",
+    "issue": "overtime_hours_not_recorded"
+   },
+   {
+    "contract": "w02",
+    "clause": "4.3",
+    "issue": "limited_material_liability_cap_exceeded"
+   },
+   {
+    "contract": "w04",
+    "clause": "2.2",
+    "issue": "preholiday_hour_reduction_denied"
+   },
+   {
+    "contract": "w04",
+    "clause": "5.3",
+    "issue": "employment_certificate_refused"
+   },
+   {
+    "contract": "w05",
+    "clause": "2.1",
+    "issue": "leave_split_without_fourteen_day_part"
+   },
+   {
+    "contract": "w05",
+    "clause": "2.2",
+    "issue": "wrong_daily_leave_pay_divisor"
+   },
+   {
+    "contract": "w05",
+    "clause": "2.3",
+    "issue": "certified_sickness_excluded_from_leave_service"
+   },
+   {
+    "contract": "w06",
+    "clause": "3.3",
+    "issue": "third_year_distance_study_leave_shortfall"
+   },
+   {
+    "contract": "w06",
+    "clause": "4.2",
+    "issue": "pregnancy_light_work_average_pay_not_preserved"
+   },
+   {
+    "contract": "w07",
+    "clause": "3.2",
+    "issue": "military_callup_termination_ground_denied"
+   },
+   {
+    "contract": "w07",
+    "clause": "3.4",
+    "issue": "final_settlement_deferred_fifteen_days"
+   },
+   {
+    "contract": "w08",
+    "clause": "2.1",
+    "issue": "adoption_postnatal_leave_reduced"
+   }
+  ],
+  "false_positives": [
+   {
+    "contract": "w02",
+    "clause": "3.3",
+    "articles": [
+     "art:136"
+    ],
+    "explanation": "Qanun əsas və əlavə məzuniyyətlərin birgə verilməsini tələb edir, ayrı-ayrılıqda hesablanması qanuna ziddir."
+   },
+   {
+    "contract": "w08",
+    "clause": "1.3",
+    "articles": [
+     "art:46"
+    ],
+    "explanation": "0 yaşında işçi üçün bağlanmış əmək müqaviləsi 15 yaşından aşağı şəxslərlə bağlanılan müqavilə kimi etibarsızdır."
+   },
+   {
+    "contract": "w08",
+    "clause": "3.3",
+    "articles": [
+     "art:91"
+    ],
+    "explanation": "Beş günlük, gündə 8 saatlıq iş həftəsi (40 saat) 16‑18 yaş arası işçilərin həftəlik maksimum 36 saatlıq qısaldılmış iş vaxtı limitini aşır."
+   },
+   {
+    "contract": "w08",
+    "clause": "5.1",
+    "articles": [
+     "art:46"
+    ],
+    "explanation": "Müqavilə 0 yaşındakı işçi ilə bağlanır, bu isə Maddə 46‑da (source 4) göstərilən minimum yaş şərtini pozur."
+   },
+   {
+    "contract": "w08",
+    "clause": "5.2",
+    "articles": [
+     "art:46"
+    ],
+    "explanation": "0 yaşlı işçi üçün müqavilə bağlanması qanuna ziddir, buna görə bənd də qanunsuz müqavilənin bir hissəsi kimi pozuntudur."
+   },
+   {
+    "contract": "w08",
+    "clause": "5.3",
+    "articles": [
+     "art:46"
+    ],
+    "explanation": "Müqavilənin mövcudluğu öz-özlüyündə qanuna ziddir, çünki işçi 15 yaşdan kiçikdir."
+   },
+   {
+    "contract": "w08",
+    "clause": "5.4",
+    "articles": [
+     "art:46"
+    ],
+    "explanation": "Müqavilənin hər hansı bir əlavəsi 0 yaşlı işçi ilə bağlanması qanuni deyil."
+   },
+   {
+    "contract": "w08",
+    "clause": "5.5",
+    "articles": [
+     "art:46"
+    ],
+    "explanation": "0 yaşlı işçi ilə elektron imzalı müqavilə bağlanması da Maddə 46‑da qadağan olunmuşdur."
+   }
+  ]
+ },
+ "combined": {
+  "violations": 28,
+  "lawful_clauses": 212,
+  "tp": 17,
+  "fp": 12,
+  "fn": 11,
+  "precision": 0.586,
+  "recall": 0.607,
+  "f1": 0.596,
+  "right_article": 0.765,
+  "risk_on_lawful": 4,
+  "misses": [
+   {
+    "contract": "w01",
+    "clause": "3.1",
+    "issue": "mandatory_protective_equipment_employee_funded"
+   },
+   {
+    "contract": "w02",
+    "clause": "2.2",
+    "issue": "discipline_for_refusing_immediate_danger"
+   },
+   {
+    "contract": "w02",
+    "clause": "4.2",
+    "issue": "overtime_hours_not_recorded"
+   },
+   {
+    "contract": "w02",
+    "clause": "4.3",
+    "issue": "limited_material_liability_cap_exceeded"
+   },
+   {
+    "contract": "w04",
+    "clause": "2.2",
+    "issue": "preholiday_hour_reduction_denied"
+   },
+   {
+    "contract": "w04",
+    "clause": "5.3",
+    "issue": "employment_certificate_refused"
+   },
+   {
+    "contract": "w05",
+    "clause": "2.3",
+    "issue": "certified_sickness_excluded_from_leave_service"
+   },
+   {
+    "contract": "w06",
+    "clause": "4.2",
+    "issue": "pregnancy_light_work_average_pay_not_preserved"
+   },
+   {
+    "contract": "w07",
+    "clause": "3.2",
+    "issue": "military_callup_termination_ground_denied"
+   },
+   {
+    "contract": "w07",
+    "clause": "3.4",
+    "issue": "final_settlement_deferred_fifteen_days"
+   },
+   {
+    "contract": "w08",
+    "clause": "2.1",
+    "issue": "adoption_postnatal_leave_reduced"
+   }
+  ],
+  "false_positives": [
+   {
+    "contract": "w02",
+    "clause": "3.3",
+    "articles": [
+     "art:136"
+    ],
+    "explanation": "Qanun əsas və əlavə məzuniyyətlərin birgə verilməsini tələb edir, ayrı-ayrılıqda hesablanması qanuna ziddir."
+   },
+   {
+    "contract": "w04",
+    "clause": "2.1",
+    "articles": [
+     "art:89"
+    ],
+    "explanation": "Gündəlik iş vaxtı 9 saatdır; normal iş günü 8 saatdan artıq ola bilməz."
+   },
+   {
+    "contract": "w08",
+    "clause": "1.3",
+    "articles": [
+     "art:46"
+    ],
+    "explanation": "0 yaşında işçi üçün bağlanmış əmək müqaviləsi 15 yaşından aşağı şəxslərlə bağlanılan müqavilə kimi etibarsızdır."
+   },
+   {
+    "contract": "w08",
+    "clause": "3.3",
+    "articles": [
+     "art:91"
+    ],
+    "explanation": "0 yaşlı işçi üçün iş həftəsi 24 saatdan artıq olmamalıdır."
+   },
+   {
+    "contract": "w08",
+    "clause": "4.1",
+    "articles": [
+     "art:119"
+    ],
+    "explanation": "Ödənişli əsas məzuniyyət 0 yaşlı işçi üçün ən azı 42 təqvim günüdür; bənddə 23 gün yazılıb."
+   },
+   {
+    "contract": "w08",
+    "clause": "5.1",
+    "articles": [
+     "art:46"
+    ],
+    "explanation": "Müqavilə 0 yaşındakı işçi ilə bağlanır, bu isə Maddə 46‑da (source 4) göstərilən minimum yaş şərtini pozur."
+   },
+   {
+    "contract": "w08",
+    "clause": "5.2",
+    "articles": [
+     "art:46"
+    ],
+    "explanation": "0 yaşlı işçi üçün müqavilə bağlanması qanuna ziddir, buna görə bənd də qanunsuz müqavilənin bir hissəsi kimi pozuntudur."
+   },
+   {
+    "contract": "w08",
+    "clause": "5.3",
+    "articles": [
+     "art:46"
+    ],
+    "explanation": "Müqavilənin mövcudluğu öz-özlüyündə qanuna ziddir, çünki işçi 15 yaşdan kiçikdir."
+   },
+   {
+    "contract": "w08",
+    "clause": "5.4",
+    "articles": [
+     "art:46"
+    ],
+    "explanation": "Müqavilənin hər hansı bir əlavəsi 0 yaşlı işçi ilə bağlanması qanuni deyil."
+   },
+   {
+    "contract": "w08",
+    "clause": "5.5",
+    "articles": [
+     "art:46"
+    ],
+    "explanation": "0 yaşlı işçi ilə elektron imzalı müqavilə bağlanması da Maddə 46‑da qadağan olunmuşdur."
+   },
+   {
+    "contract": "w09",
+    "clause": "1.4",
+    "articles": [
+     "art:51"
+    ],
+    "explanation": "Sınaq müddəti ən çoxu üç ay ola bilər."
+   },
+   {
+    "contract": "w10",
+    "clause": "4.3",
+    "articles": [
+     "art:114"
+    ],
+    "explanation": "Ödənişli əsas məzuniyyət işçi üçün ən azı 21 təqvim günüdür; bənddə 14 gün yazılıb."
+   }
+  ]
+ },
+ "injections": {
+  "expected": 0,
+  "caught": 0,
+  "false": 0
+ },
+ "complete": true,
+ "llm_calls": {
+  "batches": 50,
+  "failed": 0,
+  "unverified": 9,
+  "input_tokens": 192135,
+  "output_tokens": 56921
+ },
+ "model": "openai/gpt-oss-120b",
+ "providers": [
+  "groq",
+  "openrouter"
+ ]
+}

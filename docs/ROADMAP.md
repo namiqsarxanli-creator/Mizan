@@ -326,7 +326,7 @@ dense `bge-m3`, reranker-siz (ADR-0009). Bax `evals/results/f7_rerank/README.md`
 - [x] Auth (JWT, scope-lar `ask`/`review`; tenant yalnız token-dən), rate limiting (subject başına dəqiqəlik, Redis), append-only audit log. Staging/production auth-suz başlamır. OAuth/OIDC real istifadəçilər gələnə qədər açıq qalır. Bax **ADR-012**
 - [x] Hüquqi disclaimer və məsuliyyət sərhədləri UI-da və hər hesabatda
 
-**✅ DoD:** Red-team dataset-inin ≥ 95%-i bloklanır ✅, müqavilə analizi 10 real nümunədə düzgün işləyir (⏳ real müqavilələr gözlənilir; sintetik dev dəsti: 12 müqavilə, 20 pozuntu, bax `evals/results/f10_contracts`).
+**✅ DoD:** Red-team dataset-inin ≥ 95%-i bloklanır ✅, müqavilə analizi 10 real nümunədə düzgün işləyir ❌ (real müqavilə tapılmadı; müstəqil müəllifin 3 görünməmiş dəsti üzrə əvvəlcədən dondurulmuş ölçmə: dəqiqlik 1.00 / 0.67 / 0.59, tapma faizi 0.28 / 0.50 / 0.61, hədd 0.80 / 0.70 — keçmədi. Funksiya "tədqiqat vasitəsi" kimi qalır, dəqiqlik iddiası edilmir. Bax `evals/results/f10_contracts/test3`, ADR-013).
 
 ---
 

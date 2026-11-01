@@ -1,6 +1,6 @@
 # ADR-0013: Contract analysis: rules first, LLM second, every finding citing the law
 
-- **Status:** Accepted
+- **Status:** Accepted; revised 2026-11-01 after three held-out runs (see Outcome)
 - **Date:** 2026-10-31
 - **Phase:** F10
 
@@ -101,3 +101,37 @@ are read. Until they exist, F10's DoD item stays open.
     bound them.
 - **One author.** The synthetic set shares its author with the rules. The real-contract test is
   what turns "works on what it was built for" into a measured claim.
+
+## Outcome (2026-11-01): three held-out runs, DoD not met
+No real contracts could be obtained. Three test sets were written instead by an independent
+author (another model). The pipeline was frozen before each and scored once
+([PROTOCOL](../../evals/results/f10_contracts/PROTOCOL.md)).
+
+| set | precision | recall | right article |
+|---|---|---|---|
+| first | 1.00 | 0.28 | 0.88 |
+| second | 0.67 | 0.50 | 0.64 |
+| third | 0.59 | 0.61 | 0.76 |
+
+The thresholds were 0.80 precision and 0.70 recall; none of the three runs met them. The
+details are in [`test3/README.md`](../../evals/results/f10_contracts/test3/README.md).
+
+**What the runs taught:**
+1. **Rules keyed to phrasings do not generalise.** They found everything on their author's
+   contracts and little on another author's. Patched after each run, they raised new false
+   alarms on the next one.
+2. **Extracted facts are a liability when unchecked.** In the third run one child's birth
+   date, read as the employee's, produced 9 of 12 false alarms through the rules *and* the
+   prompt.
+3. **Literal quote verification costs recall.** Models elide. Segment matching recovered most
+   of it; short elided fragments still fail.
+4. **The LLM's judgement improved steadily** and cited the right article on every hit in the
+   last run. It is the layer worth investing in.
+
+**Revised decision:**
+
+- **Detection belongs to the LLM layer,** with faithful but lenient quote verification.
+- **Rules remain** only as guarded numeric checks. Each validates its inputs (whose date, a
+  plausible age, which duration) and is reported as a hint.
+- **Facts reach the prompt only after the same checks.**
+- **The feature ships as a research aid** with the disclaimer. No accuracy claim is made.
