@@ -100,13 +100,13 @@ jobs:
           enable-cache: true
       - run: uv sync --frozen
       # bge-m3 (~2.3 GB): downloaded once, then restored from the cache.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/huggingface
           key: hf-bge-m3-v1
       # Passage embeddings are keyed by the frozen corpus. The cache is content-addressed, so
       # when the corpus changes the previous one is restored and only changed texts are embedded.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: data/embeddings
           key: embeddings-bge-m3-${{ hashFiles('evals/snapshots/labour_code.jsonl.gz') }}
