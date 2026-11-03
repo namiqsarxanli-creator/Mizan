@@ -53,7 +53,7 @@ jobs:
       - run: uv run mizan-eval redteam --gate > /dev/null
       # Contract rules still find every planted violation, with no false positive (regression).
       - run: uv run mizan-eval contracts --gate > /dev/null
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: coverage
           path: coverage.xml
