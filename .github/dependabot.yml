@@ -1,0 +1,14 @@
+# Python dependencies are locked by uv (uv.lock) and audited in CI (pip-audit); Dependabot
+# watches what uv does not: GitHub Actions and the Docker base images.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directories:
+      - /apps/api
+      - /apps/worker
+    schedule:
+      interval: weekly

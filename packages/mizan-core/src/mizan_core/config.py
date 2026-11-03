@@ -119,6 +119,9 @@ class RetrievalSettings(BaseModel):
     court_decisions: bool = True
     # Load models at startup (readiness stays false until done) instead of on first request.
     warmup: bool = True
+    # Embed concurrent queries together (QueryBatcher): ~2x search throughput on CPU (F11).
+    batch_queries: bool = True
+    batch_wait_ms: float = Field(default=10, ge=0, le=100)
 
 
 class LLMSettings(BaseModel):

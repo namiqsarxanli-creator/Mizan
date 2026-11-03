@@ -30,6 +30,12 @@ jobs:
       - run: uv run ruff check --output-format=github .
       - run: uv run ruff format --check .
       - run: uv run mypy packages apps
+      # Known vulnerabilities in the locked runtime dependencies (OWASP LLM03). The CPU build
+      # of torch is not on PyPI and cannot be audited this way.
+      - name: Dependency audit
+        run: |
+          uv export --frozen --no-hashes --no-emit-workspace --no-dev -o "$RUNNER_TEMP/requirements.txt"
+          uvx pip-audit -r "$RUNNER_TEMP/requirements.txt" --disable-pip --no-deps
 
   test:
     name: Tests

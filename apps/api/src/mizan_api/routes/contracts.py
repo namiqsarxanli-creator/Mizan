@@ -27,6 +27,7 @@ from mizan_api.budget import TenantBudget
 from mizan_api.routes.legal import today_in_baku
 from mizan_contracts.analysis import DISCLAIMER, Report, analyse
 from mizan_contracts.document import MAX_BYTES, DocumentError, Ocr, read_document
+from mizan_contracts.ocr import OCR_TOKENS
 from mizan_contracts.review import ClauseReviewer
 from mizan_core.logging import get_logger
 
@@ -122,6 +123,7 @@ async def analyze(
     budget: TenantBudget | None = getattr(state, "budget", None)
     if budget is not None and (reviewer is not None or ocr is not None):
         await budget.check(tenant)
+    OCR_TOKENS.set(0)
     try:
         document = await read_document(data, file.filename or "contract", ocr=ocr)
     except DocumentError as exc:
@@ -131,6 +133,7 @@ async def analyze(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, detail)
     report = await analyse(document, as_of=as_of or today_in_baku(), reviewer=reviewer)
     out = _out(report)
+    out.tokens += OCR_TOKENS.get()
     if budget is not None and out.tokens:
         await budget.charge(tenant, out.tokens)
     if report.counts["injection"]:

@@ -16,6 +16,8 @@ if TYPE_CHECKING:
     from sentence_transformers import CrossEncoder
 
 DEFAULT_RERANKER = "BAAI/bge-reranker-v2-m3"
+# The commit measured in F2/F7; pinned like the embedders (embeddings.ModelSpec.revision).
+DEFAULT_RERANKER_REVISION = "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e"
 
 
 class Reranker:
@@ -33,7 +35,10 @@ class Reranker:
                 from sentence_transformers import CrossEncoder
 
                 torch.set_num_threads(os.cpu_count() or 4)
-                self._model = CrossEncoder(self.hf_id, max_length=self._max_length, device="cpu")
+                revision = DEFAULT_RERANKER_REVISION if self.hf_id == DEFAULT_RERANKER else None
+                self._model = CrossEncoder(
+                    self.hf_id, max_length=self._max_length, device="cpu", revision=revision
+                )
             return self._model
 
     @property

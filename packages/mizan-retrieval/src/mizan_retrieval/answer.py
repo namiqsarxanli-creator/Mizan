@@ -50,8 +50,10 @@ cavabı qərara əsasən ver və bunu açıq göstər.
 JSON_INSTRUCTIONS = """
 
 Cavabı yalnız bu formatda JSON obyekti kimi qaytar:
-{"answer": "<cavab mətni>", "citations": [{"source": <mənbə nömrəsi>, "quote": "<mənbədən \
-hərfi sitat>"}]}
+{"answer": "<cavab mətni>", "refused": <true və ya false>, "citations": [{"source": \
+<mənbə nömrəsi>, "quote": "<mənbədən hərfi sitat>"}]}
+- "refused" - suala cavab vermirsənsə true: sənədlər cavab vermir, sual əmək hüququna aid \
+deyil və ya istəyi yerinə yetirmirsən. Cavab verirsənsə false.
 - "source" - <source id="N"> teqindəki N nömrəsidir.
 - "quote" mənbə mətnindən dəyişdirilmədən, hərfi-hərfinə köçürülməlidir (bir-iki cümlə)."""
 
@@ -307,6 +309,9 @@ def parse_groq_response(response: Any, hits: Sequence[Hit]) -> Answer:
         citations=tuple(citations),
         model=response.model,
         stop_reason=choice.finish_reason,
+        # A decline in prose ("Üzr istəyirəm, ...") used to count as an answer without
+        # citations (evals/results/f10_redteam, live check); the model now says so explicitly.
+        refused=payload.get("refused") is True,
         rejected_citations=rejected,
         usage=tokens,
     )

@@ -100,3 +100,28 @@ def test_page_is_served_and_renders_text_only() -> None:
     assert "/v1/contracts/analyze" in page.text
     assert "hüquqi məsləhət deyil" in page.text
     assert "innerHTML =" not in page.text
+
+
+def test_ocr_tokens_are_charged_to_the_tenant() -> None:
+    from types import SimpleNamespace
+
+    from mizan_contracts.ocr import GroqVisionOcr
+
+    class Vision:
+        def __init__(self) -> None:
+            self.chat = SimpleNamespace(completions=self)
+
+        async def create(self, **_: Any) -> Any:
+            message = SimpleNamespace(content="1.1. Əsas məzuniyyət 14 təqvim günüdür.")
+            return SimpleNamespace(
+                model="vision",
+                choices=[SimpleNamespace(message=message, finish_reason="stop")],
+                usage=SimpleNamespace(prompt_tokens=900, completion_tokens=40),
+            )
+
+    budget = Budget()
+    with _client(budget=budget, ocr=GroqVisionOcr(Vision(), model="vision")) as client:
+        response = _post(client, _blank_png(), "scan.png")
+    assert response.status_code == 200
+    assert response.json()["tokens"] == 940
+    assert budget.calls == [("check", "public"), ("charge", 940)]

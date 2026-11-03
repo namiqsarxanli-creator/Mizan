@@ -22,7 +22,7 @@ from typing import Protocol
 from qdrant_client import AsyncQdrantClient, models
 
 from mizan_ingestion.chunking import Strategy
-from mizan_retrieval.embeddings import Embedder
+from mizan_retrieval.embeddings import Embedder, QueryBatcher
 from mizan_retrieval.index import alias_for, bm25_encoders_for_query
 from mizan_retrieval.rerank import Reranker
 
@@ -98,10 +98,13 @@ class Searcher:
         client: AsyncQdrantClient,
         embedders: dict[str, Embedder],
         reranker: Reranker | None = None,
+        batchers: dict[str, QueryBatcher] | None = None,
     ) -> None:
         self._client = client
         self._embedders = embedders
         self._reranker = reranker
+        # Optional micro-batching of query embeddings, per dense model (F11 load test).
+        self._batchers = batchers or {}
         self._encoders = bm25_encoders_for_query()
 
     async def search(
@@ -129,8 +132,12 @@ class Searcher:
         prefetch: list[models.Prefetch] = []
 
         if config.mode in (Mode.DENSE, Mode.HYBRID):
-            embedder = self._embedders[config.dense_model]
-            vector = await asyncio.to_thread(embedder.embed_query, query)
+            batcher = self._batchers.get(config.dense_model)
+            if batcher is not None:
+                vector = await batcher.embed_query(query)
+            else:
+                embedder = self._embedders[config.dense_model]
+                vector = await asyncio.to_thread(embedder.embed_query, query)
             prefetch.append(
                 models.Prefetch(
                     query=vector.tolist(), using=config.dense_model, filter=flt, limit=limit

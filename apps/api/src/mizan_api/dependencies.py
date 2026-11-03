@@ -49,7 +49,7 @@ from mizan_ingestion.db.session import ALL_TENANTS, as_tenant, create_engine, se
 from mizan_ingestion.diff import DiffBackend, PostgresDiff
 from mizan_retrieval.answer import AnswerBackend, ClaudeAnswerer, GroqAnswerer
 from mizan_retrieval.cache import SemanticCache
-from mizan_retrieval.embeddings import MODELS, Embedder, EmbeddingCache
+from mizan_retrieval.embeddings import MODELS, Embedder, EmbeddingCache, QueryBatcher
 from mizan_retrieval.index import alias_for
 from mizan_retrieval.rerank import Reranker
 from mizan_retrieval.rewrite import GroqQueryRewriter, QueryRewriter
@@ -408,7 +408,14 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
 
     expand: ArticleExpander = to_articles
 
-    searcher: SearchBackend = Searcher(qdrant, {config.dense_model: embedder}, reranker)
+    batchers: dict[str, QueryBatcher] = {}
+    if settings.retrieval.batch_queries:
+        batcher = QueryBatcher(embedder, max_wait_ms=settings.retrieval.batch_wait_ms)
+        stack.push_async_callback(batcher.close)
+        batchers[config.dense_model] = batcher
+    searcher: SearchBackend = Searcher(
+        qdrant, {config.dense_model: embedder}, reranker, batchers=batchers
+    )
     graph: Neo4jGraph | None = None
     if settings.retrieval.graph or settings.retrieval.court_decisions:
         driver = _neo4j_driver(settings)

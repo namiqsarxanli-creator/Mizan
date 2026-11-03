@@ -1,3 +1,4 @@
+import json
 from datetime import date
 from types import SimpleNamespace
 from typing import Any
@@ -304,3 +305,23 @@ def test_elided_quotes_are_verified_segment_by_segment() -> None:
     accepted, rejected = verify_citations(raw, HITS)
     assert [c.quote for c in accepted] == ["İşçi bir təqvim … xəbərdar edir"]
     assert rejected == 3
+
+
+def test_the_model_can_flag_a_refusal() -> None:
+    from mizan_retrieval.answer import parse_groq_response
+
+    def response(payload: dict[str, Any]) -> Any:
+        message = SimpleNamespace(content=json.dumps(payload, ensure_ascii=False))
+        return SimpleNamespace(
+            model="m",
+            choices=[SimpleNamespace(message=message, finish_reason="stop")],
+            usage=SimpleNamespace(prompt_tokens=1, completion_tokens=1),
+        )
+
+    declined = parse_groq_response(
+        response({"answer": "Üzr istəyirəm, bunu edə bilmərəm.", "refused": True}), HITS
+    )
+    assert declined.refused
+    answered = parse_groq_response(response({"answer": "Bir ay.", "citations": []}), HITS)
+    assert not answered.refused  # absent flag: an answer, as before
+    assert not parse_groq_response(response({"answer": "x", "refused": "yes"}), HITS).refused

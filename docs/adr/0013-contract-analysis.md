@@ -97,7 +97,7 @@ are read. Until they exist, F10's DoD item stays open.
     through to the LLM layer.
   - Only the Labour Code is in the corpus. Clauses governed by other laws (taxes, social
     insurance, non-compete under the Civil Code) can only be marked `ok` or `risk`.
-  - OCR tokens are not yet charged to the tenant's budget; the page cap and the rate limit
+  - OCR tokens are charged to the tenant's budget (since F11); the page cap and the rate limit
     bound them.
 - **One author.** The synthetic set shares its author with the rules. The real-contract test is
   what turns "works on what it was built for" into a measured claim.

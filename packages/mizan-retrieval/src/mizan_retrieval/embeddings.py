@@ -8,6 +8,7 @@ Qdrant then costs nothing.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import os
 import sqlite3
@@ -39,12 +40,17 @@ class ModelSpec:
     query_prefix: str = ""
     passage_prefix: str = ""
     max_seq_length: int = 512
+    # Hugging Face commit to load. The index was built with these exact weights; a pinned
+    # revision stops an upstream push from silently changing the vectors (OWASP LLM03).
+    revision: str | None = None
 
 
 MODELS = {
     m.name: m
     for m in (
-        ModelSpec("bge-m3", "BAAI/bge-m3", 1024),
+        ModelSpec(
+            "bge-m3", "BAAI/bge-m3", 1024, revision="5617a9f61b028005a4858fdac845db406aefb181"
+        ),
         # E5 models are trained with these prefixes and degrade noticeably without them.
         ModelSpec(
             "e5-large",
@@ -52,6 +58,7 @@ MODELS = {
             1024,
             query_prefix="query: ",
             passage_prefix="passage: ",
+            revision="3d7cfbdacd47fdda877c5cd8a79fbcc4f2a574f3",
         ),
     )
 }
@@ -119,7 +126,9 @@ class Embedder:
                 from sentence_transformers import SentenceTransformer
 
                 torch.set_num_threads(os.cpu_count() or 4)
-                model = SentenceTransformer(self.spec.hf_id, device="cpu")
+                model = SentenceTransformer(
+                    self.spec.hf_id, device="cpu", revision=self.spec.revision
+                )
                 model.max_seq_length = self.spec.max_seq_length
                 self._model = model
             return self._model
@@ -170,3 +179,62 @@ class Embedder:
     def embed_query(self, text: str) -> Vector:
         vector: Vector = self._encode([self.spec.query_prefix + text])[0]
         return vector
+
+
+class QueryBatcher:
+    """Embed concurrent queries together (micro-batching).
+
+    One query embedding on CPU costs about 88 ms, and concurrent requests run them one by one
+    through a thread pool, contending for the same cores. The API therefore saturated at about
+    11 searches a second (evals/results/f11_load). Batched, the same model embeds 19–23 queries
+    a second.
+
+    The first query opens a batch. Queries arriving in the next ``max_wait_ms`` join it, up to
+    ``max_batch``. One batch is encoded at a time, off the event loop. A lone query waits at
+    most ``max_wait_ms`` longer than before; under load, batches grow by themselves.
+    """
+
+    def __init__(self, embedder: Embedder, *, max_batch: int = 16, max_wait_ms: float = 10) -> None:
+        self._embedder = embedder
+        self._max_batch = max_batch
+        self._max_wait = max_wait_ms / 1000
+        self._queue: asyncio.Queue[tuple[str, asyncio.Future[Vector]]] = asyncio.Queue()
+        self._task: asyncio.Task[None] | None = None
+        self.batches = 0  # for tests and metrics
+
+    async def embed_query(self, text: str) -> Vector:
+        future: asyncio.Future[Vector] = asyncio.get_running_loop().create_future()
+        if self._task is None or self._task.done():
+            self._task = asyncio.create_task(self._drain())
+        await self._queue.put((text, future))
+        return await future
+
+    async def _drain(self) -> None:
+        loop = asyncio.get_running_loop()
+        while True:
+            batch = [await self._queue.get()]
+            deadline = loop.time() + self._max_wait
+            while len(batch) < self._max_batch:
+                remaining = deadline - loop.time()
+                if remaining <= 0:
+                    break
+                try:
+                    batch.append(await asyncio.wait_for(self._queue.get(), remaining))
+                except TimeoutError:
+                    break
+            texts = [self._embedder.spec.query_prefix + t for t, _ in batch]
+            try:
+                vectors = await asyncio.to_thread(self._embedder._encode, texts)
+            except Exception as exc:  # noqa: BLE001  every waiter gets the error; the loop survives
+                for _, future in batch:
+                    if not future.done():
+                        future.set_exception(exc)
+                continue
+            self.batches += 1
+            for (_, future), vector in zip(batch, vectors, strict=True):
+                if not future.done():
+                    future.set_result(vector)
+
+    async def close(self) -> None:
+        if self._task is not None:
+            self._task.cancel()
