@@ -26,7 +26,7 @@
 | 10% | contract analysis, rules only |
 | 10% | `GET /health/ready` |
 
-Questions are the 281 human eval questions. Each level ran 120 s after a 20 s warm-up.
+Questions are the 200 v1 eval questions. Each level ran 120 s after a 20 s warm-up.
 
 ## Results
 **No request failed: 3,163 requests, 0 errors.**

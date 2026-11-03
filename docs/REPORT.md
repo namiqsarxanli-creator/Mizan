@@ -15,7 +15,7 @@ before the data was scored.
 **Results:**
 
 - **Retrieval:** dense bge-m3 retrieval over article-level chunks reaches Recall@5 0.946 on
-  200 human questions.
+  200 curated questions.
 - **Answer correctness:** a single-shot RAG answerer is correct on 0.91 of 58 questions.
 - **Constitutional Court decisions:** with the Court's decisions in context, correctness on
   the questions they govern rises from 0.27 to 0.91.
@@ -23,7 +23,7 @@ before the data was scored.
   multi-hop sets, with pre-registered tests.
 - **Small local verifier:** a 2B-parameter model fine-tuned with LoRA keeps 98.4% of an API
   verifier's macro-F1 at 1/7 of the cost.
-- **Prompt-injection screen:** it blocks 98.2% of held-out attacks and none of 281 real
+- **Prompt-injection screen:** it blocks 98.2% of held-out attacks and none of 281 benign
   questions.
 
 **Negative results**, reported as such:
@@ -84,7 +84,9 @@ so a model can neither cite a provision it was not given nor put words in its mo
 
 ## 3. How things were measured
 1. **Datasets are versioned.**
-   - v0 has 70 questions; v1 has 200 human questions plus paraphrases.
+   - v0 has 70 questions; v1 has 200 questions plus paraphrases. Both are *silver*: an LLM
+     (Claude) wrote them from the article texts, and every label was checked mechanically
+     against the corpus on the question's date. No lawyer has reviewed them.
    - There are multi-hop sets, a red-team set and contract sets.
    - Each split was fixed by a hash before use.
 2. **Mechanical metrics come first:** Recall@k, MRR, verbatim-citation rate and correctness
@@ -100,7 +102,7 @@ so a model can neither cite a provision it was not given nor put words in its mo
 
 ## 4. Results
 ### 4.1 Retrieval ([F2](../evals/results/f2_retrieval/report.md), [v1](../evals/results/f3_retrieval_v1/report.md))
-| variant (article chunks, v1, 200 questions) | Hit@1 | Recall@5 | MRR@10 | p50 |
+| variant (article chunks, v1, 200 silver questions) | Hit@1 | Recall@5 | MRR@10 | p50 |
 |---|---|---|---|---|
 | BM25 (Azerbaijani analyser) | 0.530 | 0.722 | 0.632 | 6 ms |
 | **bge-m3 dense** | **0.832** | **0.946** | **0.894** | 167 ms |
@@ -158,7 +160,7 @@ for agricultural workers, and exceptions added on election day.
 
 ### 4.5 Fine-tuning ([F7 embed](../evals/results/f7_embed/README.md), [F7 rerank](../evals/results/f7_rerank/README.md), [F8](../evals/results/f8_verifier/README.md))
 **Embedder (negative).** Training on synthetic questions raised validation MRR from 0.726 to
-0.806. On the human set, Recall@5 rose by +0.4% against the pre-registered +8%. The base was
+0.806. On the curated eval set, Recall@5 rose by +0.4% against the pre-registered +8%. The base was
 already at 0.946, so that target was out of reach.
 
 **Reranker distillation (negative).** A 118M student kept 93% of the 568M teacher's MRR, against
@@ -189,7 +191,7 @@ finished activity without repeating paid LLM calls.
 
 **Tenancy and security ([F10 red team](../evals/results/f10_redteam/README.md)).**
 
-- The injection screen blocks 56/57 held-out attacks (98.2%), 0/281 real questions and 0/17
+- The injection screen blocks 56/57 held-out attacks (98.2%), 0/281 benign eval questions and 0/17
   hard benign items. It is pre-registered and runs in CI.
 - 20 attacks that passed the screen were sent straight to the model; it obeyed none of them.
 - The OWASP LLM Top 10 audit finds 8 risks controlled and 2 partial.
@@ -259,6 +261,13 @@ accuracy claim (ADR-0013, revised).
   and are reported with every number.
 - **Free-tier LLMs.** Free-tier limits shaped the evaluation schedule. The final contract runs
   used OpenRouter for the same open-weight model.
+- **Silver evaluation sets.** Every question set, v0, v1 and the multi-hop sets, was written
+  by an LLM and checked mechanically, not by lawyers or members of the public.
+  - Earlier phase reports call them "human" or "human-written" eval sets, as opposed to the
+    synthetic *training* questions of F7 and F8. That wording is inaccurate: "curated" is
+    right, "human" is not.
+  - The pre-registrations keep their original wording; the numbers are unaffected.
+  - Real user questions, from the quality log, are the missing test.
 - **Not legal advice.** The system is a research aid.
 
 ## 7. Reproducing

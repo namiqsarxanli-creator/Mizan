@@ -42,7 +42,7 @@ the linked reports.
 
 | area | result | |
 |---|---|---|
-| retrieval (200 human questions) | bge-m3 dense: Recall@5 **0.946**, MRR@10 0.894; hybrid, rerank and rewriting measured and off | [F2/F3](evals/results/f3_retrieval_v1/report.md) |
+| retrieval (200 silver questions) | bge-m3 dense: Recall@5 **0.946**, MRR@10 0.894; hybrid, rerank and rewriting measured and off | [F2/F3](evals/results/f3_retrieval_v1/report.md) |
 | answers (58 questions) | correct **0.914**; abstains on 4/4 out-of-scope; 0.84 of citations verbatim | [F3](evals/results/f3_generation/report.md) |
 | citation graph (multi-hop, pre-registered) | Recall@5 **+0.075** and **+0.117** on two sets | [F4](evals/results/f4_graph/) |
 | Constitutional Court decisions | correct 0.27 → **0.91** on the questions they govern | [F4](evals/results/f4_decisions/README.md) |
@@ -50,7 +50,7 @@ the linked reports.
 | fine-tuned embedder / distilled reranker | both gates missed ❌ | [F7](evals/results/f7_embed/README.md) |
 | local 2B verifier (LoRA) | **98.4%** of the API's macro-F1, 7.3x cheaper ✅ | [F8](evals/results/f8_verifier/README.md) |
 | semantic cache | 23.9% saved vs 25% target, ships off ❌ | [F9](evals/results/f9_cache/README.md) |
-| prompt-injection screen | **98.2%** of held-out attacks blocked, 0/281 real questions ✅ | [F10](evals/results/f10_redteam/README.md) |
+| prompt-injection screen | **98.2%** of held-out attacks blocked, 0/281 benign questions ✅ | [F10](evals/results/f10_redteam/README.md) |
 | contract analysis (3 held-out sets) | recall 0.28 / 0.50 / 0.61 vs 0.70; DoD not met ❌ | [F10](evals/results/f10_contracts/test3/README.md) |
 | load (1 process, CPU) | 0 errors; ~25 concurrent users; limit is query embedding (88 ms) | [F11](evals/results/f11_load/README.md) |
 
