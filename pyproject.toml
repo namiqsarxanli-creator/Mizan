@@ -87,6 +87,8 @@ allowed-confusables = ["ı", "–"]
 "evals/datasets/redteam/*.py" = ["E501", "RUF001"]
 # Contract text in Azerbaijani: a clause per string.
 "evals/datasets/contracts/*.py" = ["E501"]
+# The dataset card is Markdown prose and tables inside a Python string.
+"infra/hf/*.py" = ["E501"]
 "**/mizan_core/security.py" = ["E501", "RUF001"]
 "**/tests/test_security.py" = ["RUF001"]
 
