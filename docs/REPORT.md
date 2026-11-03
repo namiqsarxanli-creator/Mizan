@@ -235,7 +235,9 @@ accuracy claim (ADR-0013, revised).
 - Throughput plateaus at 11.4 req/s from 50 users. bge-m3 query embedding on CPU costs
   88 ms, or 11.4 per second.
 - Endpoints that embed nothing stay under 250 ms p99 at 100 users.
-- Batched embedding reaches 23 per second, so micro-batching is the cheapest next step.
+- Micro-batching the query embeddings (now on by default) holds throughput at about 10.5
+  req/s under 50–100 users, where unbatched throughput falls to 5.5–7. This is from a paired
+  A/B; machine-to-machine variance is large.
 
 ## 5. Lessons
 1. **Measure before adding a component.** Hybrid search, reranking, query rewriting, a

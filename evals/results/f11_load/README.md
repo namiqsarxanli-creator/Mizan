@@ -73,7 +73,7 @@ Total throughput: 3.9 req/s with 10 users, 11.4 with 50, and 11.4 with 100.
   allows a few `/v1/ask` per minute.
 
 ## What would raise the ceiling, in order of cost
-1. **Micro-batching query embeddings.** Collect requests for up to ~20 ms and embed them
+1. **Micro-batching query embeddings** (done; see the follow-up below). Collect requests for a few ms and embed them
    together: about 2x throughput on the same CPU, per the table above. It is a small change
    to `Searcher`, and the cheapest win.
 2. **A cache of query embeddings.** It already exists (`EmbeddingCache`) and helps only
@@ -87,3 +87,33 @@ Total throughput: 3.9 req/s with 10 users, 11.4 with 50, and 11.4 with 100.
    the LLM provider.
 
 Nothing here changes a quality metric. The test measures serving cost only.
+
+## Follow-up: micro-batching query embeddings (A/B)
+`QueryBatcher` (`mizan_retrieval.embeddings`) embeds concurrent queries together, waiting at
+most 10 ms for a batch.
+
+- **It changes nothing in retrieval.** Over 48 questions, cosine with the single-query
+  embedding was 1.000000 and the top-5 was identical.
+- **The comparison.** Both configurations ran back to back on an otherwise idle machine, with
+  the same harness ([`ab_unbatched`](ab_unbatched/), [`ab_batched`](ab_batched/)):
+
+| users | unbatched req/s | batched req/s | search p50 unbatched → batched | ask p95 unbatched → batched |
+|---|---|---|---|---|
+| 10 | 3.7 | 3.8 | 180 → 230 ms | 2.3 → 2.3 s |
+| 50 | 7.1 | **10.4** | 4.6 → 2.3 s | 11.0 → 6.8 s |
+| 100 | 5.5 | **10.7** | 14 → 7.0 s | 35 → 16 s |
+
+**Under load, batching keeps throughput from collapsing.** Unbatched, concurrent encodes fight
+for the same cores and throughput *falls* as users are added. Batched, it holds at about
+10.5 req/s. At low load it costs about 50 ms of median search latency: the wait for
+companions, plus a batch that is sometimes larger than one.
+
+**The machine itself varies a lot.** The unbatched configuration reached 11.4 req/s in the
+first run above and 7.1 in this one. Only the paired comparison is meaningful; repeat it on
+dedicated hardware before quoting absolute numbers.
+
+**Decision.** Batching is on by default (`MIZAN_RETRIEVAL__BATCH_QUERIES`). The capacity
+estimate stays at about 25 concurrent users per process. Batching stops the collapse beyond
+that point; it does not double the ceiling.
+
+A third run, made while other heavy jobs shared the machine, was discarded for that reason.

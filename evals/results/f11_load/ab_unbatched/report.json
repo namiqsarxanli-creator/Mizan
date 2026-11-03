@@ -1,0 +1,153 @@
+{
+ "duration_s": 120,
+ "llm_stub_ms": 1600.0,
+ "server": "1 uvicorn worker (as in the Docker image), stub LLM, compose stack",
+ "machine": {
+  "os": "Windows-11-10.0.26300-SP0",
+  "cpu_count": 16,
+  "python": "3.12.15"
+ },
+ "levels": {
+  "10": {
+   "ask": {
+    "requests": 130,
+    "failures": 0,
+    "rps": 1.1,
+    "p50_ms": 1900.0,
+    "p95_ms": 2300.0,
+    "p99_ms": 2600.0,
+    "max_ms": 2740.5046000203583
+   },
+   "contracts (rules)": {
+    "requests": 48,
+    "failures": 0,
+    "rps": 0.41,
+    "p50_ms": 16.0,
+    "p95_ms": 28.0,
+    "p99_ms": 28.0,
+    "max_ms": 27.982600004179403
+   },
+   "ready": {
+    "requests": 30,
+    "failures": 0,
+    "rps": 0.25,
+    "p50_ms": 14.0,
+    "p95_ms": 29.0,
+    "p99_ms": 37.0,
+    "max_ms": 36.60500000114553
+   },
+   "search": {
+    "requests": 228,
+    "failures": 0,
+    "rps": 1.92,
+    "p50_ms": 180.0,
+    "p95_ms": 690.0,
+    "p99_ms": 820.0,
+    "max_ms": 1052.1127999818418
+   },
+   "Aggregated": {
+    "requests": 436,
+    "failures": 0,
+    "rps": 3.68,
+    "p50_ms": 220.0,
+    "p95_ms": 2100.0,
+    "p99_ms": 2400.0,
+    "max_ms": 2740.5046000203583
+   }
+  },
+  "50": {
+   "ask": {
+    "requests": 257,
+    "failures": 0,
+    "rps": 2.16,
+    "p50_ms": 6400.0,
+    "p95_ms": 11000.0,
+    "p99_ms": 12000.0,
+    "max_ms": 13374.532899993937
+   },
+   "contracts (rules)": {
+    "requests": 76,
+    "failures": 0,
+    "rps": 0.64,
+    "p50_ms": 36.0,
+    "p95_ms": 85.0,
+    "p99_ms": 160.0,
+    "max_ms": 159.9798999959603
+   },
+   "ready": {
+    "requests": 92,
+    "failures": 0,
+    "rps": 0.77,
+    "p50_ms": 41.0,
+    "p95_ms": 160.0,
+    "p99_ms": 340.0,
+    "max_ms": 337.4654999934137
+   },
+   "search": {
+    "requests": 419,
+    "failures": 0,
+    "rps": 3.52,
+    "p50_ms": 4600.0,
+    "p95_ms": 9400.0,
+    "p99_ms": 11000.0,
+    "max_ms": 12023.111100017559
+   },
+   "Aggregated": {
+    "requests": 844,
+    "failures": 0,
+    "rps": 7.1,
+    "p50_ms": 4900.0,
+    "p95_ms": 10000.0,
+    "p99_ms": 12000.0,
+    "max_ms": 13374.532899993937
+   }
+  },
+  "100": {
+   "ask": {
+    "requests": 180,
+    "failures": 0,
+    "rps": 1.71,
+    "p50_ms": 16000.0,
+    "p95_ms": 35000.0,
+    "p99_ms": 38000.0,
+    "max_ms": 39056.24649999663
+   },
+   "contracts (rules)": {
+    "requests": 58,
+    "failures": 0,
+    "rps": 0.55,
+    "p50_ms": 35.0,
+    "p95_ms": 93.0,
+    "p99_ms": 120.0,
+    "max_ms": 122.90650000795722
+   },
+   "ready": {
+    "requests": 67,
+    "failures": 0,
+    "rps": 0.64,
+    "p50_ms": 41.0,
+    "p95_ms": 150.0,
+    "p99_ms": 220.0,
+    "max_ms": 221.92360000917688
+   },
+   "search": {
+    "requests": 278,
+    "failures": 0,
+    "rps": 2.64,
+    "p50_ms": 14000.0,
+    "p95_ms": 30000.0,
+    "p99_ms": 37000.0,
+    "max_ms": 45077.04720000038
+   },
+   "Aggregated": {
+    "requests": 583,
+    "failures": 0,
+    "rps": 5.53,
+    "p50_ms": 14000.0,
+    "p95_ms": 29000.0,
+    "p99_ms": 38000.0,
+    "max_ms": 45077.04720000038
+   }
+  }
+ }
+}
