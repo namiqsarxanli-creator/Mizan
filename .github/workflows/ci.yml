@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v5
         with:
           version: ${{ env.UV_VERSION }}
@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v5
         with:
           version: ${{ env.UV_VERSION }}
@@ -64,7 +64,7 @@ jobs:
     timeout-minutes: 15
     needs: [quality, test]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v5
         with:
           version: ${{ env.UV_VERSION }}
@@ -93,7 +93,7 @@ jobs:
       MIZAN_QDRANT__URL: http://127.0.0.1:16333
       HF_HUB_DISABLE_PROGRESS_BARS: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v5
         with:
           version: ${{ env.UV_VERSION }}
@@ -132,7 +132,7 @@ jobs:
       matrix:
         app: [api, worker]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
