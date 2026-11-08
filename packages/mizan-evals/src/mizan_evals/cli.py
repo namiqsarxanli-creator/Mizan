@@ -229,7 +229,7 @@ def _report(out: Path, records: Sequence[Record]) -> dict[str, object]:
     return summary
 
 
-def _label(out: Path, labeller: str, limit: int | None) -> int:
+def _label(out: Path, labeller: str, limit: int | None, web: bool = False) -> int:
     records = load_records(out / "records.jsonl")
     if not records:
         print("no records yet: run `mizan-eval run` first", file=sys.stderr)
@@ -243,6 +243,11 @@ def _label(out: Path, labeller: str, limit: int | None) -> int:
             )
         return cache[record.id]
 
+    if web:
+        from mizan_evals.label_web import serve
+
+        serve(records, out / "human_labels.jsonl", labeller=labeller, gold_text=gold)
+        return 0
     added = label_session(
         records, out / "human_labels.jsonl", labeller=labeller, gold_text=gold, limit=limit
     )
@@ -624,6 +629,7 @@ def main(argv: list[str] | None = None) -> int:
     p_label.add_argument("--out", type=Path, default=DEFAULT_OUT)
     p_label.add_argument("--labeller", required=True)
     p_label.add_argument("--limit", type=int)
+    p_label.add_argument("--web", action="store_true", help="label in the browser instead")
     p_kappa = sub.add_parser("kappa")
     p_kappa.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = parser.parse_args(argv)
@@ -690,7 +696,7 @@ def main(argv: list[str] | None = None) -> int:
         _report(args.out, list(load_records(args.out / "records.jsonl").values()))
         return 0
     if args.command == "label":
-        return _label(args.out, args.labeller, args.limit)
+        return _label(args.out, args.labeller, args.limit, args.web)
     return _kappa(args.out)
 
 
