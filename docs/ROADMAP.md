@@ -120,7 +120,7 @@ query rewriting statistik fayda vermir. Hamısı konfiqurasiya ilə açıla bili
 
 ---
 
-## F3 — Eval təməli (Həftə 6–7) ✅ (judge kalibrasiyası insan qiymətləndirməsini gözləyir)
+## F3 — Eval təməli (Həftə 6–7) ✅ (judge kalibrasiyası qismən: 10 insan işarəsi, 23 model işarəsi)
 
 **Məqsəd:** bundan sonrakı hər qərarı rəqəmlə əsaslandırmaq.
 
@@ -136,7 +136,7 @@ query rewriting statistik fayda vermir. Hamısı konfiqurasiya ilə açıla bili
 - [x] Bootstrap CI + **paired bootstrap** müqayisə
 - [x] **CI eval gate:** dondurulmuş korpus snapshot-u, cache-lənmiş model və embedding-lər; baseline-dan əhəmiyyətli düşüşdə PR bloklanır
 - [x] Gate nəticəsi CI job summary-də cədvəl kimi
-- [~] **Judge kalibrasiyası:** alət hazırdır (`mizan-eval label`, kor qiymətləndirmə, Cohen's κ); insan qiymətləri gözlənilir
+- [~] **Judge kalibrasiyası:** 10 insan işarəsi (hamısı düzgün, hakimlə 10/10; səhv nümunə olmadığı üçün κ təyin olunmur); ikinci model (Gemini) 23 cavabda hakimlə şans səviyyəsində razılaşır (κ −0.08, daha sərt). Hakimin 0.914-ü yumşaq ölçü kimi oxunmalıdır. Bax `evals/results/f3_generation/report.md`
 - [x] **ADR-0005:** Eval metodologiyası
 
 **✅ DoD:** `mizan-eval` tam hesabat verir ✅, CI gate işləyir ✅ (lokal və GitHub Actions-da), judge-insan uyğunluğu κ ≥ 0.6 ⏳.
@@ -333,12 +333,12 @@ dense `bge-m3`, reranker-siz (ADR-0009). Bax `evals/results/f7_rerank/README.md`
 ## F11 — Launch (Həftə 24)
 
 - [x] **AzLegalBench**: dataset Hugging Face-də dərc olundu (https://huggingface.co/datasets/NamiqKenan/azlegalbench; CC BY 4.0, dataset card, baseline nəticələr). Qeyd: suallar silver-dir (LLM yazıb, mexaniki yoxlanılıb), gold deyil
-- [ ] Fine-tuned modellər Hugging Face-də (model card-larla)
+- [—] Fine-tuned modellər Hugging Face-də: dərc edilmədi (F8 adapteri Colab runtime-da qaldı; embedder/reranker gate-dən keçmədi)
 - [x] **Load test** (Locust): 10 / 50 / 100 eyni vaxtda istifadəçi, p50 / p95 / p99 — 0 xəta; bir proses ~25 istifadəçiyə qədər rahatdır, darboğaz CPU-da bge-m3 sorğu embedding-idir (88 ms, ~11/s); micro-batching (default açıq) yük altında ötürməni ~10.5 sorğu/s-də saxlayır (batching-siz 5.5–7-yə düşür). Bax `evals/results/f11_load`
-- [ ] Production deploy + monitoring
+- [—] Production deploy: bilərəkdən edilmədi (layihə sahibinin qərarı); `docs/DEPLOY.md` hazırdır
 - [x] **Texniki hesabat** (`docs/REPORT.md`): metodologiya, bütün nəticələr, mənfi nəticələr və trade-off-lar
-- [ ] README: arxitektura diaqramı ✅, nəticə cədvəli ✅, demo GIF (demo video ilə birlikdə)
-- [ ] 3–5 dəqiqəlik demo video
+- [x] README: arxitektura diaqramı, nəticə cədvəli (demo GIF video ilə birlikdə çıxarıldı)
+- [—] Demo video: bilərəkdən edilmədi; ssenari `docs/DEMO.md`-dədir
 
 **✅ DoD:** Hər şey açıqdır, təkrarlana bilir və ölçülüb.
 

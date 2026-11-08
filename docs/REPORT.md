@@ -92,7 +92,7 @@ so a model can neither cite a provision it was not given nor put words in its mo
 2. **Mechanical metrics come first:** Recall@k, MRR, verbatim-citation rate and correctness
    against gold provisions.
 3. **An LLM judge is used only where needed,** from another model family. Calibration against
-   human labels (Cohen's κ) awaits labelling; judged numbers are marked uncalibrated.
+   human labels (Cohen's κ) is only partial (§6); judged numbers are marked uncalibrated.
 4. **Pre-registration.** When a decision rested on one comparison, the protocol, the metric
    and the threshold were committed before the test split was scored. Later deviations are
    documented in place (F4, F5, F8, F9, F10).
@@ -257,8 +257,14 @@ accuracy claim (ADR-0013, revised).
 ## 6. Limitations
 - **One law.** Only the Labour Code, with the Constitutional Court decisions that interpret
   it. Contract clauses governed by other laws can only be marked "risk".
-- **Uncalibrated judge.** Judge-based correctness is not yet calibrated against human labels
-  (κ pending). The labels are written by the author, not by lawyers.
+- **Uncalibrated judge** ([F3 calibration](../evals/results/f3_generation/report.md#judge-calibration-2026-11-08)).
+  - **Human labels.** One non-lawyer labelled 10 answers blind. All were correct and the judge
+    agreed on all 10, but with no incorrect answer κ is undefined.
+  - **A second model.** Gemini 2.5 Flash, from another family, agreed with the judge no better
+    than chance (κ −0.08, n = 23). It was much stricter about omitted conditions, and it was
+    wrong at least once.
+  - **Reading.** The judge's 0.914 correctness is a lenient score of the main conclusion, not a
+    lawyer's verdict.
 - **Small samples.** Several sets have 30–60 questions, so their confidence intervals are wide
   and are reported with every number.
 - **Free-tier LLMs.** Free-tier limits shaped the evaluation schedule. The final contract runs

@@ -29,3 +29,37 @@ Questions: 59 (failed: 1). Judge-based numbers are uncalibrated until `mizan-eva
 - `q120` (single) Kənd təsərrüfatında iş vaxtı və əmək haqqı necə tənzimlənir? — judge: The answer omitted the shareholding-based determination of wages, a condition that changes the legal conclusion.
 - `q154` (multi) İşə girəndə hansı sənədləri verməliyəm və müqavilədə nələr yazılmalıdır? — judge: The answer omitted the mandatory contract date requirement.
 - `q165` (temporal) Hamiləliyə və doğuşa görə məzuniyyət neçə gün idi? — judge: The answer omitted the longer maternity leave periods for agricultural workers, which changes the conclusion.
+
+## Judge calibration (2026-11-08)
+**Human.** One person, not a lawyer, labelled 10 answers blind
+([`human_labels.jsonl`](human_labels.jsonl), `mizan-eval label --web`). The labeller compared
+each answer with the gold provisions as shown.
+
+- All 10 were labelled correct, and the judge agrees on all 10.
+- With no incorrect answer in the sample, Cohen's κ is undefined: chance agreement is already
+  1. This is consistent with the judge but does not calibrate it.
+
+**A second model** ([`second_rater.py`](second_rater.py), [`second_rater.json`](second_rater.json)).
+`gemini-2.5-flash`, from another family than the judge (`gpt-oss-20b`), labelled answers blind,
+with the human's instructions. Its free daily quota ran out after **23 of 58**.
+
+| | n | agreement | κ |
+|---|---|---|---|
+| judge vs Gemini | 23 | 0.70 | **−0.08** |
+| Gemini vs human | 10 | 7/10 | – |
+| judge vs human | 10 | 10/10 | undefined |
+
+**What it means.**
+
+- **Gemini is much stricter.** It failed 6 answers the judge passed, nearly always for "a
+  condition that changes the conclusion is missing": extensions of an age limit, the absolute
+  time limit on sanctions, the grounds that trigger severance pay.
+- **At least one of its fails is wrong.** On q003 it held that redundancy might fall under the
+  exceptions of art. 79.2. Redundancy is art. 70 "b"; the exceptions are "a" and "e". The human
+  and the judge were right.
+- **Several of its points are fair.** On q042 the answer makes an employee liable for accidental
+  breakage that art. 201 excludes.
+- **The judge's 0.914 is best read as a lenient score.** It credits the main conclusion and
+  forgives omitted conditions. A stricter reader, model or lawyer, would score lower.
+- **The judge remains uncalibrated** in the sense this phase intended. That needs more human
+  labels, ideally a lawyer's, including incorrect answers.

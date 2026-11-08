@@ -1,0 +1,76 @@
+{
+ "model": "gemini-2.5-flash",
+ "judge": "openai/gpt-oss-20b",
+ "model_labelled": 23,
+ "of": 58,
+ "stopped_by": "Gemini free-tier daily quota (HTTP 429) after 23 items",
+ "judge_vs_model": {
+  "n": 23,
+  "observed": 0.696,
+  "expected": 0.718,
+  "kappa": -0.081,
+  "confusion": {
+   "correct": {
+    "correct": 16,
+    "incorrect": 6
+   },
+   "incorrect": {
+    "correct": 1,
+    "incorrect": 0
+   }
+  }
+ },
+ "judge_vs_human": {
+  "n": 10,
+  "observed": 1.0,
+  "note": "all 10 human labels are 'correct'; kappa undefined"
+ },
+ "model_vs_human": {
+  "n": 10,
+  "agree": 7
+ },
+ "disagreements_judge_vs_model": [
+  {
+   "id": "q003",
+   "judge": true,
+   "model": false,
+   "model_reason": "The answer states that dismissing a pregnant woman due to redundancy is forbidden, but Article 79.2 of the Labour Code specifies that the prohibition does not apply to terminations under Article 70, points 'a' and 'e', and without the full text of Article 70, it cannot be definitively concluded that redundancy is not covered by these exceptions."
+  },
+  {
+   "id": "q038",
+   "judge": true,
+   "model": false,
+   "model_reason": "The answer correctly lists several types of compensation, but it fails to mention that the severance pay (işdənçıxarma müavinəti) described in Article 77, paragraph 3, is only applicable when the employment contract is terminated under specific grounds (Article 70, paragraphs 'a' and 'b'), and it omits other potential compensations and guarantees mentioned in Article 77 for different termination grounds or in lieu of notice."
+  },
+  {
+   "id": "q039",
+   "judge": true,
+   "model": false,
+   "model_reason": "The answer correctly states the one-month period from discovery but omits crucial conditions that extend this period or set absolute limits from the date of the offense, as specified in the gold provisions."
+  },
+  {
+   "id": "q042",
+   "judge": true,
+   "model": false,
+   "model_reason": "The answer incorrectly states that an employee is liable for the actual damage (market value) in cases of accidental breakage, whereas Article 201(1) explicitly states that an employee is not materially liable for damage caused by the breakage or damage of equipment without the employee's fault."
+  },
+  {
+   "id": "q045",
+   "judge": true,
+   "model": false,
+   "model_reason": "The answer incorrectly states that a 'medical certificate of health' must be submitted, which is not mentioned in the provided gold provisions (Article 226)."
+  },
+  {
+   "id": "q049",
+   "judge": false,
+   "model": true,
+   "model_reason": "The answer accurately lists all types of work forbidden for minors as specified in Articles 250, 251, and 254 of the Labour Code of Azerbaijan, which are provided in the gold provisions and citations."
+  },
+  {
+   "id": "q075",
+   "judge": true,
+   "model": false,
+   "model_reason": "The answer correctly states the general age limit of 65, but it omits the conditions under which the working period can be extended beyond this age, as detailed in the gold provisions."
+  }
+ ]
+}
