@@ -8,6 +8,7 @@ continuously. See [docs/ROADMAP.md](docs/ROADMAP.md) for the full 24-week plan.
 
 > **Status:** F0–F10 done, F11 (launch) in progress. The technical report is
 > [docs/REPORT.md](docs/REPORT.md): methodology, every result, and the negative results.
+> The evaluation sets are published as [AzLegalBench](https://huggingface.co/datasets/NamiqKenan/azlegalbench) on Hugging Face.
 > Mizan is a research aid, not legal advice.
 
 ## Architecture

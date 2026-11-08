@@ -273,6 +273,8 @@ accuracy claim (ADR-0013, revised).
 - **Not legal advice.** The system is a research aid.
 
 ## 7. Reproducing
+- **Data:** every evaluation set is published as [AzLegalBench](https://huggingface.co/datasets/NamiqKenan/azlegalbench) (CC BY 4.0), with a
+  dataset card stating how each set was made.
 - **Stack:** `docker compose up -d`, then `uv sync`.
 - **Evaluations:** each result directory names the command that produced it, for example
   `mizan-eval run`, `mizan-graph gate`, `mizan-eval redteam --gate`, `mizan-eval contracts
