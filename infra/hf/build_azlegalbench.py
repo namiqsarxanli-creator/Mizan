@@ -1,5 +1,8 @@
 """Package AzLegalBench for the Hugging Face Hub (F11). Builds locally; uploads nothing.
 
+Files sit at the top level (no folders), so the package can also be uploaded through the Hub's
+web form, which drops folder paths.
+
     python infra/hf/build_azlegalbench.py            ->  dist/azlegalbench/
 
 The package holds the evaluation sets of this repository, unchanged, as JSON Lines, with a
@@ -54,7 +57,7 @@ def build() -> dict[str, int]:
     counts: dict[str, int] = {}
     for name, source, _ in JSONL:
         rows = _rows(DATA / source)
-        _write(OUT / "data" / f"{name}.jsonl", rows)
+        _write(OUT / f"{name}.jsonl", rows)
         counts[name] = len(rows)
     for name, folder, texts, _ in CONTRACT_SETS:
         base = DATA / folder
@@ -72,7 +75,7 @@ def build() -> dict[str, int]:
             }
             for p in sorted((base / texts).glob("*.txt"))
         ]
-        _write(OUT / "data" / f"{name}.jsonl", rows)
+        _write(OUT / f"{name}.jsonl", rows)
         counts[name] = len(rows)
     (OUT / "README.md").write_text(card(counts), encoding="utf-8")
     return counts
@@ -80,7 +83,7 @@ def build() -> dict[str, int]:
 
 def card(counts: dict[str, int]) -> str:
     configs = "\n".join(
-        f"  - config_name: {name}\n    data_files: data/{name}.jsonl"
+        f"  - config_name: {name}\n    data_files: {name}.jsonl"
         for name in [*(n for n, *_ in JSONL), *(n for n, *_ in CONTRACT_SETS)]
     )
     table = (
