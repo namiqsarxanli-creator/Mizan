@@ -69,12 +69,17 @@ packages/
   mizan-evals/         generation eval: LLM judge, blind human labelling, Cohen's kappa
   mizan-graph/         citation extraction, temporal knowledge graph (Neo4j), graph-aware search
   mizan-agents/        multi-agent research: planner, researchers, drafter, verifier, judge
+  mizan-contracts/     contract analysis: document reading and OCR, clauses, rules, LLM review
   mizan-train/         synthetic data, embedding / reranker / verifier fine-tuning, comparisons
 docs/
   adr/                 architecture decision records
+  REPORT.md            technical report: methodology, results, negative results
+  DEPLOY.md            deployment guide        DEMO.md   demo script
+  security/            OWASP LLM Top 10 audit
   ROADMAP.md
-evals/                 datasets (v0: 70, v1: 200 questions), corpus snapshot, baselines, results
-infra/                 observability stack config, GPU training bundle scripts
+evals/                 datasets (silver questions, multi-hop, red team, contracts), results per phase
+infra/                 observability config, GPU training scripts, load test (Locust),
+                       AzLegalBench packaging for the Hugging Face Hub
 compose.yaml           local stack: Postgres, Redis, Qdrant, Neo4j, migrate, worker, API
 ```
 

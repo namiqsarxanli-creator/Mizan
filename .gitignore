@@ -36,3 +36,6 @@ evals/results/f10_contracts/run.*
 evals/results/f10_contracts/test/run.*
 evals/results/f10_contracts/test2/run.*
 evals/results/f10_contracts/test3/run.*
+
+# Local browser-automation scratch
+.playwright-mcp/
