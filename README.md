@@ -14,25 +14,25 @@ continuously. See [docs/ROADMAP.md](docs/ROADMAP.md) for the full 24-week plan.
 
 ```mermaid
 flowchart LR
-    src[e-qanun.az] --> ing[Ingestion<br/>versioned, content-addressed]
-    ing --> pg[(Postgres<br/>versions, quality log, audit)]
-    ing --> qd[(Qdrant<br/>chunks with validity intervals)]
-    ing --> neo[(Neo4j<br/>citation graph, Court decisions)]
+    src["e-qanun.az"] --> ing["Ingestion: versioned, content-addressed"]
+    ing --> pg[("Postgres: versions, quality log, audit")]
+    ing --> qd[("Qdrant: chunks with validity intervals")]
+    ing --> neo[("Neo4j: citation graph, Court decisions")]
 
-    client(["client, MCP, /contracts page"]) --> api[FastAPI<br/>JWT, rate limit, budget, audit]
-    api --> screen[injection screen]
-    screen --> ret[retrieval<br/>bge-m3 dense, as_of filter<br/>+ graph slot + decisions]
+    client(["Client, MCP, contracts page"]) --> api["FastAPI: JWT, rate limit, budget, audit"]
+    api --> screen["Injection screen"]
+    screen --> ret["Retrieval: bge-m3 dense, as_of filter, graph slot, decisions"]
     ret --> qd
     ret --> neo
-    ret --> ask["/v1/ask<br/>single-shot answerer"]
-    ret --> agent["/v1/agent<br/>planner, researchers,<br/>drafter, verifier"]
-    ret --> con["/v1/contracts<br/>clauses, rules, LLM review"]
-    ask --> verify{verbatim quote<br/>verification}
+    ret --> ask["v1/ask: single-shot answerer"]
+    ret --> agent["v1/agent: planner, researchers, drafter, verifier"]
+    ret --> con["v1/contracts: clauses, rules, LLM review"]
+    ask --> verify{"Verbatim quote check"}
     agent --> verify
     con --> verify
-    agent -. optional .-> tmp[(Temporal<br/>durable runs)]
-    verify --> llm[LLM gateway<br/>Groq, failover to OpenRouter]
-    api --> otel[OpenTelemetry traces<br/>online eval, review queue]
+    agent -.-> tmp[("Temporal: durable runs")]
+    verify --> llm["LLM gateway: Groq, failover to OpenRouter"]
+    api --> otel["OpenTelemetry, online eval, review queue"]
 ```
 
 ## Results
