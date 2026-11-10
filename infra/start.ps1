@@ -1,5 +1,5 @@
 # Start the whole Mizan stack in Docker and open it in the browser.
-# Used by the PyCharm run configuration ".run/Mizan.run.xml"; also runnable on its own:
+# PowerShell equivalent of run_mizan.py:
 #   powershell -ExecutionPolicy Bypass -File infra/start.ps1
 # Needs Docker Desktop running. The first start builds the images and downloads the embedding
 # model (about 2 GB) into a Docker volume, so it takes several minutes; later starts are quick.

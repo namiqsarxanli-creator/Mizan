@@ -4,10 +4,9 @@ A screen recording with voice-over. Each scene lists what to show, what to say a
 command or input. Record at 1920×1080 with the terminal font at 16 pt or larger. Keep the
 stack running before recording, so models are loaded.
 
-Prerequisites: a Groq key in `.env` and Docker Desktop running. In PyCharm, run the shared
-**Mizan** configuration (`.run/Mizan.run.xml`), or run `powershell -ExecutionPolicy Bypass -File
-infra/start.ps1`: it starts the stack, waits for the API on `http://127.0.0.1:18000` and opens
-`/contracts` and `/docs`. The first start downloads the embedding model (about 2 GB).
+Prerequisites: a Groq key in `.env` and Docker Desktop running. Run `run_mizan.py` (in PyCharm: right-click,
+Run; it needs only the standard library, so any Python 3 works): it starts the stack, waits for
+the API on `http://127.0.0.1:18000` and opens `/contracts` and `/docs`. The first start downloads the embedding model (about 2 GB).
 
 ## 1. The problem (0:00–0:30)
 **Show:** the README title and the architecture diagram.

@@ -91,6 +91,7 @@ Requirements: [uv](https://docs.astral.sh/uv/), Docker.
 ```bash
 cp .env.example .env
 docker compose up -d --build        # full stack, API on http://127.0.0.1:18000
+python run_mizan.py                 # or: start the stack, wait until ready, open the browser
 curl http://127.0.0.1:18000/health/ready
 ```
 
