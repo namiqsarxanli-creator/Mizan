@@ -12,6 +12,7 @@ dependencies = [
     "mizan-contracts",
     "httpx>=0.28",
     "mizan-core",
+    "mizan-evals",
     "mizan-graph",
     "mizan-ingestion",
     "mizan-retrieval",
@@ -32,6 +33,7 @@ mizan-token = "mizan_api.auth:main"
 mizan-agents = { workspace = true }
 mizan-contracts = { workspace = true }
 mizan-core = { workspace = true }
+mizan-evals = { workspace = true }
 mizan-graph = { workspace = true }
 mizan-ingestion = { workspace = true }
 mizan-retrieval = { workspace = true }

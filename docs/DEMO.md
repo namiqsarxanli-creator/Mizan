@@ -4,8 +4,10 @@ A screen recording with voice-over. Each scene lists what to show, what to say a
 command or input. Record at 1920×1080 with the terminal font at 16 pt or larger. Keep the
 stack running before recording, so models are loaded.
 
-Prerequisites: `docker compose up -d`, the API on `http://127.0.0.1:18000`, and a Groq key in
-`.env`.
+Prerequisites: a Groq key in `.env` and Docker Desktop running. In PyCharm, run the shared
+**Mizan** configuration (`.run/Mizan.run.xml`), or run `powershell -ExecutionPolicy Bypass -File
+infra/start.ps1`: it starts the stack, waits for the API on `http://127.0.0.1:18000` and opens
+`/contracts` and `/docs`. The first start downloads the embedding model (about 2 GB).
 
 ## 1. The problem (0:00–0:30)
 **Show:** the README title and the architecture diagram.
@@ -18,10 +20,12 @@ quote is checked by code, not by trust."
 **Run:**
 ```bash
 curl -s -X POST http://127.0.0.1:18000/v1/ask -H 'content-type: application/json' \
-  -d '{"question": "İşdən çıxmaq istəyirəm, işəgötürənə neçə gün əvvəl xəbər verməliyəm?"}' | jq
+  -d '{"question": "Hamilə işçini ixtisar etmək olarmı?"}' | jq
 ```
+Or ask it from the browser: `/docs`, then `POST /v1/ask`, "Try it out".
+
 **Point at:** the answer; `citations[].quote` (the statute's own words); the article key
-`art:69/part:1`.
+`art:79`.
 
 **Say:** "A quote that does not occur in the article is dropped. The model cannot invent a
 citation."

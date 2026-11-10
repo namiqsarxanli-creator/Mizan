@@ -32,6 +32,7 @@ COPY packages/mizan-retrieval packages/mizan-retrieval
 COPY packages/mizan-graph packages/mizan-graph
 COPY packages/mizan-agents packages/mizan-agents
 COPY packages/mizan-contracts packages/mizan-contracts
+COPY packages/mizan-evals packages/mizan-evals
 COPY apps/api apps/api
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-editable --package mizan-api
