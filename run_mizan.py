@@ -62,11 +62,11 @@ def main() -> int:
         print()
 
     print("Mizan is ready.")
+    print(f"  Ask a question:  {BASE}/")
     print(f"  Contract check:  {BASE}/contracts")
-    print(f"  Ask a question:  {BASE}/docs  (POST /v1/ask -> Try it out)")
+    print(f"  API reference:   {BASE}/docs")
     print("Stop it with:  docker compose stop api")
-    webbrowser.open(f"{BASE}/contracts")
-    webbrowser.open(f"{BASE}/docs")
+    webbrowser.open(f"{BASE}/")
     return 0
 
 

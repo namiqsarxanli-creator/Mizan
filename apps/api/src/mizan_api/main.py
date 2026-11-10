@@ -23,6 +23,7 @@ from mizan_api.routes import feedback as feedback_routes
 from mizan_api.routes import health
 from mizan_api.routes import law as law_routes
 from mizan_api.routes import legal as legal_routes
+from mizan_api.routes import pages as page_routes
 from mizan_api.routes import reviews as review_routes
 from mizan_core.config import Settings, get_settings
 from mizan_core.health import DependencyCheck
@@ -107,6 +108,7 @@ def create_app(
     app.include_router(feedback_routes.router)
     app.include_router(review_routes.router)
     app.include_router(contract_routes.router)
+    app.include_router(page_routes.router)
 
     # Wraps the whole middleware stack, so every request (including TraceIdHeaderMiddleware)
     # runs inside a server span.

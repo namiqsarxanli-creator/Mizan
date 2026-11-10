@@ -6,7 +6,7 @@ stack running before recording, so models are loaded.
 
 Prerequisites: a Groq key in `.env` and Docker Desktop running. Run `run_mizan.py` (in PyCharm: right-click,
 Run; it needs only the standard library, so any Python 3 works): it starts the stack, waits for
-the API on `http://127.0.0.1:18000` and opens `/contracts` and `/docs`. The first start downloads the embedding model (about 2 GB).
+the API on `http://127.0.0.1:18000` and opens the question page at `/`. The first start downloads the embedding model (about 2 GB).
 
 ## 1. The problem (0:00–0:30)
 **Show:** the README title and the architecture diagram.
@@ -21,7 +21,7 @@ quote is checked by code, not by trust."
 curl -s -X POST http://127.0.0.1:18000/v1/ask -H 'content-type: application/json' \
   -d '{"question": "Hamilə işçini ixtisar etmək olarmı?"}' | jq
 ```
-Or ask it from the browser: `/docs`, then `POST /v1/ask`, "Try it out".
+Or ask it on the question page at `http://127.0.0.1:18000/` (example questions are one click).
 
 **Point at:** the answer; `citations[].quote` (the statute's own words); the article key
 `art:79`.

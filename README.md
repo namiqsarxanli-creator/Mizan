@@ -313,7 +313,7 @@ See [ADR-0012](docs/adr/0012-tenancy-and-access.md).
 
 See [ADR-0013](docs/adr/0013-contract-analysis.md).
 
-Upload an employment contract at `http://127.0.0.1:18000/contracts` (or
+Ask questions in the browser at `http://127.0.0.1:18000/`. Upload an employment contract at `http://127.0.0.1:18000/contracts` (or
 `POST /v1/contracts/analyze`, multipart `file`). The report lists every clause as OK, risk,
 violation or suspicious instruction, with the article and a verified quote of the law.
 

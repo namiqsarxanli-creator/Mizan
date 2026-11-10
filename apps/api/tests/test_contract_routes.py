@@ -125,3 +125,13 @@ def test_ocr_tokens_are_charged_to_the_tenant() -> None:
     assert response.status_code == 200
     assert response.json()["tokens"] == 940
     assert budget.calls == [("check", "public"), ("charge", 940)]
+
+
+def test_question_page_is_served_at_root_and_renders_text_only() -> None:
+    with _client() as client:
+        page = client.get("/")
+    assert page.status_code == 200
+    assert "/v1/ask" in page.text
+    assert "/contracts" in page.text
+    assert "hüquqi məsləhət deyil" in page.text
+    assert "innerHTML" not in page.text.replace("never innerHTML", "")

@@ -8,13 +8,13 @@
   :root {
     --bg: #f7f7f5; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e3e2dd;
     --ok: #2f7d4a; --ok-bg: #eaf5ee; --risk: #9a6700; --risk-bg: #fdf4e0;
-    --bad: #b42318; --bad-bg: #fdecea; --inj: #6941c6; --inj-bg: #f2edfc; --accent: #1f4e8c;
+    --bad: #b42318; --bad-bg: #fdecea; --inj: #6941c6; --inj-bg: #f2edfc; --accent: #1f4e8c; --on-accent: #ffffff;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #161615; --panel: #1f1f1d; --text: #ececea; --muted: #a3a39d; --line: #34342f;
       --ok: #6fcf8e; --ok-bg: #1b2d21; --risk: #f0b54a; --risk-bg: #2f2615;
-      --bad: #f1857a; --bad-bg: #351c19; --inj: #b49cf5; --inj-bg: #251d38; --accent: #8db4ea;
+      --bad: #f1857a; --bad-bg: #351c19; --inj: #b49cf5; --inj-bg: #251d38; --accent: #8db4ea; --on-accent: #10233d;
     }
   }
   * { box-sizing: border-box; }
@@ -35,7 +35,7 @@
   .row > * { flex: 1 1 200px; }
   .check { display: flex; gap: 8px; align-items: center; font-weight: 400; }
   button { font: inherit; font-weight: 600; padding: 10px 16px; border: 0; border-radius: 6px;
-           background: var(--accent); color: #fff; cursor: pointer; justify-self: start; }
+           background: var(--accent); color: var(--on-accent); cursor: pointer; justify-self: start; }
   button:disabled { opacity: .6; cursor: wait; }
   #status { color: var(--muted); min-height: 1.5em; }
   #status.error { color: var(--bad); }
@@ -65,10 +65,20 @@
   .finding blockquote { margin: 6px 0 0; padding: 4px 10px; border-left: 3px solid var(--line);
                         color: var(--muted); }
   .origin { color: var(--muted); font-size: 12px; }
+  nav { display: flex; gap: 16px; align-items: baseline; margin-bottom: 20px; flex-wrap: wrap; }
+  nav .brand { font-weight: 800; font-size: 20px; margin-right: auto; }
+  nav a { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; }
+  nav a[aria-current] { color: var(--text); }
 </style>
 </head>
 <body>
 <main>
+  <nav>
+    <span class="brand">Mizan</span>
+    <a href="/">Sual ver</a>
+    <a href="/contracts" aria-current="page">Müqavilə yoxlaması</a>
+    <a href="/docs">API</a>
+  </nav>
   <h1>Əmək müqaviləsinin yoxlanması</h1>
   <p class="sub">Müqaviləni yükləyin: hər bənd Azərbaycan Respublikasının Əmək Məcəlləsi ilə müqayisə edilir.</p>
   <div class="disclaimer" id="disclaimer">

@@ -35,8 +35,8 @@ while ($true) {
 }
 
 Write-Host "Mizan is ready."
+Write-Host "  Ask a question: $base/"
 Write-Host "  Contract check: $base/contracts"
-Write-Host "  API (ask questions from the browser): $base/docs"
-Start-Process "$base/contracts"
-Start-Process "$base/docs"
+Write-Host "  API reference:  $base/docs"
+Start-Process "$base/"
 Write-Host "Stop with: docker compose stop api"

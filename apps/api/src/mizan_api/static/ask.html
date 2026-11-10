@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mizan · Hüquqi sual</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e3e2dd;
+    --ok: #2f7d4a; --ok-bg: #eaf5ee; --risk: #9a6700; --risk-bg: #fdf4e0;
+    --bad: #b42318; --accent: #1f4e8c; --on-accent: #ffffff; --accent-bg: #e8eef7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161615; --panel: #1f1f1d; --text: #ececea; --muted: #a3a39d; --line: #34342f;
+      --ok: #6fcf8e; --ok-bg: #1b2d21; --risk: #f0b54a; --risk-bg: #2f2615;
+      --bad: #f1857a; --accent: #8db4ea; --on-accent: #10233d; --accent-bg: #1c2633;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
+  nav { display: flex; gap: 16px; align-items: baseline; margin-bottom: 20px; flex-wrap: wrap; }
+  nav .brand { font-weight: 800; font-size: 20px; margin-right: auto; }
+  nav a { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; }
+  nav a[aria-current] { color: var(--text); }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  form { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+         padding: 16px; display: grid; gap: 12px; }
+  label { display: grid; gap: 4px; font-weight: 600; font-size: 14px; }
+  textarea, input[type=date], input[type=password] {
+    font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--bg); color: var(--text); width: 100%; }
+  textarea { min-height: 84px; resize: vertical; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; }
+  .row > * { flex: 1 1 200px; }
+  .examples { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 999px; cursor: pointer;
+          border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  .chip:hover { border-color: var(--accent); }
+  button.primary { font: inherit; font-weight: 600; padding: 10px 18px; border: 0; border-radius: 6px;
+                   background: var(--accent); color: var(--on-accent); cursor: pointer; justify-self: start; }
+  button.primary:disabled { opacity: .6; cursor: wait; }
+  #status { color: var(--muted); min-height: 1.5em; }
+  #status.error { color: var(--bad); }
+  .answer { background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--accent);
+            border-radius: 10px; padding: 16px 18px; margin-top: 20px; }
+  .answer.refused { border-left-color: var(--risk); }
+  .answer p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 10px; }
+  h2 { font-size: 16px; margin: 22px 0 8px; }
+  .cite { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+          padding: 10px 14px; margin-bottom: 8px; }
+  .cite .title { font-weight: 600; }
+  .cite blockquote { margin: 6px 0 0; padding: 4px 10px; border-left: 3px solid var(--ok);
+                     background: var(--ok-bg); border-radius: 0 4px 4px 0; overflow-wrap: anywhere; }
+  .verified { color: var(--ok); font-size: 12px; font-weight: 700; }
+  details { margin-top: 8px; }
+  summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+  .source { border-top: 1px dashed var(--line); padding: 8px 0; font-size: 14px; }
+  .source .text { color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .feedback { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 14px; }
+  .feedback button { font: inherit; padding: 4px 10px; border-radius: 6px; cursor: pointer;
+                     border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  .disclaimer { color: var(--muted); font-size: 13px; margin-top: 24px; }
+</style>
+</head>
+<body>
+<main>
+  <nav>
+    <span class="brand">Mizan</span>
+    <a href="/" aria-current="page">Sual ver</a>
+    <a href="/contracts">Müqavilə yoxlaması</a>
+    <a href="/docs">API</a>
+  </nav>
+  <h1>Əmək hüququ üzrə sual</h1>
+  <p class="sub">Sualınızı adi dildə yazın. Cavab Əmək Məcəlləsinin seçilmiş tarixdə qüvvədə olan
+    mətnindən hazırlanır və hər sitat maddənin mətni ilə kodla yoxlanılır.</p>
+  <form id="form">
+    <label for="question">Sual</label>
+    <textarea id="question" required minlength="3" maxlength="1000"
+      placeholder="Məsələn: Hamilə işçini ixtisar etmək olarmı?"></textarea>
+    <div class="examples" id="examples"></div>
+    <div class="row">
+      <label>Tarix (boş: bu gün)
+        <input type="date" id="as_of">
+      </label>
+      <label>Giriş tokeni (auth aktivdirsə)
+        <input type="password" id="token" autocomplete="off" placeholder="Bearer token">
+      </label>
+    </div>
+    <button class="primary" type="submit" id="submit">Soruş</button>
+    <div id="status" role="status" aria-live="polite"></div>
+  </form>
+  <section id="result" hidden>
+    <div class="answer" id="answer"><p id="answer-text"></p><div class="meta" id="meta"></div>
+      <div class="feedback" id="feedback" hidden>
+        <span>Cavab faydalı oldu?</span>
+        <button type="button" data-rating="1">👍</button>
+        <button type="button" data-rating="-1">👎</button>
+        <span id="feedback-status"></span>
+      </div>
+    </div>
+    <h2 id="cites-title">Sitatlar</h2>
+    <div id="cites"></div>
+    <details id="sources-box">
+      <summary>Axtarışda tapılan maddələr</summary>
+      <div id="sources"></div>
+    </details>
+  </section>
+  <p class="disclaimer" id="disclaimer">Bu cavab hüquqi məsləhət deyil. Qərar verməzdən əvvəl
+    hüquqşünasa müraciət edin.</p>
+</main>
+<script>
+(() => {
+  const EXAMPLES = [
+    "Hamilə işçini ixtisar etmək olarmı?",
+    "Sınaq müddəti ən çoxu neçə ay ola bilər?",
+    "İllik əsas məzuniyyət neçə gündür?",
+    "Gecə işinə kimləri cəlb etmək olmaz?",
+  ];
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text !== undefined) node.textContent = text;  // never innerHTML: the text is untrusted
+    return node;
+  };
+  const article = (key) => {
+    const m = /^art:([^/]+)(?:\/part:(.+))?$/.exec(key);
+    if (!m) return key;
+    return "Maddə " + m[1] + (m[2] ? ", hissə " + m[2] : "");
+  };
+  // The title already names the article ("Maddə 79. ..."); add only the part, if any.
+  const heading = (key, title) => {
+    if (!title) return article(key);
+    const part = /\/part:(.+)$/.exec(key);
+    return title + (part ? " (hissə " + part[1] + ")" : "");
+  };
+  try { $("token").value = sessionStorage.getItem("mizan-token") || ""; } catch (_) {}
+  for (const q of EXAMPLES) {
+    const chip = el("button", "chip", q);
+    chip.type = "button";
+    chip.addEventListener("click", () => { $("question").value = q; $("question").focus(); });
+    $("examples").append(chip);
+  }
+  const headers = () => {
+    const h = { "Content-Type": "application/json" };
+    const token = $("token").value.trim();
+    if (token) h["Authorization"] = "Bearer " + token;
+    try { sessionStorage.setItem("mizan-token", token); } catch (_) {}
+    return h;
+  };
+  const errorText = (res, data) => {
+    if (res.status === 401) return "Giriş tokeni tələb olunur və ya etibarsızdır.";
+    if (res.status === 429) return "Limit dolub, bir az sonra yenidən cəhd edin.";
+    if (res.status === 503) return "Cavab xidməti əlçatan deyil (LLM açarı .env-də varmı?).";
+    if (typeof data.detail === "string") return data.detail;
+    return "HTTP " + res.status;
+  };
+
+  let answerId = null;
+  function render(data) {
+    $("result").hidden = false;
+    $("answer").className = "answer" + (data.refused ? " refused" : "");
+    $("answer-text").textContent = data.answer;
+    const meta = ["Tarix: " + data.as_of];
+    if (data.refused) meta.push("Sənədlərdə kifayət qədər əsas tapılmadı: sistem cavab uydurmur.");
+    if (data.rejected_citations) meta.push(data.rejected_citations + " sitat maddə mətnində tapılmadığı üçün atıldı.");
+    if (data.cached) meta.push("Keşdən.");
+    $("meta").textContent = meta.join(" · ");
+    answerId = data.answer_id || null;
+    $("feedback").hidden = !answerId;
+    $("feedback-status").textContent = "";
+
+    const cites = $("cites");
+    cites.replaceChildren();
+    $("cites-title").hidden = data.citations.length === 0;
+    for (const c of data.citations) {
+      const card = el("div", "cite");
+      card.append(el("div", "title", heading(c.key, c.title)));
+      card.append(el("blockquote", "", "«" + c.quote + "»"));
+      card.append(el("div", "verified", "✓ sitat maddənin mətnində hərfi-hərfinə tapıldı"));
+      cites.append(card);
+    }
+    const sources = $("sources");
+    sources.replaceChildren();
+    $("sources-box").hidden = data.sources.length === 0;
+    for (const s of data.sources) {
+      const div = el("div", "source");
+      div.append(el("div", "title", heading(s.key, s.title) + " · qüvvədədir: " + s.in_force_since));
+      div.append(el("div", "text", s.text.length > 600 ? s.text.slice(0, 600) + "…" : s.text));
+      sources.append(div);
+    }
+    if (data.disclaimer) $("disclaimer").textContent = data.disclaimer;
+  }
+
+  $("form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = $("status");
+    const body = { question: $("question").value.trim() };
+    if ($("as_of").value) body.as_of = $("as_of").value;
+    status.className = ""; status.textContent = "Axtarılır və cavab hazırlanır…";
+    $("submit").disabled = true;
+    try {
+      const res = await fetch("/v1/ask", { method: "POST", body: JSON.stringify(body), headers: headers() });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(errorText(res, data));
+      status.textContent = "";
+      render(data);
+    } catch (err) {
+      status.className = "error"; status.textContent = "Xəta: " + err.message;
+    } finally {
+      $("submit").disabled = false;
+    }
+  });
+
+  for (const button of document.querySelectorAll("#feedback button")) {
+    button.addEventListener("click", async () => {
+      if (!answerId) return;
+      const out = $("feedback-status");
+      try {
+        const res = await fetch("/v1/feedback", { method: "POST", headers: headers(),
+          body: JSON.stringify({ answer_id: answerId, rating: Number(button.dataset.rating) }) });
+        out.textContent = res.ok ? "Təşəkkürlər, qeyd edildi." : "Qeyd edilmədi (HTTP " + res.status + ").";
+      } catch (_) {
+        out.textContent = "Qeyd edilmədi.";
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>
