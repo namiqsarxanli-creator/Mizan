@@ -342,6 +342,13 @@ dense `bge-m3`, reranker-siz (ADR-0009). Bax `evals/results/f7_rerank/README.md`
 
 **✅ DoD:** Hər şey açıqdır, təkrarlana bilir və ölçülüb.
 
+### F12 — Layihədən sonrakı təkmilləşdirmələr
+- [x] **Gündəlik dildə suallar:** başqa model ailəsinin (Gemini) yazdığı 60 sualdan ibarət held-out dəst, əvvəlcədən qeydə alınmış protokol. Rewrite yenə qazanc vermədi (söndürülmüş qalır). Sualda adı çəkilən maddə ("69-cu maddə") artıq birinci gəlir. Bax `evals/results/f12_colloquial`
+- [x] **Veb səhifələr:**
+  - sual səhifəsi (`/`): yoxlanılmış sitatlar, maddənin tam mətni, cavab gözlənilərkən tapılan maddələr;
+  - qanunun dəyişməsi (`/changes`);
+  - `run_mizan.py` ilə bir kliklə işə salma.
+
 ---
 
 ## 🎯 Hədəf metriklər (yekun)

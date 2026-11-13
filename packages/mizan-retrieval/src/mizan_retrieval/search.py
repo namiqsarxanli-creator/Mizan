@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import re
 from collections.abc import Collection, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from enum import StrEnum
 from typing import Protocol
@@ -43,6 +43,8 @@ class SearchConfig:
     rerank_top: int = 0  # 0 = no reranking
     # Eval-only marker: the query was expanded by an LLM rewrite before searching.
     rewrite: bool = False
+    # Articles named in the question ("69-cu maddə") come first (F12).
+    refs: bool = False
 
     @property
     def label(self) -> str:
@@ -53,7 +55,8 @@ class SearchConfig:
         }[self.mode]
         rerank = f" + rerank@{self.rerank_top}" if self.rerank_top else ""
         rewrite = " + rewrite" if self.rewrite else ""
-        return f"{' '.join(parts)}{rerank}{rewrite} ({self.strategy.value} chunks)"
+        refs = " + refs" if self.refs else ""
+        return f"{' '.join(parts)}{rerank}{rewrite}{refs} ({self.strategy.value} chunks)"
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,6 +95,25 @@ def temporal_filter(source_id: int, on: date, *extra: models.Condition) -> model
     )
 
 
+# "69-cu maddə", "17-1-ci maddəsi", "70 saylı maddə", and "maddə 69" / "Maddə 17-1".
+_SUFFIX = r"(?:-?\s*(?:[ıiuü]?nc[ıiuü]|c[ıiuü])|\s+saylı)"
+_REF_BEFORE = re.compile(rf"(?<![\d.])(\d{{1,3}}(?:-\d{{1,2}})?){_SUFFIX}\s+maddə", re.IGNORECASE)
+_REF_AFTER = re.compile(r"\bmaddə(?:si|nin)?\s+(\d{1,3}(?:-\d{1,2})?)(?![\d.-])", re.IGNORECASE)
+PINNED_PER_REF = 3
+
+
+def article_refs(query: str) -> list[str]:
+    """Article keys the query names explicitly, in order of first mention."""
+    found = [(m.start(), m.group(1)) for m in _REF_BEFORE.finditer(query)]
+    found += [(m.start(), m.group(1)) for m in _REF_AFTER.finditer(query)]
+    keys: list[str] = []
+    for _, number in sorted(found):
+        key = f"art:{number}"
+        if key not in keys:
+            keys.append(key)
+    return keys
+
+
 class Searcher:
     def __init__(
         self,
@@ -118,6 +140,22 @@ class Searcher:
         only_articles: Collection[str] | None = None,
     ) -> list[Hit]:
         """Rank chunks valid on ``as_of``; ``only_articles`` restricts ranking to those articles."""
+        if config.refs and only_articles is None and (refs := article_refs(query)):
+            plain = replace(config, refs=False)
+            # A named article must not depend on wording similarity: its best-matching
+            # provisions go first (an article not in force on ``as_of`` simply yields nothing).
+            pinned = await self.search(
+                query,
+                source_id=source_id,
+                as_of=as_of,
+                config=plain,
+                k=PINNED_PER_REF * len(refs),
+                only_articles=refs,
+            )
+            pinned = pinned[: max(1, k // 2)]
+            rest = await self.search(query, source_id=source_id, as_of=as_of, config=plain, k=k)
+            seen = {h.key for h in pinned}
+            return (pinned + [h for h in rest if h.key not in seen])[:k]
         extra = (
             [
                 models.FieldCondition(

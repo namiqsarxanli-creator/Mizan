@@ -15,7 +15,7 @@ from mizan_retrieval.analysis import Analyzer
 from mizan_retrieval.corpus import OPEN_END, ChunkRecord
 from mizan_retrieval.embeddings import Embedder, ModelSpec, Vector
 from mizan_retrieval.index import alias_for, build_index
-from mizan_retrieval.search import Mode, SearchConfig, Searcher
+from mizan_retrieval.search import Mode, SearchConfig, Searcher, article_refs
 
 DIM = 64
 
@@ -118,3 +118,43 @@ async def test_rebuild_swaps_alias_and_drops_old_collection(client: AsyncQdrantC
     assert aliases[alias_for(Strategy.ARTICLE)] == second
     assert first not in collections
     assert (await client.count(alias_for(Strategy.ARTICLE))).count == len(RECORDS)
+
+
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        ("Əmək Məcəlləsinin 69-cu maddəsi nə barədədir?", ["art:69"]),
+        ("70-ci maddədə hansı əsaslar var", ["art:70"]),
+        ("17-1-ci maddə", ["art:17-1"]),
+        ("Maddə 17-1 nəyi tələb edir?", ["art:17-1"]),
+        ("70 saylı maddə", ["art:70"]),
+        ("maddə 77 və 69-cu maddə", ["art:77", "art:69"]),
+        ("100-cü maddə və 100-cü maddənin 2-ci hissəsi", ["art:100"]),
+        ("Sınaq müddəti 3 aydır, 2-ci hissə", []),
+    ],
+)
+def test_article_refs(query: str, expected: list[str]) -> None:
+    assert article_refs(query) == expected
+
+
+async def test_a_named_article_comes_first_even_when_the_wording_matches_another(
+    searcher: Searcher,
+) -> None:
+    query = "51-ci maddə: əmək haqqı ayda neçə dəfə verilir?"  # words match Art. 172
+    on = date(2026, 1, 1)
+    plain = SearchConfig(mode=Mode.DENSE, dense_model="fake")
+    hits = await searcher.search(query, source_id=46943, as_of=on, config=plain, k=3)
+    assert hits[0].article_key == "art:172"
+    pinned = SearchConfig(mode=Mode.DENSE, dense_model="fake", refs=True)
+    hits = await searcher.search(query, source_id=46943, as_of=on, config=pinned, k=3)
+    assert hits[0].article_key == "art:51"
+    assert "art:172" in [h.article_key for h in hits]
+    assert len({h.key for h in hits}) == len(hits)
+
+
+async def test_a_named_article_not_in_force_pins_nothing(searcher: Searcher) -> None:
+    config = SearchConfig(mode=Mode.DENSE, dense_model="fake", refs=True)
+    hits = await searcher.search(
+        "999-cu maddə sınaq müddəti", source_id=46943, as_of=date(2026, 1, 1), config=config, k=3
+    )
+    assert hits[0].article_key == "art:51"

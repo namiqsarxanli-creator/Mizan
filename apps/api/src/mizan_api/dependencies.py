@@ -309,6 +309,7 @@ def search_config(settings: Settings) -> SearchConfig:
         strategy=Strategy(r.strategy),
         candidates=r.candidates,
         rerank_top=r.rerank_top,
+        refs=r.article_refs,
     )
 
 

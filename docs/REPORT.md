@@ -116,6 +116,18 @@ so a model can neither cite a provision it was not given nor put words in its mo
 - **The remaining misses** are colloquial questions ("Müdir məni səbəbsiz işdən çıxara
   bilərmi?") and questions about the Code itself ("what is article 69 about?").
 
+**F12 follow-up ([results](../evals/results/f12_colloquial/README.md)).** A held-out set of 60
+everyday-language questions was written by another model family (`gemini-2.5-flash`), frozen,
+and used once under a pre-registered protocol.
+- The served dense search finds the article in the top five for 93% of them (v1: 95%): the
+  colloquial gap is real but small.
+- Rewriting was tested again, as expansion and as multi-query fusion. Neither gained (−0.033 and
+  +0.000 Recall@5), so it stays off.
+- Questions that name an article ("69-cu maddə") now rank that article first. This fixes the
+  second kind of miss, with no loss on either set.
+- **`q001` failed for another reason.** Its article was retrieved, then dropped by the 9000-character
+  context budget after whole-article expansion. This happens to 3 of 245 questions.
+
 ### 4.2 Answers ([F3](../evals/results/f3_generation/report.md))
 | metric (58 questions) | value |
 |---|---|

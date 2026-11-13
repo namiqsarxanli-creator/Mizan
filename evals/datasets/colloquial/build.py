@@ -53,7 +53,7 @@ Yalnız JSON qaytar: {"questions": [{"id": "<verilən id>", "question": "<sual>"
 
 
 def _in_force_today() -> list[dict[str, object]]:
-    today = date.today().toordinal()
+    today = date.today().toordinal()  # noqa: DTZ011  the set is built once, on the day it is frozen
     flt = {
         "must": [
             {"key": "source_id", "match": {"value": SOURCE_ID}},
@@ -87,7 +87,7 @@ def _sample() -> list[dict[str, str]]:
         if len(body) < 150 or re.search(r"ləğv edilmişdir|çıxarılmışdır", body[:200]):
             continue
         by_article.setdefault(str(p["article_key"]), []).append(p)
-    rng = random.Random(SEED)
+    rng = random.Random(SEED)  # noqa: S311  sampling, not security
     articles = sorted(by_article)
     rng.shuffle(articles)
     picked = []

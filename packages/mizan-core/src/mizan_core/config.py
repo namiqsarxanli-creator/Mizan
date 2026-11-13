@@ -110,6 +110,9 @@ class RetrievalSettings(BaseModel):
     strategy: str = "article"
     candidates: int = Field(default=50, ge=1, le=500)
     rerank_top: int = Field(default=0, ge=0, le=100)
+    # Articles named in the question ("69-cu maddə") are ranked first (F12: fixes q121, no
+    # Hit@5 loss on v1 or on the held-out colloquial set).
+    article_refs: bool = True
     embeddings_cache: str = "data/embeddings/cache.sqlite"
     # Graph-aware retrieval (ADR-0006): one top-5 place goes to the most similar article cited
     # by the best hit. +17% Recall@5 on multi-hop questions, no harm elsewhere (F4 eval).
@@ -139,7 +142,8 @@ class LLMSettings(BaseModel):
     # Reasoning depth: Groq gpt-oss "reasoning_effort" / Claude "effort".
     effort: Literal["low", "medium", "high"] = "medium"
     # Restate questions in the Code's terminology before searching (Groq only; /v1/ask only).
-    # Off by default: no significant retrieval gain in F2, +~1.5 s per /ask (ADR-0004).
+    # Off by default: no significant retrieval gain in F2, +~1.5 s per /ask (ADR-0004);
+    # confirmed on a held-out colloquial set in F12 (rewrite -0.033 Recall@5).
     rewrite_queries: bool = False
     rewrite_model: str = "openai/gpt-oss-20b"
     # Characters of source text sent per answer (Groq free tier: 8k tokens/minute in total).
