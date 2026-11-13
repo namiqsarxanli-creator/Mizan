@@ -260,6 +260,18 @@ Claude Desktop (`claude_desktop_config.json`), with the API running:
 }
 ```
 
+The server needs only `httpx` and `mcp`, so it can also run from a small virtual environment of
+its own. Use one when Claude Desktop cannot see the project's environment. On Windows, for
+example, an app may keep its own copy of `AppData`:
+
+```bash
+python -m venv %USERPROFILE%\.mizan\mcp-venv
+%USERPROFILE%\.mizan\mcp-venv\Scripts\pip install ./apps/mcp
+```
+
+Then use `"command": "C:\\Users\\<you>\\.mizan\\mcp-venv\\Scripts\\mizan-mcp.exe"` with no
+`args`. Restart Claude Desktop fully (quit it from the tray) to load the server.
+
 ## Durable agent runs (F9)
 
 With `MIZAN_DURABLE__ENABLED=true`, `/v1/agent/ask` and `/v1/agent/ask/stream` run on Temporal
@@ -313,7 +325,7 @@ See [ADR-0012](docs/adr/0012-tenancy-and-access.md).
 
 See [ADR-0013](docs/adr/0013-contract-analysis.md).
 
-Ask questions in the browser at `http://127.0.0.1:18000/`. Upload an employment contract at `http://127.0.0.1:18000/contracts` (or
+Ask questions in the browser at `http://127.0.0.1:18000/`: follow-up questions read the previous question, every quote opens its full article, and **PDF kimi saxla** prints the conversation as a report. See how an article changed between two dates at `http://127.0.0.1:18000/changes`. Upload an employment contract at `http://127.0.0.1:18000/contracts` (or
 `POST /v1/contracts/analyze`, multipart `file`). The report lists every clause as OK, risk,
 violation or suspicious instruction, with the article and a verified quote of the law.
 
