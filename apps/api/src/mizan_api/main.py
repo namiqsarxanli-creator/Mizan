@@ -78,6 +78,7 @@ def create_app(
             app.state.audit = services.audit
             app.state.contract_reviewer = services.contract_reviewer
             app.state.ocr = services.ocr
+            app.state.condenser = services.condenser
             app.state.checks = (
                 list(checks)
                 if checks is not None

@@ -49,6 +49,7 @@ from mizan_ingestion.db.session import ALL_TENANTS, as_tenant, create_engine, se
 from mizan_ingestion.diff import DiffBackend, PostgresDiff
 from mizan_retrieval.answer import AnswerBackend, ClaudeAnswerer, GroqAnswerer
 from mizan_retrieval.cache import SemanticCache
+from mizan_retrieval.condense import GroqQuestionCondenser, QuestionCondenser
 from mizan_retrieval.embeddings import MODELS, Embedder, EmbeddingCache, QueryBatcher
 from mizan_retrieval.index import alias_for
 from mizan_retrieval.rerank import Reranker
@@ -298,6 +299,8 @@ class LegalServices:
     # F10 contract analysis: the LLM review and OCR; rules run without them.
     contract_reviewer: ClauseReviewer | None = None
     ocr: Ocr | None = None
+    # Follow-up questions restated as standalone ones; None without a Groq key.
+    condenser: QuestionCondenser | None = None
 
 
 def search_config(settings: Settings) -> SearchConfig:
@@ -368,6 +371,15 @@ def _build_contracts(
     )
     ocr = GroqVisionOcr(client, model=c.ocr_model) if c.ocr else None
     return reviewer, ocr
+
+
+def _build_condenser(settings: Settings, stack: AsyncExitStack) -> QuestionCondenser | None:
+    llm = settings.llm
+    if not llm.condense_followups or llm.groq_api_key is None:
+        return None
+    client = groq.AsyncGroq(api_key=llm.groq_api_key.get_secret_value())
+    stack.push_async_callback(client.close)
+    return GroqQuestionCondenser(client, model=llm.rewrite_model)
 
 
 def _build_rewriter(settings: Settings, stack: AsyncExitStack) -> QueryRewriter | None:
@@ -474,4 +486,5 @@ async def build_legal_services(settings: Settings, stack: AsyncExitStack) -> Leg
         audit,
         contract_reviewer,
         ocr,
+        _build_condenser(settings, stack),
     )

@@ -28,7 +28,7 @@
   h1 { font-size: 22px; margin: 0 0 4px; }
   .sub { color: var(--muted); margin: 0 0 20px; }
   form { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-         padding: 16px; display: grid; gap: 12px; }
+         padding: 16px; display: grid; gap: 12px; margin-top: 20px; }
   label { display: grid; gap: 4px; font-weight: 600; font-size: 14px; }
   textarea, input[type=date], input[type=password] {
     font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
@@ -40,17 +40,24 @@
   .chip { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 999px; cursor: pointer;
           border: 1px solid var(--line); background: var(--bg); color: var(--text); }
   .chip:hover { border-color: var(--accent); }
-  button.primary { font: inherit; font-weight: 600; padding: 10px 18px; border: 0; border-radius: 6px;
-                   background: var(--accent); color: var(--on-accent); cursor: pointer; justify-self: start; }
+  .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+  button.primary, button.secondary { font: inherit; font-weight: 600; padding: 10px 18px;
+                                     border-radius: 6px; cursor: pointer; }
+  button.primary { border: 0; background: var(--accent); color: var(--on-accent); }
+  button.secondary { border: 1px solid var(--line); background: var(--bg); color: var(--text); }
   button.primary:disabled { opacity: .6; cursor: wait; }
   #status { color: var(--muted); min-height: 1.5em; }
   #status.error { color: var(--bad); }
+  .turn { margin-top: 24px; }
+  .turn + .turn { border-top: 1px solid var(--line); padding-top: 20px; }
+  .asked { font-weight: 700; font-size: 16px; overflow-wrap: anywhere; }
+  .understood { color: var(--muted); font-size: 13px; margin-top: 2px; overflow-wrap: anywhere; }
   .answer { background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--accent);
-            border-radius: 10px; padding: 16px 18px; margin-top: 20px; }
+            border-radius: 10px; padding: 16px 18px; margin-top: 10px; }
   .answer.refused { border-left-color: var(--risk); }
   .answer p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
   .meta { color: var(--muted); font-size: 13px; margin-top: 10px; }
-  h2 { font-size: 16px; margin: 22px 0 8px; }
+  h3 { font-size: 15px; margin: 16px 0 8px; }
   .cite { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
           padding: 10px 14px; margin-bottom: 8px; }
   .cite .title { font-weight: 600; }
@@ -61,7 +68,7 @@
   summary { cursor: pointer; color: var(--muted); font-size: 14px; }
   .source { border-top: 1px dashed var(--line); padding: 8px 0; font-size: 14px; }
   .source .text { color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
-  .feedback { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 14px; }
+  .feedback { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 14px; flex-wrap: wrap; }
   .feedback button { font: inherit; padding: 4px 10px; border-radius: 6px; cursor: pointer;
                      border: 1px solid var(--line); background: var(--bg); color: var(--text); }
   .disclaimer { color: var(--muted); font-size: 13px; margin-top: 24px; }
@@ -71,10 +78,31 @@
   .fulltext { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 14px;
               white-space: pre-wrap; overflow-wrap: anywhere; }
   .found { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
+  .print-only { display: none; }
+
+  /* The printed report (PDF): the conversation, its quotes and the disclaimer only. */
+  @media print {
+    :root { --bg: #fff; --panel: #fff; --text: #000; --muted: #444; --line: #bbb;
+            --ok: #1f5c34; --ok-bg: #f1f7f3; --accent: #1f4e8c; }
+    body { font-size: 11pt; background: #fff; }
+    main { max-width: none; padding: 0; }
+    nav, .sub, h1, form, .actions, .feedback, details, .no-print { display: none !important; }
+    .print-only { display: block; }
+    .turn { break-inside: avoid-page; }
+    .cite { break-inside: avoid; }
+    .fulltext { display: none !important; }
+    .report-head { border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 8px; }
+    .report-head .name { font-size: 18pt; font-weight: 800; }
+    .report-head .when { color: #444; font-size: 10pt; }
+  }
 </style>
 </head>
 <body>
 <main>
+  <div class="print-only report-head">
+    <div class="name">Mizan · Hüquqi arayış</div>
+    <div class="when" id="printed-at"></div>
+  </div>
   <nav>
     <span class="brand">Mizan</span>
     <a href="/" aria-current="page">Sual ver</a>
@@ -83,10 +111,12 @@
     <a href="/docs">API</a>
   </nav>
   <h1>Əmək hüququ üzrə sual</h1>
-  <p class="sub">Sualınızı adi dildə yazın. Cavab Əmək Məcəlləsinin seçilmiş tarixdə qüvvədə olan
-    mətnindən hazırlanır və hər sitat maddənin mətni ilə kodla yoxlanılır.</p>
+  <p class="sub">Sualınızı adi dildə yazın, sonra davam sualları verə bilərsiniz. Cavab Əmək
+    Məcəlləsinin seçilmiş tarixdə qüvvədə olan mətnindən hazırlanır və hər sitat maddənin mətni ilə
+    kodla yoxlanılır.</p>
+  <div id="thread"></div>
   <form id="form">
-    <label for="question">Sual</label>
+    <label for="question" id="question-label">Sual</label>
     <textarea id="question" required minlength="3" maxlength="1000"
       placeholder="Məsələn: Hamilə işçini ixtisar etmək olarmı?"></textarea>
     <div class="examples" id="examples"></div>
@@ -98,26 +128,14 @@
         <input type="password" id="token" autocomplete="off" placeholder="Bearer token">
       </label>
     </div>
-    <button class="primary" type="submit" id="submit">Soruş</button>
+    <div class="buttons">
+      <button class="primary" type="submit" id="submit">Soruş</button>
+      <button class="secondary" type="button" id="pdf" hidden>PDF kimi saxla</button>
+      <button class="secondary" type="button" id="reset" hidden>Yeni söhbət</button>
+    </div>
     <div id="status" role="status" aria-live="polite"></div>
     <ul class="found" id="found" hidden></ul>
   </form>
-  <section id="result" hidden>
-    <div class="answer" id="answer"><p id="answer-text"></p><div class="meta" id="meta"></div>
-      <div class="feedback" id="feedback" hidden>
-        <span>Cavab faydalı oldu?</span>
-        <button type="button" data-rating="1">👍</button>
-        <button type="button" data-rating="-1">👎</button>
-        <span id="feedback-status"></span>
-      </div>
-    </div>
-    <h2 id="cites-title">Sitatlar</h2>
-    <div id="cites"></div>
-    <details id="sources-box">
-      <summary>Axtarışda tapılan maddələr</summary>
-      <div id="sources"></div>
-    </details>
-  </section>
   <p class="disclaimer" id="disclaimer">Bu cavab hüquqi məsləhət deyil. Qərar verməzdən əvvəl
     hüquqşünasa müraciət edin.</p>
 </main>
@@ -129,6 +147,7 @@
     "İllik əsas məzuniyyət neçə gündür?",
     "Gecə işinə kimləri cəlb etmək olmaz?",
   ];
+  const HISTORY_TURNS = 4;
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, text) => {
     const node = document.createElement(tag);
@@ -162,6 +181,7 @@
     return h;
   };
   const errorText = (res, data) => {
+    if (res.status === 400) return "Sual təhlükəsizlik yoxlamasından keçmədi.";
     if (res.status === 401) return "Giriş tokeni tələb olunur və ya etibarsızdır.";
     if (res.status === 429) return "Limit dolub, bir az sonra yenidən cəhd edin.";
     if (res.status === 503) return "Cavab xidməti əlçatan deyil (LLM açarı .env-də varmı?).";
@@ -208,11 +228,76 @@
     return wrap;
   }
 
+  function feedback(answerId) {
+    const box = el("div", "feedback");
+    const out = el("span");
+    box.append(el("span", "", "Cavab faydalı oldu?"));
+    for (const [label, rating] of [["👍", 1], ["👎", -1]]) {
+      const button = el("button", "", label);
+      button.type = "button";
+      button.addEventListener("click", async () => {
+        try {
+          const res = await fetch("/v1/feedback", { method: "POST", headers: headers(),
+            body: JSON.stringify({ answer_id: answerId, rating }) });
+          out.textContent = res.ok ? "Təşəkkürlər, qeyd edildi." : "Qeyd edilmədi (HTTP " + res.status + ").";
+        } catch (_) {
+          out.textContent = "Qeyd edilmədi.";
+        }
+      });
+      box.append(button);
+    }
+    box.append(out);
+    return box;
+  }
+
+  function renderTurn(asked, data) {
+    const turn = el("section", "turn");
+    turn.append(el("div", "asked", asked));
+    if (data.standalone_question) {
+      turn.append(el("div", "understood", "Söhbətə görə belə axtarıldı: " + data.standalone_question));
+    }
+    const answer = el("div", "answer" + (data.refused ? " refused" : ""));
+    answer.append(el("p", "", data.answer));
+    const meta = ["Tarix: " + data.as_of];
+    if (data.refused) meta.push("Sənədlərdə kifayət qədər əsas tapılmadı: sistem cavab uydurmur.");
+    if (data.rejected_citations) meta.push(data.rejected_citations + " sitat maddə mətnində tapılmadığı üçün atıldı.");
+    if (data.cached) meta.push("Keşdən.");
+    answer.append(el("div", "meta", meta.join(" · ")));
+    if (data.answer_id) answer.append(feedback(data.answer_id));
+    turn.append(answer);
+
+    if (data.citations.length) {
+      turn.append(el("h3", "", "Sitatlar"));
+      for (const c of data.citations) {
+        const card = el("div", "cite");
+        card.append(el("div", "title", heading(c.key, c.title)));
+        card.append(el("blockquote", "", "«" + c.quote + "»"));
+        card.append(el("div", "verified", "✓ sitat maddənin mətnində hərfi-hərfinə tapıldı"));
+        card.append(actions(c.key, data.as_of));
+        turn.append(card);
+      }
+    }
+    if (data.sources.length) {
+      const box = el("details");
+      box.append(el("summary", "", "Axtarışda tapılan maddələr"));
+      for (const s of data.sources) {
+        const div = el("div", "source");
+        div.append(el("div", "title", heading(s.key, s.title) + " · qüvvədədir: " + s.in_force_since));
+        div.append(el("div", "text", s.text.length > 600 ? s.text.slice(0, 600) + "…" : s.text));
+        box.append(div);
+      }
+      turn.append(box);
+    }
+    if (data.disclaimer) $("disclaimer").textContent = data.disclaimer;
+    $("thread").append(turn);
+    turn.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   // While the answer is written and its quotes checked, show what the search found.
-  async function preview(body, isCurrent) {
+  async function preview(query, asOf, isCurrent) {
     try {
-      const params = new URLSearchParams({ q: body.question, k: "8" });
-      if (body.as_of) params.set("as_of", body.as_of);
+      const params = new URLSearchParams({ q: query, k: "8" });
+      if (asOf) params.set("as_of", asOf);
       const res = await fetch("/v1/search?" + params, { headers: headers() });
       if (!res.ok || !isCurrent()) return;
       const data = await res.json();
@@ -225,53 +310,33 @@
     } catch (_) { /* the preview is optional */ }
   }
 
-  let answerId = null;
-  function render(data) {
-    $("result").hidden = false;
-    $("answer").className = "answer" + (data.refused ? " refused" : "");
-    $("answer-text").textContent = data.answer;
-    const meta = ["Tarix: " + data.as_of];
-    if (data.refused) meta.push("Sənədlərdə kifayət qədər əsas tapılmadı: sistem cavab uydurmur.");
-    if (data.rejected_citations) meta.push(data.rejected_citations + " sitat maddə mətnində tapılmadığı üçün atıldı.");
-    if (data.cached) meta.push("Keşdən.");
-    $("meta").textContent = meta.join(" · ");
-    answerId = data.answer_id || null;
-    $("feedback").hidden = !answerId;
-    $("feedback-status").textContent = "";
-
-    const cites = $("cites");
-    cites.replaceChildren();
-    $("cites-title").hidden = data.citations.length === 0;
-    for (const c of data.citations) {
-      const card = el("div", "cite");
-      card.append(el("div", "title", heading(c.key, c.title)));
-      card.append(el("blockquote", "", "«" + c.quote + "»"));
-      card.append(el("div", "verified", "✓ sitat maddənin mətnində hərfi-hərfinə tapıldı"));
-      card.append(actions(c.key, data.as_of));
-      cites.append(card);
-    }
-    const sources = $("sources");
-    sources.replaceChildren();
-    $("sources-box").hidden = data.sources.length === 0;
-    for (const s of data.sources) {
-      const div = el("div", "source");
-      div.append(el("div", "title", heading(s.key, s.title) + " · qüvvədədir: " + s.in_force_since));
-      div.append(el("div", "text", s.text.length > 600 ? s.text.slice(0, 600) + "…" : s.text));
-      sources.append(div);
-    }
-    if (data.disclaimer) $("disclaimer").textContent = data.disclaimer;
+  // Earlier turns go back to the server so a follow-up can be understood.
+  const thread = [];
+  function setConversationMode() {
+    const inConversation = thread.length > 0;
+    $("question-label").textContent = inConversation ? "Davam sualı və ya yeni sual" : "Sual";
+    $("question").placeholder = inConversation
+      ? "Məsələn: Bəs uşağı 4 yaşındadırsa?"
+      : "Məsələn: Hamilə işçini ixtisar etmək olarmı?";
+    $("examples").hidden = inConversation;
+    $("pdf").hidden = !inConversation;
+    $("reset").hidden = !inConversation;
   }
 
   $("form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const status = $("status");
-    const body = { question: $("question").value.trim() };
+    const asked = $("question").value.trim();
+    const body = { question: asked };
     if ($("as_of").value) body.as_of = $("as_of").value;
-    status.className = ""; status.textContent = "Maddələr axtarılır…";
+    if (thread.length) {
+      body.history = thread.slice(-HISTORY_TURNS).map((t) => ({ question: t.asked, answer: t.data.answer }));
+    }
+    status.className = ""; status.textContent = thread.length ? "Sual söhbətə görə aydınlaşdırılır və axtarılır…" : "Maddələr axtarılır…";
     $("submit").disabled = true;
     $("found").hidden = true;
     let pending = true;
-    preview(body, () => pending);
+    if (!thread.length) preview(asked, body.as_of, () => pending);  // a follow-up is searched only once understood
     try {
       const res = await fetch("/v1/ask", { method: "POST", body: JSON.stringify(body), headers: headers() });
       pending = false;
@@ -279,7 +344,10 @@
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(errorText(res, data));
       status.textContent = "";
-      render(data);
+      thread.push({ asked, data });
+      renderTurn(asked, data);
+      $("question").value = "";
+      setConversationMode();
     } catch (err) {
       pending = false;
       $("found").hidden = true;
@@ -289,19 +357,19 @@
     }
   });
 
-  for (const button of document.querySelectorAll("#feedback button")) {
-    button.addEventListener("click", async () => {
-      if (!answerId) return;
-      const out = $("feedback-status");
-      try {
-        const res = await fetch("/v1/feedback", { method: "POST", headers: headers(),
-          body: JSON.stringify({ answer_id: answerId, rating: Number(button.dataset.rating) }) });
-        out.textContent = res.ok ? "Təşəkkürlər, qeyd edildi." : "Qeyd edilmədi (HTTP " + res.status + ").";
-      } catch (_) {
-        out.textContent = "Qeyd edilmədi.";
-      }
-    });
-  }
+  $("reset").addEventListener("click", () => {
+    thread.length = 0;
+    $("thread").replaceChildren();
+    $("status").textContent = "";
+    setConversationMode();
+    $("question").focus();
+  });
+
+  $("pdf").addEventListener("click", () => {
+    $("printed-at").textContent = "Hazırlanıb: " + new Date().toLocaleString("az-AZ") +
+      " · Mənbə: Azərbaycan Respublikasının Əmək Məcəlləsi (e-qanun.az)";
+    window.print();
+  });
 })();
 </script>
 </body>

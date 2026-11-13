@@ -29,6 +29,7 @@ from mizan_retrieval.answer import (
     source_title,
 )
 from mizan_retrieval.cache import SemanticCache
+from mizan_retrieval.condense import QuestionCondenser, Turn
 from mizan_retrieval.search import Hit, SearchBackend, SearchConfig
 
 ASK_PROMPT_VERSION = prompt_version(SYSTEM_PROMPT + JSON_INSTRUCTIONS)
@@ -54,10 +55,19 @@ class SearchResponse(BaseModel):
     results: list[Source]
 
 
+class TurnIn(BaseModel):
+    """An earlier question and answer of the same conversation (sent back by the client)."""
+
+    question: str = Field(min_length=1, max_length=1000)
+    answer: str = Field(max_length=6000)
+
+
 class AskRequest(BaseModel):
     question: str = Field(min_length=3, max_length=1000)
     as_of: date | None = None
     k: int = Field(default=6, ge=1, le=12)
+    # Earlier turns, oldest first: the question is read as a follow-up to them.
+    history: list[TurnIn] = Field(default_factory=list, max_length=10)
 
 
 class CitationOut(BaseModel):
@@ -73,6 +83,9 @@ class AskResponse(BaseModel):
     as_of: date
     model: str
     refused: bool
+    # How a follow-up was read: the question that was searched and answered (the previous
+    # question plus the follow-up, by default). None for a first question.
+    standalone_question: str | None = None
     # Citations the model produced that did not match its sources and were discarded.
     rejected_citations: int = 0
     # Send it back with POST /v1/feedback; None when the quality loop is off.
@@ -130,6 +143,17 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
         await budget.check(tenant)
     on = body.as_of or today_in_baku()
     started = time.perf_counter()
+    asked = question
+    condense_tokens = 0
+    condenser: QuestionCondenser | None = getattr(state, "condenser", None)
+    if body.history:
+        turns = [Turn(screened(request, t.question), t.answer) for t in body.history]
+        if condenser is not None:
+            condensed = await condenser.condense(question, turns)
+            question, condense_tokens = screened(request, condensed.question), condensed.tokens
+        else:
+            # F12: the previous question plus the follow-up beat an LLM restatement.
+            question = f"{turns[-1].question} {question}"
     query = await state.rewriter.expand(question) if state.rewriter else question
     hits = await searcher.search(query, source_id=source_id, as_of=on, config=config, k=body.k)
     if state.expand is not None:
@@ -153,7 +177,7 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
             answer = replace(answer, text=LEAK_REFUSAL, citations=(), refused=True)
         if cache is not None and vector is not None:
             await cache.store(vector, question, answer, hits)
-    tokens = sum(answer.usage.values())
+    tokens = sum(answer.usage.values()) + condense_tokens
     if budget is not None:
         await budget.charge(tenant, tokens)
     answer_id = None
@@ -191,6 +215,7 @@ async def ask(request: Request, body: AskRequest) -> AskResponse:
         refused=answer.refused,
         rejected_citations=answer.rejected_citations,
         cached=hit is not None,
+        standalone_question=question if question != asked else None,
     )
 
 
