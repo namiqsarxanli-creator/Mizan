@@ -1,0 +1,60 @@
+{"id": "c001", "question": "Mən dövlət işçisiyəm, bizim üçün iş qanunları tətbiq olunurmu, yoxsa başqa qaydalar var?", "relevant": ["art:5"], "type": "colloquial", "source_provision": "art:5"}
+{"id": "c002", "question": "Müdirim mənimlə hələ də yazılı müqavilə bağlamayıb, bu nə vaxta qədər belə davam edə bilər?", "relevant": ["art:7"], "type": "colloquial", "source_provision": "art:7/part:2-4"}
+{"id": "c003", "question": "Müdirim məni əmək müqaviləsində olmayan işlərə məcbur edir, yoxsa işdən çıxarmaqla hədələyir, bu qanunidirmi?", "relevant": ["art:17"], "type": "colloquial", "source_provision": "art:17"}
+{"id": "c004", "question": "Uşaqlarla işləyən bir müəssisəyə işə qəbul zamanı, uşaqlara qarşı cinayət törətmiş şəxsləri işə götürə bilərlərmi?", "relevant": ["art:17-1"], "type": "colloquial", "source_provision": "art:17-1"}
+{"id": "c005", "question": "Mənim işdəki hüquqlarım pozulursa, işəgötürənlə bu barədə danışmaq haqqım varmı?", "relevant": ["art:18"], "type": "colloquial", "source_provision": "art:18"}
+{"id": "c006", "question": "İşəgötürənlərin öz maraqlarını qorumaq üçün birləşmək hüququ varmı, bu işçilərin hüquqlarından üstün olacaqmı?", "relevant": ["art:20"], "type": "colloquial", "source_provision": "art:20"}
+{"id": "c007", "question": "Kollektiv müqavilə hazırlayanda, onun şərtləri ilə bağlı tərəflərin müstəqil qərar vermək hüququ varmı?", "relevant": ["art:22"], "type": "colloquial", "source_provision": "art:22"}
+{"id": "c008", "question": "Kollektiv danışıqlarda iştirak edəndə, müdir məni işdən çıxara bilərmi və ya maaşımdan kəsə bilərmi?", "relevant": ["art:27"], "type": "colloquial", "source_provision": "art:27"}
+{"id": "c009", "question": "Kollektiv müqavilənin şərtlərinə əməl olunub-olunmadığını kim yoxlayır və bizə bu barədə məlumat veriləcəkmi?", "relevant": ["art:34"], "type": "colloquial", "source_provision": "art:34"}
+{"id": "c010", "question": "Mənim on dörd yaşım var, işəgötürən mənimlə iş müqaviləsi bağlaya bilərmi?", "relevant": ["art:46"], "type": "colloquial", "source_provision": "art:46/part:4"}
+{"id": "c011", "question": "Mən xəstələndiyim üçün işə çıxa bilmirəm, bu müddətdə yerimə başqa birini işə götürə bilərlərmi?", "relevant": ["art:47"], "type": "colloquial", "source_provision": "art:47/item:a"}
+{"id": "c012", "question": "Şirkətin sahibi dəyişəndə, mənim iş müqaviləm və şərtlərim qüvvədə qalırmı, yoxsa məni işdən çıxara bilərlər?", "relevant": ["art:63"], "type": "colloquial", "source_provision": "art:63/part:1"}
+{"id": "c013", "question": "Yeni işə girəndə, əmək kitabçamı doldurmalıdırlarmı, yoxsa məlumatlar yalnız elektron sistemə yazılır?", "relevant": ["art:87"], "type": "colloquial", "source_provision": "art:87"}
+{"id": "c014", "question": "Gündəlik və həftəlik neçə saat işləməliyəm? İş vaxtımın müddəti nə qədər ola bilər?", "relevant": ["art:89"], "type": "colloquial", "source_provision": "art:89"}
+{"id": "c015", "question": "Həkim kimi işləyirəm, işim gərginliklidir. Mənə həftəlik 40 saatdan az iş vaxtı verilməlidirmi?", "relevant": ["art:93"], "type": "colloquial", "source_provision": "art:93"}
+{"id": "c016", "question": "Gecə saat 22:00-dan səhər 6:00-a qədər işləyirəm, iş şəraitimiz ağırdır. İş vaxtım qısaldılmalıdırmı?", "relevant": ["art:97"], "type": "colloquial", "source_provision": "art:97"}
+{"id": "c017", "question": "Müdirim hər işçinin iş vaxtını və əlavə saatlarını dəqiq qeyd etməyə borcludurmu?", "relevant": ["art:102"], "type": "colloquial", "source_provision": "art:102"}
+{"id": "c018", "question": "Mənə həftədə neçə gün fasiləsiz istirahət verilməlidir? Qan verəndə əlavə istirahət günü alırammı?", "relevant": ["art:104"], "type": "colloquial", "source_provision": "art:104"}
+{"id": "c019", "question": "İstirahət, səsvermə və bayram günlərində məni işə çağırıb işlədə bilərlərmi?", "relevant": ["art:107"], "type": "colloquial", "source_provision": "art:107"}
+{"id": "c020", "question": "17 yaşım var və işləyirəm. Mənim illik məzuniyyətim ən azı neçə gün olmalıdır?", "relevant": ["art:119"], "type": "colloquial", "source_provision": "art:119"}
+{"id": "c021", "question": "Yaradıcılıq məzuniyyətində olanda mənə maaşım necə hesablanır?", "relevant": ["art:122"], "type": "colloquial", "source_provision": "art:122"}
+{"id": "c022", "question": "Yeni doğulmuş uşaq övladlığa götürmüşəm. Mənə doğumdan sonrakı məzuniyyət düşürmü?", "relevant": ["art:126"], "type": "colloquial", "source_provision": "art:126"}
+{"id": "c023", "question": "Uşağım 3 yaşına çatana qədər ona baxmaq üçün işdən qismən maaşlı məzuniyyət ala bilərəmmi?", "relevant": ["art:127"], "type": "colloquial", "source_provision": "art:127"}
+{"id": "c024", "question": "Müdirim deyir ki, uşağa baxmaq üçün götürdüyüm məzuniyyət illik məzuniyyət stajıma daxil deyil, bu düzdürmü?", "relevant": ["art:132"], "type": "colloquial", "source_provision": "art:132"}
+{"id": "c025", "question": "İllik məzuniyyətdəyəm, müdirim məni işə geri çağıra bilərmi və bu necə rəsmiləşməlidir?", "relevant": ["art:137"], "type": "colloquial", "source_provision": "art:137"}
+{"id": "c026", "question": "Mənim məzuniyyətlərimin qeydiyyatını müdir necə aparmalıdır?", "relevant": ["art:138"], "type": "colloquial", "source_provision": "art:138/part:3"}
+{"id": "c027", "question": "Bizdə yeni texnologiya tətbiq olunur, müvəqqəti iş normaları nə qədər müddətə tətbiq oluna bilər?", "relevant": ["art:150"], "type": "colloquial", "source_provision": "art:150"}
+{"id": "c028", "question": "Ağır və zərərli işdə çalışıram, maaşıma əlavə pul ödənilirmi?", "relevant": ["art:159"], "type": "colloquial", "source_provision": "art:159"}
+{"id": "c029", "question": "İstirahət günü işləmişəm, maaşım necə ödənilməlidir, yoxsa başqa istirahət günü tələb edə bilərəm?", "relevant": ["art:164"], "type": "colloquial", "source_provision": "art:164"}
+{"id": "c030", "question": "Yeni istehsalatda maaşım əvvəlkindən az olarsa, əvvəlki orta maaşım saxlanılacaqmı?", "relevant": ["art:170"], "type": "colloquial", "source_provision": "art:170"}
+{"id": "c031", "question": "Mən qan verən zaman iş yerimi və orta maaşımı saxlaya bilərlərmi?", "relevant": ["art:181"], "type": "colloquial", "source_provision": "art:181"}
+{"id": "c032", "question": "İşəgötürənim müəssisədə daxili qayda-qanunlar qəbul edə bilərmi?", "relevant": ["art:182"], "type": "colloquial", "source_provision": "art:182"}
+{"id": "c033", "question": "Mənim işlədiyim dəmir yolu müəssisəsində iş intizamı üçün xüsusi nizamnamə ola bilərmi?", "relevant": ["art:184"], "type": "colloquial", "source_provision": "art:184"}
+{"id": "c034", "question": "Yaxşı işlədiyimə görə müdirim mənə pul mükafatı verə bilərmi?", "relevant": ["art:185"], "type": "colloquial", "source_provision": "art:185"}
+{"id": "c035", "question": "Müdirimin müavini məni cəzalandıra bilərmi, yoxsa yalnız müdir özü bu səlahiyyətə malikdir?", "relevant": ["art:188"], "type": "colloquial", "source_provision": "art:188"}
+{"id": "c036", "question": "Mənim təhlükəsiz və sağlam şəraitdə işləmək hüququm varmı?", "relevant": ["art:207"], "type": "colloquial", "source_provision": "art:207"}
+{"id": "c037", "question": "Bələdiyyə əməyin mühafizəsi sahəsində hansı tədbirləri görməlidir?", "relevant": ["art:214"], "type": "colloquial", "source_provision": "art:214"}
+{"id": "c038", "question": "Müdirim iş yerində təhlükəsizlik qaydalarına əməl etməyə cavabdehdirmi?", "relevant": ["art:215"], "type": "colloquial", "source_provision": "art:215"}
+{"id": "c039", "question": "Müdirim mənə verilən xüsusi geyimlərin təmizliyini və təmirini təmin etməlidirmi?", "relevant": ["art:222"], "type": "colloquial", "source_provision": "art:222/part:6"}
+{"id": "c040", "question": "Bizim müəssisədə 50-dən az işçi var, əməyin mühafizəsi işini kim təşkil etməlidir?", "relevant": ["art:223"], "type": "colloquial", "source_provision": "art:223/part:2-1"}
+{"id": "c041", "question": "İş yerimizdə təhlükəsizlik qaydaları pozulub, həyatımız üçün təhlükə var, işi dayandıra bilərlərmi?", "relevant": ["art:229"], "type": "colloquial", "source_provision": "art:229"}
+{"id": "c042", "question": "Səhhətimə görə daha az maaşlı yüngül işə keçirilsəm, əvvəlki maaşımı nə qədər müddətə alacam?", "relevant": ["art:232"], "type": "colloquial", "source_provision": "art:232"}
+{"id": "c043", "question": "İş yerimizdə təhlükəsizlik vəziyyətini yoxlayan nümayəndənin bunun üçün iş vaxtından istifadə etməyə haqqı varmı?", "relevant": ["art:236"], "type": "colloquial", "source_provision": "art:236"}
+{"id": "c044", "question": "Müdirimiz iş yerində təhlükəsiz şərait yaratmasa, buna görə cəzalandırıla bilərmi?", "relevant": ["art:238"], "type": "colloquial", "source_provision": "art:238"}
+{"id": "c045", "question": "Uşağı tək böyüdən bir ata kimi, mənə azyaşlı uşağı olan qadınlara verilən hüquqlar şamil edilirmi?", "relevant": ["art:246"], "type": "colloquial", "source_provision": "art:246"}
+{"id": "c046", "question": "18 yaşımdan az olduğu üçün mənə ağır əşyaları qaldırmağı və daşımağı tapşıra bilərlərmi?", "relevant": ["art:251"], "type": "colloquial", "source_provision": "art:251/part:1"}
+{"id": "c047", "question": "İşdə yaranan mübahisəni həll etmək üçün hansı yollardan istifadə edə bilərik?", "relevant": ["art:265"], "type": "colloquial", "source_provision": "art:265"}
+{"id": "c048", "question": "Mübahisəni həll etmək üçün vasitəçi çağırmışıq, o, nə qədər vaxta bizə təkliflər verməlidir?", "relevant": ["art:267"], "type": "colloquial", "source_provision": "art:267"}
+{"id": "c049", "question": "Əgər müdirimiz mübahisəni dinc yolla həll etməyi ləngitsə, biz tətil edə bilərikmi?", "relevant": ["art:270"], "type": "colloquial", "source_provision": "art:270/part:3"}
+{"id": "c050", "question": "Tətilə çıxmaq istəsək, bunu işəgötürənə nə qədər əvvəl bildirməliyik?", "relevant": ["art:272"], "type": "colloquial", "source_provision": "art:272"}
+{"id": "c051", "question": "Bizim tətil komitəsi hansı hallarda fəaliyyətini dayandırmalıdır?", "relevant": ["art:274"], "type": "colloquial", "source_provision": "art:274"}
+{"id": "c052", "question": "Tətil zamanı kimlər iş yerində nizam-intizamı və təhlükəsizliyi qorumalıdır?", "relevant": ["art:275"], "type": "colloquial", "source_provision": "art:275"}
+{"id": "c053", "question": "Tətildə olduğum günlərin maaşını işəgötürən ödəməlidirmi?", "relevant": ["art:283"], "type": "colloquial", "source_provision": "art:283"}
+{"id": "c054", "question": "Müdirim hansı hallarda iş yerini bağlayıb, bizi işdən kənarlaşdıra bilər?", "relevant": ["art:284"], "type": "colloquial", "source_provision": "art:284/part:1"}
+{"id": "c055", "question": "Müdirin iş yerini bağlaması qanunsuz çıxarsa, mənə dəyən zərəri kim ödəyəcək?", "relevant": ["art:285"], "type": "colloquial", "source_provision": "art:285"}
+{"id": "c056", "question": "Dövlət orqanlarının səhvi ucbatından işdən çıxarılsaq, ziyanımızı kim ödəyəcək?", "relevant": ["art:291"], "type": "colloquial", "source_provision": "art:291"}
+{"id": "c057", "question": "Müdirimlə maaş mübahisəmiz yaranıb, bunu kim həll etməlidir?", "relevant": ["art:294"], "type": "colloquial", "source_provision": "art:294"}
+{"id": "c058", "question": "Məhkəmə işi mən udduqdan sonra müdirim qərarı yerinə yetirməzsə, nə baş verəcək?", "relevant": ["art:301"], "type": "colloquial", "source_provision": "art:301"}
+{"id": "c059", "question": "Həmkarlar ittifaqı müdirin qanunsuz hərəkətlərinə qarşı çıxanda, müdir buna mane ola bilərmi?", "relevant": ["art:309"], "type": "colloquial", "source_provision": "art:309"}
+{"id": "c060", "question": "Əmək qaydalarını kobud şəkildə pozanlara qarşı cinayət işi açıla bilərmi?", "relevant": ["art:313"], "type": "colloquial", "source_provision": "art:313"}
