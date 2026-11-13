@@ -51,10 +51,8 @@ async def test_a_first_question_needs_no_call() -> None:
     assert out.question == "Sınaq müddəti neçə aydır?"
     assert calls.calls == []
 
-
     replies: list[str | Exception] = [RuntimeError("429"), "not json", json.dumps({"question": ""})]
     for reply in replies:
-    for reply in [RuntimeError("429"), "not json", json.dumps({"question": ""})]:
         c, _ = condenser(reply)
         out = await c.condense("Bəs 4 yaşındadırsa?", HISTORY)
         assert out.question == "Bəs 4 yaşındadırsa?"
