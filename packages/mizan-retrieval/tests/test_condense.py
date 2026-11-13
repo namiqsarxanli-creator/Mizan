@@ -51,6 +51,8 @@ async def test_a_first_question_needs_no_call() -> None:
     assert out.question == "Sınaq müddəti neçə aydır?"
     assert calls.calls == []
 
+
+async def test_failures_fall_back_to_the_follow_up_as_written() -> None:
     replies: list[str | Exception] = [RuntimeError("429"), "not json", json.dumps({"question": ""})]
     for reply in replies:
         c, _ = condenser(reply)
