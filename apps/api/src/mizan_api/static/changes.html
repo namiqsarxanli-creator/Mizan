@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="az">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mizan · Qanunun dəyişməsi</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e3e2dd;
+    --add: #1f6b3a; --add-bg: #dff3e5; --del: #a1281c; --del-bg: #fbe3e0;
+    --bad: #b42318; --accent: #1f4e8c; --on-accent: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161615; --panel: #1f1f1d; --text: #ececea; --muted: #a3a39d; --line: #34342f;
+      --add: #8fe0a8; --add-bg: #173022; --del: #f5a097; --del-bg: #3a1c19;
+      --bad: #f1857a; --accent: #8db4ea; --on-accent: #10233d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+  nav { display: flex; gap: 16px; align-items: baseline; margin-bottom: 20px; flex-wrap: wrap; }
+  nav .brand { font-weight: 800; font-size: 20px; margin-right: auto; }
+  nav a { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; }
+  nav a[aria-current] { color: var(--text); }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  form { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+         padding: 16px; display: grid; gap: 12px; }
+  label { display: grid; gap: 4px; font-weight: 600; font-size: 14px; }
+  input { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+          background: var(--bg); color: var(--text); width: 100%; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; }
+  .row > * { flex: 1 1 160px; }
+  .examples { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 999px; cursor: pointer;
+          border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  .chip:hover { border-color: var(--accent); }
+  button.primary { font: inherit; font-weight: 600; padding: 10px 18px; border: 0; border-radius: 6px;
+                   background: var(--accent); color: var(--on-accent); cursor: pointer; justify-self: start; }
+  button.primary:disabled { opacity: .6; cursor: wait; }
+  #status { color: var(--muted); min-height: 1.5em; }
+  #status.error { color: var(--bad); }
+  .summary { margin: 20px 0 8px; color: var(--muted); }
+  h2 { font-size: 16px; margin: 22px 0 8px; }
+  .change { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+            padding: 10px 14px; margin-bottom: 8px; }
+  .change .head { display: flex; gap: 10px; align-items: baseline; font-weight: 600; }
+  .kind { font-size: 12px; font-weight: 700; border-radius: 4px; padding: 1px 6px; margin-left: auto; }
+  .k-added { color: var(--add); background: var(--add-bg); }
+  .k-removed { color: var(--del); background: var(--del-bg); }
+  .k-changed { color: var(--accent); border: 1px solid var(--line); }
+  .text { margin-top: 6px; overflow-wrap: anywhere; }
+  ins { text-decoration: none; color: var(--add); background: var(--add-bg); border-radius: 3px; padding: 0 2px; }
+  del { color: var(--del); background: var(--del-bg); border-radius: 3px; padding: 0 2px; margin-right: 3px; }
+  .act { border-top: 1px dashed var(--line); padding: 8px 0; font-size: 14px; }
+  .act .when { font-weight: 600; }
+  .act .note { color: var(--muted); overflow-wrap: anywhere; }
+  .legend { font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <nav>
+    <span class="brand">Mizan</span>
+    <a href="/">Sual ver</a>
+    <a href="/contracts">Müqavilə yoxlaması</a>
+    <a href="/changes" aria-current="page">Qanunun dəyişməsi</a>
+    <a href="/docs">API</a>
+  </nav>
+  <h1>Maddə necə dəyişib?</h1>
+  <p class="sub">Əmək Məcəlləsinin bir maddəsini iki tarixdə qüvvədə olan mətnlərə görə müqayisə edir və
+    dəyişikliyi edən qanunları göstərir. Bütün redaksiyalar 1999-cu ildən saxlanılır.</p>
+  <form id="form">
+    <div class="row">
+      <label>Maddə nömrəsi
+        <input id="article" required placeholder="məs. 69 və ya 17-1" pattern="[0-9]{1,3}(-[0-9]{1,2})?" inputmode="numeric">
+      </label>
+      <label>Köhnə tarix
+        <input type="date" id="from" required value="2015-01-01" min="1999-02-01">
+      </label>
+      <label>Yeni tarix (boş: bu gün)
+        <input type="date" id="to">
+      </label>
+    </div>
+    <div class="examples" id="examples"></div>
+    <button class="primary" type="submit" id="submit">Müqayisə et</button>
+    <div id="status" role="status" aria-live="polite"></div>
+  </form>
+  <section id="result" hidden>
+    <p class="summary" id="summary"></p>
+    <p class="legend"><del>silinib</del> <ins>əlavə olunub</ins></p>
+    <div id="changes"></div>
+    <h2 id="acts-title">Dəyişikliyi edən qanunlar</h2>
+    <div id="acts"></div>
+  </section>
+</main>
+<script>
+(() => {
+  const EXAMPLES = [
+    ["69", "2015-01-01", "İşçinin işdən çıxması (69)"],
+    ["70", "2015-01-01", "İşəgötürənin təşəbbüsü ilə xitam (70)"],
+    ["144", "2015-01-01", "İş vaxtından artıq işə haqq (144)"],
+    ["125", "2010-01-01", "Hamiləlik məzuniyyəti (125)"],
+  ];
+  const KIND = { added: "əlavə olunub", removed: "çıxarılıb", changed: "dəyişib" };
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    if (text !== undefined) node.textContent = text;  // never innerHTML: the text is untrusted
+    return node;
+  };
+  const label = (key) => key.replace(/^art:/, "Maddə ").replaceAll("/part:", ", hissə ")
+    .replaceAll("/item:", ", bənd ").replaceAll("/pt:", ", yarımbənd ");
+  // "[-old-]{+new+}" -> <del>old</del><ins>new</ins>, built node by node.
+  function marked(text) {
+    const box = el("div", "text");
+    const re = /\[-([\s\S]*?)-\]|\{\+([\s\S]*?)\+\}/g;
+    let last = 0, m;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) box.append(document.createTextNode(text.slice(last, m.index)));
+      box.append(m[1] !== undefined ? el("del", "", m[1]) : el("ins", "", m[2]));
+      last = re.lastIndex;
+    }
+    if (last < text.length) box.append(document.createTextNode(text.slice(last)));
+    return box;
+  }
+  for (const [article, from, text] of EXAMPLES) {
+    const chip = el("button", "chip", text);
+    chip.type = "button";
+    chip.addEventListener("click", () => { $("article").value = article; $("from").value = from; run(); });
+    $("examples").append(chip);
+  }
+  async function run() {
+    const status = $("status");
+    const article = $("article").value.trim();
+    if (!/^[0-9]{1,3}(-[0-9]{1,2})?$/.test(article)) {
+      status.className = "error"; status.textContent = "Maddə nömrəsini yazın (məs. 69).";
+      return;
+    }
+    const params = new URLSearchParams({ key: "art:" + article, from: $("from").value });
+    if ($("to").value) params.set("to", $("to").value);
+    history.replaceState(null, "", "?" + new URLSearchParams({ article, from: $("from").value, ...( $("to").value ? { to: $("to").value } : {}) }));
+    status.className = ""; status.textContent = "Müqayisə edilir…";
+    $("submit").disabled = true;
+    try {
+      const res = await fetch("/v1/diff?" + params);
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 404) throw new Error("Bu tarixlərdən birində maddənin mətni yoxdur.");
+      if (res.status === 401) throw new Error("Giriş tokeni tələb olunur.");
+      if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "HTTP " + res.status);
+      status.textContent = "";
+      render(data);
+    } catch (err) {
+      status.className = "error"; status.textContent = "Xəta: " + err.message;
+    } finally {
+      $("submit").disabled = false;
+    }
+  }
+  function render(d) {
+    $("result").hidden = false;
+    $("summary").textContent = label(d.key) + ": " + d.start + " tarixindəki mətn (" +
+      d.start_text_in_force_since + "-dən qüvvədə) ilə " + d.end + " tarixindəki mətn (" +
+      d.end_text_in_force_since + "-dən qüvvədə). " +
+      (d.changes.length ? d.changes.length + " müddəa fərqlənir." : "Mətn dəyişməyib.");
+    const box = $("changes");
+    box.replaceChildren();
+    for (const c of d.changes) {
+      const card = el("article", "change");
+      const head = el("div", "head");
+      head.append(el("span", "", label(c.key)), el("span", "kind k-" + c.kind, KIND[c.kind] || c.kind));
+      card.append(head, marked(c.marked));
+      box.append(card);
+    }
+    const acts = $("acts");
+    acts.replaceChildren();
+    $("acts-title").hidden = d.amendments.length === 0;
+    for (const a of d.amendments) {
+      const div = el("div", "act");
+      div.append(el("div", "when", a.adopted_on + (a.act_number ? " · " + a.act_number : "")));
+      div.append(el("div", "note", a.note));
+      acts.append(div);
+    }
+  }
+  $("form").addEventListener("submit", (event) => { event.preventDefault(); run(); });
+  const query = new URLSearchParams(location.search);
+  if (query.get("article")) {
+    $("article").value = query.get("article");
+    if (query.get("from")) $("from").value = query.get("from");
+    if (query.get("to")) $("to").value = query.get("to");
+    run();
+  }
+})();
+</script>
+</body>
+</html>
