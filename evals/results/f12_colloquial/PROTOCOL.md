@@ -42,3 +42,22 @@ Hit@5 and Recall@5 at article level, MRR@10. 95% CIs by paired bootstrap over qu
   correctness rule (a user who names an article must get that article), so it does not need a
   significant gain; v1 has 20 `exact_term` questions to show its effect.
 - The held-out set is used once for this decision. Whatever the result, it is reported here.
+
+## Amendment 1 (before any run): focused context for long articles
+
+Added after the result above showed `q001`'s article retrieved but cut by the context budget.
+Committed before the variant was run on any set.
+
+- **Variant F2500**: as served, but an expanded article longer than 2500 characters keeps only
+  the parts search matched, one part on each side, and the breadcrumb (`focus_article`). The
+  threshold is fixed here and will not be tuned on these results.
+- **Step 1, offline (no LLM)**: share of questions whose gold article reaches the answering
+  model (`context.py`), on the colloquial set and v1, as served vs F2500.
+- **Step 2, answers**: the served answer model and the F3 judge on every question whose context
+  differs between the two. Free-tier limits cap this at about 30 questions (two answers and two
+  judgements each). If more differ, a random 30 (seed 0), plus every question where step 1 says
+  the gold article is lost as served.
+- **Rule**: F2500 goes on if step 1 is not lower on either set **and** in step 2 the judge's
+  correct rate is not lower than as served (point estimate). Either way, the result is reported.
+- **Known limit**: the judge's correct rate is lenient (F3: 0.914, with weak agreement with a
+  second model). Step 2 is a small, noisy check against harm, not a precise estimate.

@@ -116,3 +116,37 @@ async def test_hits_expand_to_whole_articles_in_rank_order() -> None:
     )
     assert expanded[1].score == 0.5
     assert set(expanded[1].cites) == {"art:70/part:1", "art:70/part:2"}
+
+
+# ------------------------------------------------------------------------------ focusing
+
+
+def _part(n: int, text: str) -> Hit:
+    key = f"art:77/part:{n}"
+    return Hit(key, "art:77", "art:77", f"Maddə 77. Başlıq\n{n}. {text}", 0.0, date(2020, 1, 1), ())
+
+
+def test_a_short_article_is_kept_whole() -> None:
+    from mizan_retrieval.search import focus_article
+
+    chunks = [_part(i, "qısa") for i in range(1, 4)]
+    assert focus_article(chunks, {"art:77/part:2"}, over=2500) == merge_article(chunks)
+
+
+def test_a_long_article_keeps_matched_parts_and_neighbours() -> None:
+    from mizan_retrieval.search import GAP, focus_article
+
+    chunks = [_part(i, "x" * 600) for i in range(1, 9)]
+    text = focus_article(chunks, {"art:77/part:5"}, over=2500)
+    lines = text.splitlines()
+    assert lines[0] == "Maddə 77. Başlıq"
+    assert [line[:2] for line in lines[1:]] == [GAP[:2], "4.", "5.", "6.", GAP[:2]]
+    assert len(text) < len(merge_article(chunks))
+
+
+def test_focusing_is_off_by_default_and_without_matches() -> None:
+    from mizan_retrieval.search import focus_article
+
+    chunks = [_part(i, "x" * 600) for i in range(1, 9)]
+    assert focus_article(chunks, {"art:77/part:5"}, over=0) == merge_article(chunks)
+    assert focus_article(chunks, set(), over=2500) == merge_article(chunks)

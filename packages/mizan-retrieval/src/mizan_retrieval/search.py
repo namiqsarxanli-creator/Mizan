@@ -254,8 +254,48 @@ def merge_article(chunks: Sequence[Hit]) -> str:
     return "\n".join(lines)
 
 
+GAP = "[…]"
+
+
+def focus_article(chunks: Sequence[Hit], matched: Collection[str], *, over: int) -> str:
+    """The whole article if short; otherwise the matched parts and their neighbours (F12).
+
+    A long article expanded whole can fill the context budget alone (Art. 77 is ~6200
+    characters of a 9000 budget) and push the next article out. Above ``over`` characters,
+    keep the parts search matched plus one part on each side, in order, with a gap marker
+    where parts were left out. The breadcrumb line always stays.
+    """
+    whole = merge_article(chunks)
+    if over <= 0 or len(whole) <= over or not matched:
+        return whole
+    ordered = sorted(chunks, key=lambda h: _natural_key(h.key))
+    keep = set()
+    for i, chunk in enumerate(ordered):
+        if chunk.key in matched:
+            keep.update({i - 1, i, i + 1})
+    if not keep & set(range(len(ordered))):
+        return whole
+    lines = ordered[0].text.splitlines()[:1]
+    previous = -1
+    for i, chunk in enumerate(ordered):
+        if i not in keep:
+            continue
+        if i != previous + 1:
+            lines.append(GAP)
+        lines.extend(chunk.text.splitlines()[1:])
+        previous = i
+    if previous != len(ordered) - 1:
+        lines.append(GAP)
+    return "\n".join(lines)
+
+
 async def expand_to_articles(
-    client: AsyncQdrantClient, hits: Sequence[Hit], *, source_id: int, as_of: date
+    client: AsyncQdrantClient,
+    hits: Sequence[Hit],
+    *,
+    source_id: int,
+    as_of: date,
+    focus_over: int = 0,
 ) -> list[Hit]:
     """Parent-child retrieval: search finds the best *part*; the reader gets the whole article.
 
@@ -280,8 +320,10 @@ async def expand_to_articles(
         by_article.setdefault(hit.article_key, []).append(hit)
 
     best: dict[str, Hit] = {}
+    matched: dict[str, set[str]] = {}
     for h in hits:
         best.setdefault(h.article_key, h)
+        matched.setdefault(h.article_key, set()).add(h.key)
     expanded = []
     for article_key in order:
         chunks = by_article.get(article_key)
@@ -294,7 +336,7 @@ async def expand_to_articles(
                 key=article_key,
                 article_key=article_key,
                 parent_key=article_key,
-                text=merge_article(chunks),
+                text=focus_article(chunks, matched[article_key], over=focus_over),
                 score=top.score,
                 valid_from=max(c.valid_from for c in chunks),
                 cites=tuple(dict.fromkeys(k for c in chunks for k in c.cites)),
