@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 import groq
@@ -107,15 +107,15 @@ async def main() -> None:
     report = [
         "# F12 results: follow-up questions",
         "",
-        f"- Generated {datetime.now(UTC):%Y-%m-%d %H:%M} UTC on {date.today()}; "
+        f"- Generated {datetime.now(UTC):%Y-%m-%d %H:%M} UTC "
         f"{len(rows)} conversations; served search (dense bge-m3 + refs), Hit@5.",
         "",
         "| Way | Hit@5 |",
         "|---|---|",
         *[f"| {w} | {bootstrap(scores[w])} |" for w in WAYS],
         "",
-        f"- condensed − as written: {delta('condensed', 'as written')}",
-        f"- condensed − concatenated: {delta('condensed', 'concatenated')}",
+        f"- condensed minus as written: {delta('condensed', 'as written')}",
+        f"- condensed minus concatenated: {delta('condensed', 'concatenated')}",
         "",
         "| id | follow-up | condensed | as written / concatenated / condensed |",
         "|---|---|---|---|",
