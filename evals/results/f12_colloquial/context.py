@@ -29,6 +29,7 @@ SETS = {
 }
 CONFIG = SearchConfig(Mode.DENSE, dense_model="bge-m3", strategy=Strategy.ARTICLE, refs=True)
 K = 6  # AskRequest.k default
+MODES = {"as served": 0, "F2500": 2500}  # focus_over (PROTOCOL.md, amendment 1)
 
 
 async def main() -> None:
@@ -36,31 +37,40 @@ async def main() -> None:
     budget = settings.llm.max_context_chars
     client = _qdrant(settings)
     searcher = Searcher(client, _embedders(settings, ["bge-m3"]), None)
-    lines = [f"Budget {budget} characters, k = {K}, whole-article expansion (as served).", ""]
-    lines += ["| Set | n | gold retrieved (top 6) | gold reaches the model | lost to the budget |"]
-    lines += ["|---|---|---|---|---|"]
+    lines = [f"Budget {budget} characters, k = {K}; as served = whole-article expansion.", ""]
+    lines += ["| Set | Mode | n | gold retrieved (top 6) | gold reaches the model | lost |"]
+    lines += ["|---|---|---|---|---|---|"]
     out: dict[str, object] = {}
     try:
         for name, path in SETS.items():
             questions = [q for q in load_dataset(path) if q.relevant]
-            retrieved, reached, lost = [], [], []
-            for q in questions:
-                hits = await searcher.search(
-                    q.question, source_id=LABOUR_CODE, as_of=q.as_of, config=CONFIG, k=K
-                )
-                found = {h.article_key for h in hits} & q.relevant
-                articles = await expand_to_articles(
-                    client, hits, source_id=LABOUR_CODE, as_of=q.as_of
-                )
-                given = {h.article_key for h in fit_to_budget(articles, budget)} & q.relevant
-                retrieved.append(float(bool(found)))
-                reached.append(float(bool(given)))
-                if found and not given:
-                    lost.append(q.id)
-            r, g = bootstrap(retrieved), bootstrap(reached)
-            missing = f"{len(lost)}: {', '.join(lost)}"
-            lines.append(f"| {name} | {len(questions)} | {r} | {g} | {missing} |")
-            out[name] = {"retrieved": r.mean, "reached": g.mean, "lost": lost}
+            contexts: dict[str, dict[str, list[str]]] = {mode: {} for mode in MODES}
+            for mode, over in MODES.items():
+                retrieved, reached, lost = [], [], []
+                for q in questions:
+                    hits = await searcher.search(
+                        q.question, source_id=LABOUR_CODE, as_of=q.as_of, config=CONFIG, k=K
+                    )
+                    found = {h.article_key for h in hits} & q.relevant
+                    articles = await expand_to_articles(
+                        client, hits, source_id=LABOUR_CODE, as_of=q.as_of, focus_over=over
+                    )
+                    packed = fit_to_budget(articles, budget)
+                    contexts[mode][q.id] = [h.text for h in packed]
+                    given = {h.article_key for h in packed} & q.relevant
+                    retrieved.append(float(bool(found)))
+                    reached.append(float(bool(given)))
+                    if found and not given:
+                        lost.append(q.id)
+                r, g = bootstrap(retrieved), bootstrap(reached)
+                missing = f"{len(lost)}: {', '.join(lost)}" if lost else "0"
+                lines.append(f"| {name} | {mode} | {len(questions)} | {r} | {g} | {missing} |")
+                out[f"{name}/{mode}"] = {"retrieved": r.mean, "reached": g.mean, "lost": lost}
+            differ = [
+                q.id for q in questions if contexts["as served"][q.id] != contexts["F2500"][q.id]
+            ]
+            out[f"{name}/differ"] = differ
+            lines.append(f"| {name} | contexts that differ | {len(differ)} | | | |")
     finally:
         await client.close()
     (HERE / "context.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
