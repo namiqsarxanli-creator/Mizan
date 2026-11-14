@@ -41,3 +41,18 @@ generation eval to justify it; it is not switched on here.
 - Seven v1 questions and one held-out question got no restatement (the rewrite model returned
   nothing; as in serving, the original question is used). Rewrite variants equal V0 on them.
 - The held-out set has now been used for this decision; it is no longer held out.
+
+## Amendment 1: focused context for long articles (result of record)
+
+Pre-registered in [`PROTOCOL.md`](PROTOCOL.md) (amendment 1) before either step ran.
+
+- **Step 1, offline:** the gold article reaches the answering model more often with F2500 on v1
+  (0.968 → 0.978; `q001` and `q067` no longer lost) and equally often on the colloquial set
+  (0.933 → 0.933). Not lower on either set: passes. See [`context.md`](context.md).
+- **Step 2, answers:** the run was stopped after **30 of the 32** chosen questions. Groq's free
+  daily quota ran out and the project moved on. On those 30, judged correct is **0.833 as served
+  vs 0.800 with F2500** (−0.033 [−0.20, +0.13]). Seven questions changed, three for the better
+  (including `q067`) and four for the worse. See [`answers.md`](answers.md).
+- **Decision, by the rule:** step 2's point estimate is lower, so **F2500 stays off**
+  (`expand_to_articles(focus_over=0)`). The difference is well within noise. Whether focusing
+  helps is undecided, not shown to hurt. `q001` is one of the two questions not reached.

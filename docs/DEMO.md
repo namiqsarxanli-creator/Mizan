@@ -1,74 +1,80 @@
-# Demo script (3–5 minutes)
+# Demo script (about 5 minutes)
 
-A screen recording with voice-over. Each scene lists what to show, what to say and the exact
-command or input. Record at 1920×1080 with the terminal font at 16 pt or larger. Keep the
-stack running before recording, so models are loaded.
+A live demo in the browser. Each scene lists what to do, what to point at and what to say.
 
-Prerequisites: a Groq key in `.env` and Docker Desktop running. Run `run_mizan.py` (in PyCharm: right-click,
-Run; it needs only the standard library, so any Python 3 works): it starts the stack, waits for
-the API on `http://127.0.0.1:18000` and opens the question page at `/`. The first start downloads the embedding model (about 2 GB).
+## Before you start
+1. Start Docker Desktop.
+2. Run `run_mizan.py` (in PyCharm: right-click, Run). It needs only the standard library. It
+   starts the stack, waits until the models are loaded and opens `http://127.0.0.1:18000/`.
+   The first start downloads the embedding model (about 2 GB).
+3. Ask one question before the audience arrives, so the first answer is not the slow one.
+4. Keep `http://127.0.0.1:18000/?intro` ready: `?intro` replays the opening animation.
 
-## 1. The problem (0:00–0:30)
-**Show:** the README title and the architecture diagram.
+Answers need an LLM key (`MIZAN_LLM__GROQ_API_KEY`). When Groq's free tier is spent, answers fail
+over to the same model on OpenRouter if `MIZAN_LLM__OPENROUTER_API_KEY` is set. `/changes` needs
+no LLM at all, so it is the fallback scene if the network fails.
 
-**Say:** "Azerbaijani labour law changes often, and people ask about it in everyday language.
-Mizan answers with the exact article in force on a date and quotes it word for word, and every
-quote is checked by code, not by trust."
+## 1. Opening (0:00–0:20)
+**Do:** open `/?intro`.
 
-## 2. A question, with citations (0:30–1:15)
-**Run:**
-```bash
-curl -s -X POST http://127.0.0.1:18000/v1/ask -H 'content-type: application/json' \
-  -d '{"question": "Hamilə işçini ixtisar etmək olarmı?"}' | jq
-```
-Or ask it on the question page at `http://127.0.0.1:18000/` (example questions are one click).
+**Say:** "Mizan answers questions about Azerbaijani labour law with the exact article in force on
+a date, and every quote is checked by code."
 
-**Point at:** the answer; `citations[].quote` (the statute's own words); the article key
-`art:79`.
+## 2. A question with verified quotes (0:20–1:30)
+**Do:** click the suggestion **"Hamilə işçini ixtisar etmək olarmı?"**, then **Soruş**.
+
+**Point at:**
+- the articles found while the answer is written;
+- the answer;
+- under **Sitatlar**, the quote from Art. 79 and the line saying it matches the law's text
+  word for word;
+- **Maddənin tam mətni**, which opens the whole article.
 
 **Say:** "A quote that does not occur in the article is dropped. The model cannot invent a
 citation."
 
-## 3. The law on a past date (1:15–1:45)
-Ask the same question with `"as_of": "2010-06-01"`, or a temporal question from
-`evals/datasets/v1/questions.jsonl`.
+## 3. A follow-up (1:30–2:00)
+**Do:** type **"Bəs uşağı 4 yaşındadırsa?"** and ask.
 
-**Say:** "Every version since 1999 is stored. The answer uses the text in force on the date
-asked about."
+**Say:** "The follow-up is read together with the previous question. The protection covers
+children under three, so the answer changes."
 
-## 4. Contract check (1:45–2:45)
-**Open:** `http://127.0.0.1:18000/contracts` and upload `evals/datasets/contracts/v1/c04.txt`.
+**Then:** show **PDF kimi saxla** (prints the conversation as a report; a sample is
+[`demo/Mizan-huquqi-arayis.pdf`](demo/Mizan-huquqi-arayis.pdf)).
+
+## 4. How the law changed (2:00–3:00)
+**Do:** open **Qanunun dəyişməsi**, click **"İşçinin işdən çıxması (69)"**.
+
+**Point at:** deleted words in red, added words in green, and the amending acts with their
+dates.
+
+**Say:** "Every version since 1999 is stored. This page needs no AI: it is a comparison of the
+two texts in force on the two dates."
+
+## 5. Contract check (3:00–4:15)
+**Do:** open **Müqavilə yoxlaması**, drop
+[`demo/Numune-emek-muqavilesi.pdf`](demo/Numune-emek-muqavilesi.pdf), untick **Ətraflı yoxlama**
+(the result then takes seconds), click **Yoxla**, then tick **Yalnız problemli bəndlər**.
 
 **Point at:**
-- the red clauses, with the article and the quoted provision;
-- the purple clause: hidden instructions to an AI, reported and not obeyed (`c09.txt` shows
-  one);
-- the disclaimer.
+- clause 7.2, the hidden instruction to an AI: flagged in purple, not obeyed;
+- the violations in red. The employee is 17, worked out from the birth date, so the rules for
+  minors apply: no probation (Art. 52), at most 36 hours a week (Art. 91), no night work
+  (Art. 254), 35 days of leave (Art. 119). There are also wages in dollars, a 70% fine, three
+  months' notice, and dismissal for pregnancy.
 
-**Say, honestly:** "On contracts written by someone else, it finds about 60% of violations.
-That is below our own bar, so it is a research aid, not a lawyer."
+**Say, honestly:** "On contracts written by someone else, it finds about 60% of violations. It
+points a lawyer at the clauses to read; it does not replace one."
 
-## 5. Measured, not claimed (2:45–3:45)
-**Show:** the README results table, then `docs/REPORT.md` section 4.4: the multi-agent system
-lost to the simple baseline.
+## 6. Measured, not claimed (4:15–5:00)
+**Show:** the README results table, then [`REPORT.md`](REPORT.md) section 4.4 (the multi-agent
+system lost to the single-shot baseline).
 
-**Say:** "Every component was measured against a baseline with thresholds set in advance.
-Some failed, and they are in the report: the agent, two fine-tunes, the cache and contract
-analysis."
+**Say:** "Every component was measured against a baseline with thresholds set in advance. The
+ones that failed are in the report: the agent, two fine-tunes, the cache, contract analysis,
+query rewriting."
 
-## 6. Engineering (3:45–4:30)
-**Show:**
-- CI on GitHub (lint, strict typing, about 540 tests, eval gates, dependency audit);
-- `evals/results/f11_load/README.md` (0 errors, where the bottleneck is);
-- `docs/security/owasp-llm-top10.md`.
-
-**Say:** "Auth, tenant isolation in the database, a prompt-injection gate in CI, load tested,
-and every decision recorded as an ADR."
-
-## 7. Close (4:30–4:45)
-"Mizan: a measured legal research aid for Azerbaijani labour law. The code, the eval sets and
-the report are linked below."
-
-## GIF for the README (10–15 s)
-Record scene 4 only, from upload to the red clauses appearing, at 800 px wide. Save it as
-`docs/demo.gif` and link it under the README's Architecture section.
+## Optional: Claude Desktop (MCP)
+With the `mizan` server configured (README, *MCP server*), ask Claude Desktop: "Mizan alətindən
+istifadə et: sınaq müddəti ən çoxu neçə aydır?" Claude calls `ask_mizan` or `search_law` and
+quotes Art. 51.

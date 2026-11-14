@@ -6,7 +6,7 @@ Mizan answers legal questions with citations to the exact article of the law in 
 given date, verifies every claim against its source, and measures its own quality
 continuously. See [docs/ROADMAP.md](docs/ROADMAP.md) for the full 24-week plan.
 
-> **Status:** complete (F0–F11); video and hosted deployment deliberately out of scope. The technical report is
+> **Status:** complete (F0–F12); video and hosted deployment deliberately out of scope. The technical report is
 > [docs/REPORT.md](docs/REPORT.md): methodology, every result, and the negative results.
 > The evaluation sets are published as [AzLegalBench](https://huggingface.co/datasets/NamiqKenan/azlegalbench) on Hugging Face.
 > Mizan is a research aid, not legal advice.
@@ -54,6 +54,9 @@ the linked reports.
 | prompt-injection screen | **98.2%** of held-out attacks blocked, 0/281 benign questions ✅ | [F10](evals/results/f10_redteam/README.md) |
 | contract analysis (3 held-out sets) | recall 0.28 / 0.50 / 0.61 vs 0.70; DoD not met ❌ | [F10](evals/results/f10_contracts/test3/README.md) |
 | load (1 process, CPU) | 0 errors; ~25 concurrent users; limit is query embedding (88 ms) | [F11](evals/results/f11_load/README.md) |
+| everyday wording (60 held-out, another model family) | Hit@5 **0.933**; LLM query rewriting again no gain (−0.033), stays off; named articles ranked first | [F12](evals/results/f12_colloquial/README.md) |
+| follow-up questions (20 conversations) | Hit@5 0.45 as written → **1.00** with the previous question; an LLM restatement 0.80 | [F12](evals/results/f12_followups/README.md) |
+| focused context for long articles | gold reaches the model 0.968 → 0.978, answers 0.833 → 0.800 (n=30, noise); stays off | [F12](evals/results/f12_colloquial/README.md) |
 
 ## Repository layout
 
@@ -106,6 +109,24 @@ uv run uvicorn mizan_api.main:create_app --factory --reload --port 8080
 Host ports default to the 1xxxx range (Postgres `15432`, Redis `16379`, Qdrant `16333`,
 Neo4j `17687`, API `18000`) so the stack can run next to other local projects. Override them with
 `MIZAN_HOST_PORT_*` in `.env`.
+
+## In the browser
+
+`python run_mizan.py` (in PyCharm: right-click, Run) starts the stack in Docker, waits until the
+models are loaded and opens `http://127.0.0.1:18000/`. It needs only the standard library.
+
+| page | what it does |
+|---|---|
+| `/` | Ask in everyday Azerbaijani. Follow-up questions read the previous one. Each quote is verified against the law and opens the full article. **PDF kimi saxla** prints the conversation as a report. |
+| `/contracts` | Upload a contract (PDF, Word, photo or text). Every clause is marked OK, risk, violation (with article and quote) or hidden instruction. |
+| `/changes` | How an article changed between two dates, word by word, with the amending acts. No LLM involved. |
+
+- **Intro:** a short animation plays once per session. Add `?intro` to the address to replay it.
+- **Dates:** written the Azerbaijani way (`gün.ay.il`).
+- **Demo files:** [`docs/demo/`](docs/demo/) holds a contract with nine violations and one hidden
+  instruction (PDF and text), and a sample PDF report. The demo script is [docs/DEMO.md](docs/DEMO.md).
+- **Answering:** answers come from `gpt-oss-120b` on Groq. When Groq's free tier is spent, they
+  fail over to the same model on OpenRouter (`MIZAN_LLM__ANSWER_FALLBACK_MODELS`).
 
 ## Legal data (F1)
 
@@ -325,7 +346,7 @@ See [ADR-0012](docs/adr/0012-tenancy-and-access.md).
 
 See [ADR-0013](docs/adr/0013-contract-analysis.md).
 
-Ask questions in the browser at `http://127.0.0.1:18000/`: follow-up questions read the previous question, every quote opens its full article, and **PDF kimi saxla** prints the conversation as a report. See how an article changed between two dates at `http://127.0.0.1:18000/changes`. Upload an employment contract at `http://127.0.0.1:18000/contracts` (or
+Upload an employment contract at `http://127.0.0.1:18000/contracts` (or
 `POST /v1/contracts/analyze`, multipart `file`). The report lists every clause as OK, risk,
 violation or suspicious instruction, with the article and a verified quote of the law.
 

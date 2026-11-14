@@ -347,7 +347,16 @@ dense `bge-m3`, reranker-siz (ADR-0009). Bax `evals/results/f7_rerank/README.md`
 - [x] **Veb səhifələr:**
   - sual səhifəsi (`/`): yoxlanılmış sitatlar, maddənin tam mətni, cavab gözlənilərkən tapılan maddələr;
   - qanunun dəyişməsi (`/changes`);
-  - `run_mizan.py` ilə bir kliklə işə salma.
+  - `run_mizan.py` ilə bir kliklə işə salma;
+  - söhbət rejimi, PDF arayış, yeni dizayn və intro animasiyası.
+- [x] **Davam sualları:** davam sualı əvvəlki sualla birlikdə axtarılır. Hit@5 0.45-dən 1.00-a qalxdı; LLM ilə müstəqil suala çevirmə 0.80 verdi, ona görə söndürülüb. Bax `evals/results/f12_followups`
+- [—] **Uzun maddələrdən yalnız lazımi hissəni göndərmək:**
+  - Offline ölçmədə (LLM-siz) düzgün maddə modelə daha tez-tez çatdı: 0.968 → 0.978.
+  - Cavab yoxlamasında 30 sualda 0.833 → 0.800 oldu (fərq səs-küy daxilindədir). Əvvəlcədən yazılmış qaydaya görə söndürülmüş qalır.
+- [x] **MCP Claude Desktop-da işləyir:** server ayrıca Python mühitindən işə salınır.
+- [x] **Cavablar üçün ehtiyat provayder:** Groq-un limiti tükənəndə OpenRouter-də eyni model (gpt-oss-120b) işləyir.
+- [x] **PDF müqavilələrin oxunması düzəldildi:** pypdf "Az ə rbaycan" kimi sözləri parçalayırdı, indi pdfium istifadə olunur.
+- [x] **Təhlükəsizlik:** asılılıq auditi OpenTelemetry-də yeni zəiflik tapdı (CVE-2026-126360), kitabxana yeniləndi.
 
 ---
 
