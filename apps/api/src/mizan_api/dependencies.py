@@ -329,8 +329,11 @@ def _build_answerer(settings: Settings, stack: AsyncExitStack) -> AnswerBackend 
     if llm.provider == "groq" and llm.groq_api_key is not None:
         groq_client = groq.AsyncGroq(api_key=llm.groq_api_key.get_secret_value())
         stack.push_async_callback(groq_client.close)
+        fallbacks = failover_chain(llm.answer_fallback_models, llm)
+        chain = [(groq_client, llm.groq_model), *fallbacks]
+        client: Any = FailoverClient(chain) if fallbacks else groq_client
         return GroqAnswerer(
-            groq_client,
+            client,
             model=llm.groq_model,
             reasoning_effort=llm.effort,
             max_context_chars=llm.max_context_chars,

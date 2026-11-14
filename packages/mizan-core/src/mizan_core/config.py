@@ -150,6 +150,9 @@ class LLMSettings(BaseModel):
     # "<previous question> <follow-up>". Restating them with the rewrite model instead
     # (True) found the article less often in F12 (Hit@5 0.80 vs 1.00), so it is off.
     condense_followups: bool = False
+    # Providers serving the *same* answer model, tried when Groq rate-limits or is down
+    # (FailoverClient). Entries without a key are skipped.
+    answer_fallback_models: list[str] = ["openrouter:openai/gpt-oss-120b"]
     # Characters of source text sent per answer (Groq free tier: 8k tokens/minute in total).
     max_context_chars: int = Field(default=9000, ge=1000)
     # LLM tokens one tenant may spend per day (Baku time) across /v1/ask and the agent.
