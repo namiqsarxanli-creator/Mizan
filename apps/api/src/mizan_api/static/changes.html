@@ -4,75 +4,45 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mizan · Qanunun dəyişməsi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/theme.css?v=2">
 <style>
-  :root {
-    --bg: #f7f7f5; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e3e2dd;
-    --add: #1f6b3a; --add-bg: #dff3e5; --del: #a1281c; --del-bg: #fbe3e0;
-    --bad: #b42318; --accent: #1f4e8c; --on-accent: #ffffff;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #161615; --panel: #1f1f1d; --text: #ececea; --muted: #a3a39d; --line: #34342f;
-      --add: #8fe0a8; --add-bg: #173022; --del: #f5a097; --del-bg: #3a1c19;
-      --bad: #f1857a; --accent: #8db4ea; --on-accent: #10233d;
-    }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text);
-         font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
-  nav { display: flex; gap: 16px; align-items: baseline; margin-bottom: 20px; flex-wrap: wrap; }
-  nav .brand { font-weight: 800; font-size: 20px; margin-right: auto; }
-  nav a { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; }
-  nav a[aria-current] { color: var(--text); }
-  h1 { font-size: 22px; margin: 0 0 4px; }
-  .sub { color: var(--muted); margin: 0 0 20px; }
-  form { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-         padding: 16px; display: grid; gap: 12px; }
-  label { display: grid; gap: 4px; font-weight: 600; font-size: 14px; }
-  input { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
-          background: var(--bg); color: var(--text); width: 100%; }
-  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; }
   .row > * { flex: 1 1 160px; }
-  .examples { display: flex; gap: 8px; flex-wrap: wrap; }
-  .chip { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 999px; cursor: pointer;
-          border: 1px solid var(--line); background: var(--bg); color: var(--text); }
-  .chip:hover { border-color: var(--accent); }
-  button.primary { font: inherit; font-weight: 600; padding: 10px 18px; border: 0; border-radius: 6px;
-                   background: var(--accent); color: var(--on-accent); cursor: pointer; justify-self: start; }
-  button.primary:disabled { opacity: .6; cursor: wait; }
-  #status { color: var(--muted); min-height: 1.5em; }
-  #status.error { color: var(--bad); }
-  .summary { margin: 20px 0 8px; color: var(--muted); }
-  h2 { font-size: 16px; margin: 22px 0 8px; }
-  .change { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
-            padding: 10px 14px; margin-bottom: 8px; }
-  .change .head { display: flex; gap: 10px; align-items: baseline; font-weight: 600; }
-  .kind { font-size: 12px; font-weight: 700; border-radius: 4px; padding: 1px 6px; margin-left: auto; }
+  .summary { margin: 28px 0 6px; color: var(--muted); text-align: center; }
+  h2 { font-family: var(--serif); color: var(--gold); font-weight: 600; font-size: 26px; margin: 30px 0 10px; }
+  .change { padding: 12px 16px; margin-bottom: 10px; }
+  .change .head { display: flex; gap: 10px; align-items: baseline; font-weight: 700; }
+  .kind { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 10px; margin-left: auto; }
   .k-added { color: var(--add); background: var(--add-bg); }
   .k-removed { color: var(--del); background: var(--del-bg); }
-  .k-changed { color: var(--accent); border: 1px solid var(--line); }
-  .text { margin-top: 6px; overflow-wrap: anywhere; }
-  ins { text-decoration: none; color: var(--add); background: var(--add-bg); border-radius: 3px; padding: 0 2px; }
-  del { color: var(--del); background: var(--del-bg); border-radius: 3px; padding: 0 2px; margin-right: 3px; }
-  .act { border-top: 1px dashed var(--line); padding: 8px 0; font-size: 14px; }
-  .act .when { font-weight: 600; }
+  .k-changed { color: var(--gold); border: 1px solid var(--gold); }
+  .text { margin-top: 8px; overflow-wrap: anywhere; }
+  ins { text-decoration: none; color: var(--add); background: var(--add-bg); border-radius: 4px; padding: 0 3px; }
+  del { color: var(--del); background: var(--del-bg); border-radius: 4px; padding: 0 3px; margin-right: 3px; }
+  .act { border-top: 1px dashed var(--line); padding: 10px 0; font-size: 14px; }
+  .act .when { font-weight: 700; color: var(--gold); }
   .act .note { color: var(--muted); overflow-wrap: anywhere; }
-  .legend { font-size: 13px; color: var(--muted); }
+  .legend { font-size: 13px; color: var(--muted); text-align: center; }
 </style>
 </head>
 <body>
 <main>
+  <div class="topline">Azərbaycan Respublikasının Əmək Məcəlləsi · 1999-dan bu günədək bütün redaksiyalar</div>
   <nav>
-    <span class="brand">Mizan</span>
+    <a class="brand" href="/"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1240" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M7 21h10M4 7h16"/><path d="M4 7l-3 7a3 3 0 0 0 6 0z"/><path d="M20 7l-3 7a3 3 0 0 0 6 0z"/></svg></span>Mizan</a>
     <a href="/">Sual ver</a>
     <a href="/contracts">Müqavilə yoxlaması</a>
     <a href="/changes" aria-current="page">Qanunun dəyişməsi</a>
-    <a href="/docs">API</a>
   </nav>
-  <h1>Maddə necə dəyişib?</h1>
-  <p class="sub">Əmək Məcəlləsinin bir maddəsini iki tarixdə qüvvədə olan mətnlərə görə müqayisə edir və
-    dəyişikliyi edən qanunları göstərir. Bütün redaksiyalar 1999-cu ildən saxlanılır.</p>
+  <header class="hero">
+    <span class="eyebrow">Zaman maşını</span>
+    <h1>Maddə necə<br><em>dəyişib?</em></h1>
+    <p class="sub">Bir maddəni iki tarixdə qüvvədə olan mətnlərə görə sözbəsöz müqayisə edir və dəyişikliyi
+      edən qanunları göstərir.</p>
+    <div class="stats"><span><b>1999</b>-dan bəri bütün redaksiyalar</span><span>Sözbəsöz <b>fərq</b></span><span>Dəyişdirən <b>qanunlar</b></span></div>
+  </header>
   <form id="form">
     <div class="row">
       <label>Maddə nömrəsi

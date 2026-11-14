@@ -8,7 +8,7 @@ from __future__ import annotations
 from importlib.resources import files
 
 from fastapi import APIRouter
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 
 router = APIRouter(tags=["pages"])
 
@@ -23,3 +23,9 @@ async def ask_page() -> HTMLResponse:
 async def changes_page() -> HTMLResponse:
     page = files("mizan_api").joinpath("static/changes.html").read_text(encoding="utf-8")
     return HTMLResponse(page)
+
+
+@router.get("/theme.css", include_in_schema=False)
+async def theme() -> Response:
+    css = files("mizan_api").joinpath("static/theme.css").read_text(encoding="utf-8")
+    return Response(css, media_type="text/css", headers={"Cache-Control": "no-cache"})

@@ -4,95 +4,53 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mizan · Hüquqi sual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/theme.css?v=2">
 <style>
-  :root {
-    --bg: #f7f7f5; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e3e2dd;
-    --ok: #2f7d4a; --ok-bg: #eaf5ee; --risk: #9a6700; --risk-bg: #fdf4e0;
-    --bad: #b42318; --accent: #1f4e8c; --on-accent: #ffffff; --accent-bg: #e8eef7;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #161615; --panel: #1f1f1d; --text: #ececea; --muted: #a3a39d; --line: #34342f;
-      --ok: #6fcf8e; --ok-bg: #1b2d21; --risk: #f0b54a; --risk-bg: #2f2615;
-      --bad: #f1857a; --accent: #8db4ea; --on-accent: #10233d; --accent-bg: #1c2633;
-    }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text);
-         font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 64px; }
-  nav { display: flex; gap: 16px; align-items: baseline; margin-bottom: 20px; flex-wrap: wrap; }
-  nav .brand { font-weight: 800; font-size: 20px; margin-right: auto; }
-  nav a { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; }
-  nav a[aria-current] { color: var(--text); }
-  h1 { font-size: 22px; margin: 0 0 4px; }
-  .sub { color: var(--muted); margin: 0 0 20px; }
-  form { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-         padding: 16px; display: grid; gap: 12px; margin-top: 20px; }
-  label { display: grid; gap: 4px; font-weight: 600; font-size: 14px; }
-  textarea, input[type=date], input[type=password] {
-    font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
-    background: var(--bg); color: var(--text); width: 100%; }
-  textarea { min-height: 84px; resize: vertical; }
-  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; }
-  .row > * { flex: 1 1 200px; }
-  .examples { display: flex; gap: 8px; flex-wrap: wrap; }
-  .chip { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 999px; cursor: pointer;
-          border: 1px solid var(--line); background: var(--bg); color: var(--text); }
-  .chip:hover { border-color: var(--accent); }
-  .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
-  button.primary, button.secondary { font: inherit; font-weight: 600; padding: 10px 18px;
-                                     border-radius: 6px; cursor: pointer; }
-  button.primary { border: 0; background: var(--accent); color: var(--on-accent); }
-  button.secondary { border: 1px solid var(--line); background: var(--bg); color: var(--text); }
-  button.primary:disabled { opacity: .6; cursor: wait; }
-  #status { color: var(--muted); min-height: 1.5em; }
-  #status.error { color: var(--bad); }
-  .turn { margin-top: 24px; }
-  .turn + .turn { border-top: 1px solid var(--line); padding-top: 20px; }
-  .asked { font-weight: 700; font-size: 16px; overflow-wrap: anywhere; }
-  .understood { color: var(--muted); font-size: 13px; margin-top: 2px; overflow-wrap: anywhere; }
-  .answer { background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--accent);
-            border-radius: 10px; padding: 16px 18px; margin-top: 10px; }
+  .turn { margin-top: 28px; }
+  .turn + .turn { border-top: 1px solid var(--line); padding-top: 24px; }
+  .asked { font-family: var(--serif); font-size: 24px; line-height: 1.2; color: var(--text); overflow-wrap: anywhere; }
+  .understood { color: var(--muted); font-size: 13px; margin-top: 4px; overflow-wrap: anywhere; }
+  .answer { border-left: 4px solid var(--gold); padding: 18px 20px; margin-top: 12px; }
   .answer.refused { border-left-color: var(--risk); }
-  .answer p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-  .meta { color: var(--muted); font-size: 13px; margin-top: 10px; }
-  h3 { font-size: 15px; margin: 16px 0 8px; }
-  .cite { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
-          padding: 10px 14px; margin-bottom: 8px; }
-  .cite .title { font-weight: 600; }
-  .cite blockquote { margin: 6px 0 0; padding: 4px 10px; border-left: 3px solid var(--ok);
-                     background: var(--ok-bg); border-radius: 0 4px 4px 0; overflow-wrap: anywhere; }
-  .verified { color: var(--ok); font-size: 12px; font-weight: 700; }
-  details { margin-top: 8px; }
-  summary { cursor: pointer; color: var(--muted); font-size: 14px; }
-  .source { border-top: 1px dashed var(--line); padding: 8px 0; font-size: 14px; }
+  .answer p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 16px; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 12px; }
+  h3 { font-family: var(--serif); color: var(--gold); font-weight: 600; font-size: 22px; margin: 22px 0 10px; }
+  .cite { padding: 14px 16px; margin-bottom: 10px; }
+  .cite .title { font-weight: 700; }
+  .verified { color: var(--ok); font-size: 12px; font-weight: 700; margin-top: 6px; }
+  details { margin-top: 10px; }
+  .source { border-top: 1px dashed var(--line); padding: 10px 0; font-size: 14px; }
   .source .text { color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
-  .feedback { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 14px; flex-wrap: wrap; }
-  .feedback button { font: inherit; padding: 4px 10px; border-radius: 6px; cursor: pointer;
-                     border: 1px solid var(--line); background: var(--bg); color: var(--text); }
-  .disclaimer { color: var(--muted); font-size: 13px; margin-top: 24px; }
-  .actions { display: flex; gap: 14px; margin-top: 8px; font-size: 13px; flex-wrap: wrap; }
-  .actions button, .actions a { font: inherit; color: var(--accent); background: none; border: 0;
+  .feedback { display: flex; gap: 8px; align-items: center; margin-top: 14px; font-size: 14px; flex-wrap: wrap; color: var(--muted); }
+  .feedback button { font: inherit; padding: 4px 12px; border-radius: 999px; cursor: pointer;
+                     border: 1px solid var(--line); background: rgba(255,255,255,.06); color: var(--text); }
+  .actions { display: flex; gap: 16px; margin-top: 10px; font-size: 13px; flex-wrap: wrap; }
+  .actions button, .actions a { font: inherit; color: var(--gold); background: none; border: 0;
                                 padding: 0; cursor: pointer; text-decoration: none; font-weight: 600; }
-  .fulltext { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 14px;
-              white-space: pre-wrap; overflow-wrap: anywhere; }
-  .found { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
+  .fulltext { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 14px;
+              white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
+  .found { margin: 4px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
+  #form { margin-top: 28px; }
   .print-only { display: none; }
 
   /* The printed report (PDF): the conversation, its quotes and the disclaimer only. */
   @media print {
     :root { --bg: #fff; --panel: #fff; --text: #000; --muted: #444; --line: #bbb;
-            --ok: #1f5c34; --ok-bg: #f1f7f3; --accent: #1f4e8c; }
-    body { font-size: 11pt; background: #fff; }
+            --gold: #7a5a00; --gold-soft: #fbf4dd; --ok: #1f5c34; color-scheme: light; }
+    html, body { background: #fff !important; }
+    body { font-size: 11pt; }
     main { max-width: none; padding: 0; }
-    nav, .sub, h1, form, .actions, .feedback, details, .no-print { display: none !important; }
+    .topline, nav, .hero, form, .actions, .feedback, details, .no-print { display: none !important; }
     .print-only { display: block; }
+    .answer, .cite { backdrop-filter: none; }
     .turn { break-inside: avoid-page; }
     .cite { break-inside: avoid; }
     .fulltext { display: none !important; }
     .report-head { border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 8px; }
-    .report-head .name { font-size: 18pt; font-weight: 800; }
+    .report-head .name { font-family: var(--serif); font-size: 20pt; font-weight: 700; }
     .report-head .when { color: #444; font-size: 10pt; }
   }
 </style>
@@ -103,17 +61,20 @@
     <div class="name">Mizan · Hüquqi arayış</div>
     <div class="when" id="printed-at"></div>
   </div>
+  <div class="topline">Azərbaycan Respublikasının Əmək Məcəlləsi · 1999-dan bu günədək bütün redaksiyalar</div>
   <nav>
-    <span class="brand">Mizan</span>
+    <a class="brand" href="/"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1240" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M7 21h10M4 7h16"/><path d="M4 7l-3 7a3 3 0 0 0 6 0z"/><path d="M20 7l-3 7a3 3 0 0 0 6 0z"/></svg></span>Mizan</a>
     <a href="/" aria-current="page">Sual ver</a>
     <a href="/contracts">Müqavilə yoxlaması</a>
     <a href="/changes">Qanunun dəyişməsi</a>
-    <a href="/docs">API</a>
   </nav>
-  <h1>Əmək hüququ üzrə sual</h1>
-  <p class="sub">Sualınızı adi dildə yazın, sonra davam sualları verə bilərsiniz. Cavab Əmək
-    Məcəlləsinin seçilmiş tarixdə qüvvədə olan mətnindən hazırlanır və hər sitat maddənin mətni ilə
-    kodla yoxlanılır.</p>
+  <header class="hero">
+    <span class="eyebrow">Hüquqi tədqiqat köməkçisi</span>
+    <h1>Əmək hüququ<br><em>sualınız</em></h1>
+    <p class="sub">Sualınızı adi dildə yazın, sonra davam sualları verin. Cavab seçilmiş tarixdə qüvvədə olan
+      mətndən hazırlanır və hər sitat maddənin mətni ilə kodla yoxlanılır.</p>
+    <div class="stats"><span><b>1999</b>-dan bəri redaksiyalar</span><span>Hər sitat <b>yoxlanılır</b></span><span>Konstitusiya Məhkəməsinin <b>qərarları</b></span></div>
+  </header>
   <div id="thread"></div>
   <form id="form">
     <label for="question" id="question-label">Sual</label>

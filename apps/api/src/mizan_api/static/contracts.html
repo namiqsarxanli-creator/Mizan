@@ -4,85 +4,55 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mizan · Müqavilə yoxlaması</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/theme.css?v=2">
 <style>
-  :root {
-    --bg: #f7f7f5; --panel: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e3e2dd;
-    --ok: #2f7d4a; --ok-bg: #eaf5ee; --risk: #9a6700; --risk-bg: #fdf4e0;
-    --bad: #b42318; --bad-bg: #fdecea; --inj: #6941c6; --inj-bg: #f2edfc; --accent: #1f4e8c; --on-accent: #ffffff;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #161615; --panel: #1f1f1d; --text: #ececea; --muted: #a3a39d; --line: #34342f;
-      --ok: #6fcf8e; --ok-bg: #1b2d21; --risk: #f0b54a; --risk-bg: #2f2615;
-      --bad: #f1857a; --bad-bg: #351c19; --inj: #b49cf5; --inj-bg: #251d38; --accent: #8db4ea; --on-accent: #10233d;
-    }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text);
-         font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font-size: 22px; margin: 0 0 4px; }
-  .sub { color: var(--muted); margin: 0 0 20px; }
-  .disclaimer { border: 1px solid var(--risk); background: var(--risk-bg); border-radius: 8px;
-                padding: 12px 14px; margin-bottom: 20px; }
-  form { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-         padding: 16px; display: grid; gap: 12px; }
-  label { display: grid; gap: 4px; font-weight: 600; font-size: 14px; }
-  input[type=text], input[type=date], input[type=password] {
-    font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
-    background: var(--bg); color: var(--text); }
-  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: end; }
-  .row > * { flex: 1 1 200px; }
-  .check { display: flex; gap: 8px; align-items: center; font-weight: 400; }
-  button { font: inherit; font-weight: 600; padding: 10px 16px; border: 0; border-radius: 6px;
-           background: var(--accent); color: var(--on-accent); cursor: pointer; justify-self: start; }
-  button:disabled { opacity: .6; cursor: wait; }
-  #status { color: var(--muted); min-height: 1.5em; }
-  #status.error { color: var(--bad); }
-  .summary { display: flex; gap: 8px; flex-wrap: wrap; margin: 20px 0 8px; }
-  .pill { border-radius: 999px; padding: 4px 12px; font-weight: 600; font-size: 14px; }
+  .notice { border: 1px solid var(--risk); background: var(--risk-bg); border-radius: 12px;
+            padding: 12px 16px; margin-bottom: 20px; font-size: 14px; color: var(--text); }
+  .summary { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 28px 0 10px; }
+  .pill { padding: 5px 14px; font-size: 14px; }
   .ok { color: var(--ok); background: var(--ok-bg); }
   .risk { color: var(--risk); background: var(--risk-bg); }
   .violation { color: var(--bad); background: var(--bad-bg); }
   .injection { color: var(--inj); background: var(--inj-bg); }
-  .notes { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
-  .filters { display: flex; gap: 12px; margin: 8px 0 12px; flex-wrap: wrap; font-size: 14px; }
-  h2.section { font-size: 16px; margin: 22px 0 8px; color: var(--muted); }
-  .clause { background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--line);
-            border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; }
+  .notes { color: var(--muted); font-size: 14px; margin: 0 0 12px; text-align: center; }
+  .filters { display: flex; gap: 12px; margin: 8px 0 14px; flex-wrap: wrap; font-size: 14px; justify-content: center; }
+  h2.section { font-family: var(--serif); color: var(--gold); font-weight: 600; font-size: 22px; margin: 26px 0 10px; }
+  .clause { border-left: 4px solid var(--line); padding: 12px 16px; margin-bottom: 10px; }
   .clause.v-ok { border-left-color: var(--ok); }
   .clause.v-risk { border-left-color: var(--risk); }
   .clause.v-violation { border-left-color: var(--bad); }
   .clause.v-injection { border-left-color: var(--inj); }
   .head { display: flex; gap: 10px; align-items: baseline; }
-  .num { font-weight: 700; min-width: 3em; }
+  .num { font-weight: 700; min-width: 3em; color: var(--gold); }
   .body { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-  .finding { overflow-wrap: anywhere; }
-  .tag { font-size: 12px; font-weight: 700; border-radius: 4px; padding: 1px 6px; margin-left: auto;
-         white-space: nowrap; }
-  .finding { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 14px; }
-  .finding .arts { font-weight: 600; }
-  .finding blockquote { margin: 6px 0 0; padding: 4px 10px; border-left: 3px solid var(--line);
-                        color: var(--muted); }
-  .origin { color: var(--muted); font-size: 12px; }
-  nav { display: flex; gap: 16px; align-items: baseline; margin-bottom: 20px; flex-wrap: wrap; }
-  nav .brand { font-weight: 800; font-size: 20px; margin-right: auto; }
-  nav a { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; }
-  nav a[aria-current] { color: var(--text); }
+  .tag { font-size: 12px; padding: 2px 10px; margin-left: auto; white-space: nowrap; }
+  .finding { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 14px; overflow-wrap: anywhere; }
+  .finding .arts { font-weight: 700; }
+  .finding blockquote { color: var(--muted); }
+  .origin { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  #form { margin-top: 8px; }
 </style>
 </head>
 <body>
 <main>
+  <div class="topline">Azərbaycan Respublikasının Əmək Məcəlləsi · 1999-dan bu günədək bütün redaksiyalar</div>
   <nav>
-    <span class="brand">Mizan</span>
+    <a class="brand" href="/"><span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1240" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M7 21h10M4 7h16"/><path d="M4 7l-3 7a3 3 0 0 0 6 0z"/><path d="M20 7l-3 7a3 3 0 0 0 6 0z"/></svg></span>Mizan</a>
     <a href="/">Sual ver</a>
     <a href="/contracts" aria-current="page">Müqavilə yoxlaması</a>
     <a href="/changes">Qanunun dəyişməsi</a>
-    <a href="/docs">API</a>
   </nav>
-  <h1>Əmək müqaviləsinin yoxlanması</h1>
-  <p class="sub">Müqaviləni yükləyin: hər bənd Azərbaycan Respublikasının Əmək Məcəlləsi ilə müqayisə edilir.</p>
-  <div class="disclaimer" id="disclaimer">
+  <header class="hero">
+    <span class="eyebrow">Bənd-bənd yoxlama</span>
+    <h1>Müqaviləni<br><em>yoxla</em></h1>
+    <p class="sub">Əmək müqaviləsini yükləyin: hər bənd Əmək Məcəlləsi ilə müqayisə edilir, pozuntular
+      maddə və sitatla göstərilir.</p>
+    <div class="stats"><span><b>PDF · DOCX · şəkil</b></span><span>Qaydalar + <b>süni intellekt</b></span><span>Gizli göstərişlər <b>aşkarlanır</b></span></div>
+  </header>
+  <div class="notice" id="disclaimer">
     Bu hesabat avtomatik hazırlanmış tədqiqat vasitəsidir, hüquqi məsləhət deyil. Hər nəticəni
     göstərilən maddənin mətni ilə yoxlayın; qərar verməzdən əvvəl hüquqşünasa müraciət edin.
     Yüklədiyiniz sənəddə şəxsi məlumatları (FİN, ünvan, telefon) əvvəlcədən silin.
