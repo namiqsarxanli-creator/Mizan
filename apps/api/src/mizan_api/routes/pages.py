@@ -29,3 +29,9 @@ async def changes_page() -> HTMLResponse:
 async def theme() -> Response:
     css = files("mizan_api").joinpath("static/theme.css").read_text(encoding="utf-8")
     return Response(css, media_type="text/css", headers={"Cache-Control": "no-cache"})
+
+
+@router.get("/common.js", include_in_schema=False)
+async def common_js() -> Response:
+    js = files("mizan_api").joinpath("static/common.js").read_text(encoding="utf-8")
+    return Response(js, media_type="text/javascript", headers={"Cache-Control": "no-cache"})

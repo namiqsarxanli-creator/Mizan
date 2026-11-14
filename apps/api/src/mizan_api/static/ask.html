@@ -7,7 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/theme.css?v=2">
+<link rel="stylesheet" href="/theme.css?v=6">
+<script src="/common.js?v=1"></script>
 <style>
   .turn { margin-top: 28px; }
   .turn + .turn { border-top: 1px solid var(--line); padding-top: 24px; }
@@ -56,6 +57,7 @@
 </style>
 </head>
 <body>
+<div class="intro" aria-hidden="true"><div class="intro-stage"><div class="intro-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1240" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 21h10M4 7h16"/><path d="M4 7l-3 7a3 3 0 0 0 6 0z"/><path d="M20 7l-3 7a3 3 0 0 0 6 0z"/></svg></div><div class="intro-word">Mizan</div></div><div class="intro-fill"></div><div class="intro-curtain"></div></div>
 <main>
   <div class="print-only report-head">
     <div class="name">Mizan · Hüquqi arayış</div>
@@ -69,30 +71,35 @@
     <a href="/changes">Qanunun dəyişməsi</a>
   </nav>
   <header class="hero">
-    <span class="eyebrow">Hüquqi tədqiqat köməkçisi</span>
+    <span class="eyebrow">Əmək Məcəlləsi üzrə</span>
     <h1>Əmək hüququ<br><em>sualınız</em></h1>
-    <p class="sub">Sualınızı adi dildə yazın, sonra davam sualları verin. Cavab seçilmiş tarixdə qüvvədə olan
-      mətndən hazırlanır və hər sitat maddənin mətni ilə kodla yoxlanılır.</p>
-    <div class="stats"><span><b>1999</b>-dan bəri redaksiyalar</span><span>Hər sitat <b>yoxlanılır</b></span><span>Konstitusiya Məhkəməsinin <b>qərarları</b></span></div>
+    <p class="sub">İşdən çıxarılma, məzuniyyət, maaş, sınaq müddəti… Sualınızı adi dillə yazın: cavabı
+      qanunun özündən, maddəsi və sözbəsöz sitatı ilə verəcəyik.</p>
+    <div class="stats"><span>Hər cavab <b>maddə ilə</b></span><span>Keçmiş tarixlər <b>üçün də</b></span><span>Konstitusiya Məhkəməsinin <b>qərarları</b> nəzərə alınır</span></div>
   </header>
   <div id="thread"></div>
-  <form id="form">
-    <label for="question" id="question-label">Sual</label>
-    <textarea id="question" required minlength="3" maxlength="1000"
-      placeholder="Məsələn: Hamilə işçini ixtisar etmək olarmı?"></textarea>
-    <div class="examples" id="examples"></div>
-    <div class="row">
-      <label>Tarix (boş: bu gün)
-        <input type="date" id="as_of">
-      </label>
-      <label>Giriş tokeni (auth aktivdirsə)
-        <input type="password" id="token" autocomplete="off" placeholder="Bearer token">
-      </label>
-    </div>
-    <div class="buttons">
-      <button class="primary" type="submit" id="submit">Soruş</button>
-      <button class="secondary" type="button" id="pdf" hidden>PDF kimi saxla</button>
-      <button class="secondary" type="button" id="reset" hidden>Yeni söhbət</button>
+  <form id="form" novalidate>
+    <p class="field-title" id="field-title">Nə baş verib?</p>
+    <p class="field-hint" id="field-hint">Vəziyyətinizi öz sözlərinizlə yazın, maddə nömrəsini bilmək lazım deyil.</p>
+    <textarea id="question" maxlength="1000" aria-labelledby="field-title"
+      placeholder="Məsələn: hamiləyəm, işəgötürən ştat ixtisarı adı ilə məni işdən çıxara bilərmi?"></textarea>
+    <div class="suggest" id="suggest"><span>Tez-tez soruşulur:</span></div>
+    <div class="form-foot">
+      <div class="when" id="when">
+        <span class="when-label">Qanunun hansı tarixdəki mətni ilə?</span>
+        <div class="when-row">
+          <div class="seg" role="group" aria-label="Tarix">
+            <button type="button" data-mode="today">Bu gün</button>
+            <button type="button" data-mode="past">Keçmiş tarix</button>
+          </div>
+          <input type="text" inputmode="numeric" placeholder="gün.ay.il" maxlength="10" aria-label="Tarix (gün.ay.il)" hidden>
+        </div>
+      </div>
+      <div class="buttons">
+        <button class="secondary" type="button" id="reset" hidden>Yeni söhbət</button>
+        <button class="secondary" type="button" id="pdf" hidden>PDF kimi saxla</button>
+        <button class="primary" type="submit" id="submit">Soruş</button>
+      </div>
     </div>
     <div id="status" role="status" aria-live="polite"></div>
     <ul class="found" id="found" hidden></ul>
@@ -127,25 +134,19 @@
     const part = /\/part:(.+)$/.exec(key);
     return title + (part ? " (hissə " + part[1] + ")" : "");
   };
-  try { $("token").value = sessionStorage.getItem("mizan-token") || ""; } catch (_) {}
   for (const q of EXAMPLES) {
     const chip = el("button", "chip", q);
     chip.type = "button";
     chip.addEventListener("click", () => { $("question").value = q; $("question").focus(); });
-    $("examples").append(chip);
+    $("suggest").append(chip);
   }
-  const headers = () => {
-    const h = { "Content-Type": "application/json" };
-    const token = $("token").value.trim();
-    if (token) h["Authorization"] = "Bearer " + token;
-    try { sessionStorage.setItem("mizan-token", token); } catch (_) {}
-    return h;
-  };
+  const when = Mizan.whenField($("when"));
+  const headers = () => Mizan.headers({ "Content-Type": "application/json" });
   const errorText = (res, data) => {
-    if (res.status === 400) return "Sual təhlükəsizlik yoxlamasından keçmədi.";
-    if (res.status === 401) return "Giriş tokeni tələb olunur və ya etibarsızdır.";
-    if (res.status === 429) return "Limit dolub, bir az sonra yenidən cəhd edin.";
-    if (res.status === 503) return "Cavab xidməti əlçatan deyil (LLM açarı .env-də varmı?).";
+    if (res.status === 400) return "Bu sualı emal edə bilmədik. Onu başqa sözlərlə yazın.";
+    if (res.status === 401) return "Bu xidmətdən istifadə üçün giriş keçidi lazımdır.";
+    if (res.status === 429) return "Çox sorğu göndərildi. Bir neçə dəqiqədən sonra yenidən yoxlayın.";
+    if (res.status === 503) return "Cavab xidməti hazırda məşğuldur. Bir az sonra yenidən yoxlayın.";
     if (typeof data.detail === "string") return data.detail;
     return "HTTP " + res.status;
   };
@@ -219,8 +220,8 @@
     }
     const answer = el("div", "answer" + (data.refused ? " refused" : ""));
     answer.append(el("p", "", data.answer));
-    const meta = ["Tarix: " + data.as_of];
-    if (data.refused) meta.push("Sənədlərdə kifayət qədər əsas tapılmadı: sistem cavab uydurmur.");
+    const meta = [Mizan.formatDate(data.as_of) + " tarixində qüvvədə olan mətnə görə"];
+    if (data.refused) meta.push("Qanunda bu suala birbaşa cavab tapılmadı, ona görə ehtimal yürütmürük.");
     if (data.rejected_citations) meta.push(data.rejected_citations + " sitat maddə mətnində tapılmadığı üçün atıldı.");
     if (data.cached) meta.push("Keşdən.");
     answer.append(el("div", "meta", meta.join(" · ")));
@@ -233,7 +234,7 @@
         const card = el("div", "cite");
         card.append(el("div", "title", heading(c.key, c.title)));
         card.append(el("blockquote", "", "«" + c.quote + "»"));
-        card.append(el("div", "verified", "✓ sitat maddənin mətnində hərfi-hərfinə tapıldı"));
+        card.append(el("div", "verified", "Sitat qanunun mətni ilə hərfi-hərfinə üst-üstə düşür"));
         card.append(actions(c.key, data.as_of));
         turn.append(card);
       }
@@ -264,7 +265,7 @@
       const data = await res.json();
       const titles = [...new Set(data.results.map((r) => r.title))].slice(0, 5);
       if (!titles.length || !isCurrent()) return;
-      $("status").textContent = "Uyğun maddələr tapıldı; cavab yazılır və sitatlar yoxlanılır…";
+      $("status").textContent = "Bu maddələr tapıldı, cavab hazırlanır…";
       const list = $("found");
       list.replaceChildren(...titles.map((t) => el("li", "", t)));
       list.hidden = false;
@@ -275,11 +276,14 @@
   const thread = [];
   function setConversationMode() {
     const inConversation = thread.length > 0;
-    $("question-label").textContent = inConversation ? "Davam sualı və ya yeni sual" : "Sual";
+    $("field-title").textContent = inConversation ? "Başqa nə soruşmaq istəyirsiniz?" : "Nə baş verib?";
+    $("field-hint").textContent = inConversation
+      ? "Davam sualı əvvəlki sualla birlikdə oxunur. Yeni mövzu üçün «Yeni söhbət» seçin."
+      : "Vəziyyətinizi öz sözlərinizlə yazın, maddə nömrəsini bilmək lazım deyil.";
     $("question").placeholder = inConversation
-      ? "Məsələn: Bəs uşağı 4 yaşındadırsa?"
-      : "Məsələn: Hamilə işçini ixtisar etmək olarmı?";
-    $("examples").hidden = inConversation;
+      ? "Məsələn: bəs uşağım 4 yaşındadırsa?"
+      : "Məsələn: hamiləyəm, işəgötürən ştat ixtisarı adı ilə məni işdən çıxara bilərmi?";
+    $("suggest").hidden = inConversation;
     $("pdf").hidden = !inConversation;
     $("reset").hidden = !inConversation;
   }
@@ -288,12 +292,19 @@
     event.preventDefault();
     const status = $("status");
     const asked = $("question").value.trim();
+    if (asked.length < 3) {
+      status.className = "error"; status.textContent = "Əvvəlcə sualınızı yazın.";
+      $("question").focus();
+      return;
+    }
+    const date = when.read();
+    if (date.error) { status.className = "error"; status.textContent = date.error; return; }
     const body = { question: asked };
-    if ($("as_of").value) body.as_of = $("as_of").value;
+    if (date.iso) body.as_of = date.iso;
     if (thread.length) {
       body.history = thread.slice(-HISTORY_TURNS).map((t) => ({ question: t.asked, answer: t.data.answer }));
     }
-    status.className = ""; status.textContent = thread.length ? "Sual söhbətə görə aydınlaşdırılır və axtarılır…" : "Maddələr axtarılır…";
+    status.className = ""; status.textContent = "Qanunda uyğun maddələr axtarılır…";
     $("submit").disabled = true;
     $("found").hidden = true;
     let pending = true;

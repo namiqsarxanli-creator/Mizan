@@ -7,7 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/theme.css?v=2">
+<link rel="stylesheet" href="/theme.css?v=6">
+<script src="/common.js?v=1"></script>
 <style>
   .row > * { flex: 1 1 160px; }
   .summary { margin: 28px 0 6px; color: var(--muted); text-align: center; }
@@ -28,6 +29,7 @@
 </style>
 </head>
 <body>
+<div class="intro" aria-hidden="true"><div class="intro-stage"><div class="intro-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1240" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 21h10M4 7h16"/><path d="M4 7l-3 7a3 3 0 0 0 6 0z"/><path d="M20 7l-3 7a3 3 0 0 0 6 0z"/></svg></div><div class="intro-word">Mizan</div></div><div class="intro-fill"></div><div class="intro-curtain"></div></div>
 <main>
   <div class="topline">Azərbaycan Respublikasının Əmək Məcəlləsi · 1999-dan bu günədək bütün redaksiyalar</div>
   <nav>
@@ -43,20 +45,22 @@
       edən qanunları göstərir.</p>
     <div class="stats"><span><b>1999</b>-dan bəri bütün redaksiyalar</span><span>Sözbəsöz <b>fərq</b></span><span>Dəyişdirən <b>qanunlar</b></span></div>
   </header>
-  <form id="form">
+  <form id="form" novalidate>
     <div class="row">
-      <label>Maddə nömrəsi
-        <input id="article" required placeholder="məs. 69 və ya 17-1" pattern="[0-9]{1,3}(-[0-9]{1,2})?" inputmode="numeric">
+      <label>Maddə
+        <input id="article" placeholder="məsələn 69" inputmode="numeric" maxlength="6" autocomplete="off">
       </label>
-      <label>Köhnə tarix
-        <input type="date" id="from" required value="2015-01-01" min="1999-02-01">
+      <label>Hansı tarixdən
+        <input id="from" type="text" inputmode="numeric" placeholder="gün.ay.il" maxlength="10" value="01.01.2015" autocomplete="off">
       </label>
-      <label>Yeni tarix (boş: bu gün)
-        <input type="date" id="to">
+      <label>Hansı tarixədək
+        <input id="to" type="text" inputmode="numeric" placeholder="bu günədək" maxlength="10" autocomplete="off">
       </label>
     </div>
-    <div class="examples" id="examples"></div>
-    <button class="primary" type="submit" id="submit">Müqayisə et</button>
+    <div class="form-foot">
+      <div class="suggest" id="examples"><span>Maraqlı nümunələr:</span></div>
+      <button class="primary" type="submit" id="submit">Müqayisə et</button>
+    </div>
     <div id="status" role="status" aria-live="polite"></div>
   </form>
   <section id="result" hidden>
@@ -101,26 +105,31 @@
   for (const [article, from, text] of EXAMPLES) {
     const chip = el("button", "chip", text);
     chip.type = "button";
-    chip.addEventListener("click", () => { $("article").value = article; $("from").value = from; run(); });
+    chip.addEventListener("click", () => { $("article").value = article; $("from").value = Mizan.formatDate(from); $("to").value = ""; run(); });
     $("examples").append(chip);
   }
+  Mizan.maskDate($("from"));
+  Mizan.maskDate($("to"));
   async function run() {
     const status = $("status");
+    const fail = (text) => { status.className = "error"; status.textContent = text; };
     const article = $("article").value.trim();
-    if (!/^[0-9]{1,3}(-[0-9]{1,2})?$/.test(article)) {
-      status.className = "error"; status.textContent = "Maddə nömrəsini yazın (məs. 69).";
-      return;
-    }
-    const params = new URLSearchParams({ key: "art:" + article, from: $("from").value });
-    if ($("to").value) params.set("to", $("to").value);
-    history.replaceState(null, "", "?" + new URLSearchParams({ article, from: $("from").value, ...( $("to").value ? { to: $("to").value } : {}) }));
-    status.className = ""; status.textContent = "Müqayisə edilir…";
+    if (!/^[0-9]{1,3}(-[0-9]{1,2})?$/.test(article)) return fail("Maddənin nömrəsini yazın, məsələn 69 və ya 17-1.");
+    const from = Mizan.parseDate($("from").value);
+    if (!from) return fail("Başlanğıc tarixi gün.ay.il şəklində yazın, məsələn 01.01.2015.");
+    if (from < "1999-02-01") return fail("Məcəllə 1 fevral 1999-cu ildə qüvvəyə minib; daha sonrakı tarix seçin.");
+    const to = $("to").value.trim() ? Mizan.parseDate($("to").value) : null;
+    if ($("to").value.trim() && !to) return fail("Son tarixi gün.ay.il şəklində yazın və ya boş saxlayın.");
+    const params = new URLSearchParams({ key: "art:" + article, from });
+    if (to) params.set("to", to);
+    history.replaceState(null, "", "?" + new URLSearchParams({ article, from, ...(to ? { to } : {}) }));
+    status.className = ""; status.textContent = "Mətnlər müqayisə edilir…";
     $("submit").disabled = true;
     try {
-      const res = await fetch("/v1/diff?" + params);
+      const res = await fetch("/v1/diff?" + params, { headers: Mizan.headers() });
       const data = await res.json().catch(() => ({}));
       if (res.status === 404) throw new Error("Bu tarixlərdən birində maddənin mətni yoxdur.");
-      if (res.status === 401) throw new Error("Giriş tokeni tələb olunur.");
+      if (res.status === 401) throw new Error("Bu xidmətdən istifadə üçün giriş keçidi lazımdır.");
       if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "HTTP " + res.status);
       status.textContent = "";
       render(data);
@@ -132,10 +141,10 @@
   }
   function render(d) {
     $("result").hidden = false;
-    $("summary").textContent = label(d.key) + ": " + d.start + " tarixindəki mətn (" +
-      d.start_text_in_force_since + "-dən qüvvədə) ilə " + d.end + " tarixindəki mətn (" +
-      d.end_text_in_force_since + "-dən qüvvədə). " +
-      (d.changes.length ? d.changes.length + " müddəa fərqlənir." : "Mətn dəyişməyib.");
+    const f = Mizan.formatDate;
+    $("summary").textContent = label(d.key) + ", " + f(d.start) + " və " + f(d.end) + " tarixlərindəki mətnlər" +
+      " (redaksiyalar " + f(d.start_text_in_force_since) + " və " + f(d.end_text_in_force_since) + " tarixlərindən qüvvədədir). " +
+      (d.changes.length ? d.changes.length + " müddəa fərqlənir." : "Bu müddətdə mətn dəyişməyib.");
     const box = $("changes");
     box.replaceChildren();
     for (const c of d.changes) {
@@ -150,7 +159,7 @@
     $("acts-title").hidden = d.amendments.length === 0;
     for (const a of d.amendments) {
       const div = el("div", "act");
-      div.append(el("div", "when", a.adopted_on + (a.act_number ? " · " + a.act_number : "")));
+      div.append(el("div", "when", Mizan.formatDate(a.adopted_on) + (a.act_number ? " · " + a.act_number : "")));
       div.append(el("div", "note", a.note));
       acts.append(div);
     }
@@ -159,8 +168,8 @@
   const query = new URLSearchParams(location.search);
   if (query.get("article")) {
     $("article").value = query.get("article");
-    if (query.get("from")) $("from").value = query.get("from");
-    if (query.get("to")) $("to").value = query.get("to");
+    if (query.get("from")) $("from").value = Mizan.formatDate(query.get("from"));
+    if (query.get("to")) $("to").value = Mizan.formatDate(query.get("to"));
     run();
   }
 })();

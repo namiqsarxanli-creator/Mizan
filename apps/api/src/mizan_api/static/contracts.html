@@ -7,7 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/theme.css?v=2">
+<link rel="stylesheet" href="/theme.css?v=6">
+<script src="/common.js?v=1"></script>
 <style>
   .notice { border: 1px solid var(--risk); background: var(--risk-bg); border-radius: 12px;
             padding: 12px 16px; margin-bottom: 20px; font-size: 14px; color: var(--text); }
@@ -37,6 +38,7 @@
 </style>
 </head>
 <body>
+<div class="intro" aria-hidden="true"><div class="intro-stage"><div class="intro-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#1a1240" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 21h10M4 7h16"/><path d="M4 7l-3 7a3 3 0 0 0 6 0z"/><path d="M20 7l-3 7a3 3 0 0 0 6 0z"/></svg></div><div class="intro-word">Mizan</div></div><div class="intro-fill"></div><div class="intro-curtain"></div></div>
 <main>
   <div class="topline">Azərbaycan Respublikasının Əmək Məcəlləsi · 1999-dan bu günədək bütün redaksiyalar</div>
   <nav>
@@ -50,29 +52,34 @@
     <h1>Müqaviləni<br><em>yoxla</em></h1>
     <p class="sub">Əmək müqaviləsini yükləyin: hər bənd Əmək Məcəlləsi ilə müqayisə edilir, pozuntular
       maddə və sitatla göstərilir.</p>
-    <div class="stats"><span><b>PDF · DOCX · şəkil</b></span><span>Qaydalar + <b>süni intellekt</b></span><span>Gizli göstərişlər <b>aşkarlanır</b></span></div>
+    <div class="stats"><span><b>PDF, Word</b> və skan</span><span>Hər pozuntu <b>maddə ilə</b></span><span>Gizli göstərişlər <b>tutulur</b></span></div>
   </header>
-  <div class="notice" id="disclaimer">
-    Bu hesabat avtomatik hazırlanmış tədqiqat vasitəsidir, hüquqi məsləhət deyil. Hər nəticəni
-    göstərilən maddənin mətni ilə yoxlayın; qərar verməzdən əvvəl hüquqşünasa müraciət edin.
-    Yüklədiyiniz sənəddə şəxsi məlumatları (FİN, ünvan, telefon) əvvəlcədən silin.
-  </div>
-  <form id="form">
-    <label>Müqavilə faylı (.pdf, .docx, .txt, .png, .jpg; 10 MB-a qədər)
-      <input type="file" name="file" id="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg" required>
+  <form id="form" novalidate>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".pdf,.docx,.txt,.png,.jpg,.jpeg">
+      <span id="drop-main">Müqaviləni bura atın və ya <span class="pick">kompüterdən seçin</span></span>
+      <span class="hint" id="drop-hint">PDF, Word, şəkil və ya mətn faylı, 10 MB-a qədər</span>
     </label>
-    <div class="row">
-      <label>Tarix (hansı tarixdə qüvvədə olan qanunla)
-        <input type="date" name="as_of" id="as_of">
-      </label>
-      <label>Giriş tokeni (auth aktivdirsə)
-        <input type="password" id="token" autocomplete="off" placeholder="Bearer token">
-      </label>
+    <div class="form-foot">
+      <div class="when" id="when">
+        <span class="when-label">Qanunun hansı tarixdəki mətni ilə?</span>
+        <div class="when-row">
+          <div class="seg" role="group" aria-label="Tarix">
+            <button type="button" data-mode="today">Bu gün</button>
+            <button type="button" data-mode="past">Keçmiş tarix</button>
+          </div>
+          <input type="text" inputmode="numeric" placeholder="gün.ay.il" maxlength="10" aria-label="Tarix (gün.ay.il)" hidden>
+        </div>
+      </div>
+      <label class="switch"><input type="checkbox" id="llm" checked>
+        <span>Ətraflı yoxlama<small>Hər bənd əlavə olaraq oxunur, 1–2 dəqiqə çəkir</small></span></label>
+      <button type="submit" id="submit">Yoxla</button>
     </div>
-    <label class="check"><input type="checkbox" id="llm" checked> Süni intellektlə əlavə yoxlama (qaydalardan başqa)</label>
-    <button type="submit" id="submit">Yoxla</button>
     <div id="status" role="status" aria-live="polite"></div>
   </form>
+  <p class="notice" id="disclaimer">Bu hesabat hüquqi məsləhət deyil: hər nəticəni göstərilən maddə ilə
+    tutuşdurun və qərardan əvvəl hüquqşünasla məsləhətləşin. Faylda FİN, ünvan və telefon kimi şəxsi
+    məlumatları əvvəlcədən silin.</p>
   <section id="result" hidden>
     <div class="summary" id="summary"></div>
     <p class="notes" id="notes"></p>
@@ -85,7 +92,7 @@
 <script>
 (() => {
   const LABELS = { ok: "Uyğun", risk: "Risk", violation: "Pozuntu", injection: "Şübhəli göstəriş" };
-  const ORIGIN = { rule: "qayda", llm: "süni intellekt, sitat yoxlanılıb", screen: "təhlükəsizlik skrininqi" };
+  const ORIGIN = { rule: "qanun qaydası", llm: "ətraflı oxu, sitat yoxlanılıb", screen: "təhlükəsizlik yoxlaması" };
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, text) => {
     const node = document.createElement(tag);
@@ -94,7 +101,20 @@
     return node;
   };
   const article = (key) => key.startsWith("art:") ? "Maddə " + key.slice(4) : key;
-  try { $("token").value = sessionStorage.getItem("mizan-token") || ""; } catch (_) {}
+  const when = Mizan.whenField($("when"));
+  const drop = $("drop");
+  const showFile = () => {
+    const f = $("file").files[0];
+    $("drop-main").replaceChildren(f ? el("span", "chosen", f.name) : document.createTextNode("Müqaviləni bura atın və ya kompüterdən seçin"));
+    $("drop-hint").textContent = f ? Math.max(1, Math.round(f.size / 1024)) + " KB · dəyişmək üçün yenidən seçin" : "PDF, Word, şəkil və ya mətn faylı, 10 MB-a qədər";
+  };
+  $("file").addEventListener("change", showFile);
+  ["dragenter", "dragover"].forEach((e) => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach((e) => drop.addEventListener(e, () => drop.classList.remove("over")));
+  drop.addEventListener("drop", (ev) => {
+    ev.preventDefault();
+    if (ev.dataTransfer.files.length) { $("file").files = ev.dataTransfer.files; showFile(); }
+  });
 
   let last = null;
   function render(report) {
@@ -106,11 +126,11 @@
       if (report.counts[v]) summary.append(el("span", "pill " + v, LABELS[v] + ": " + report.counts[v]));
     }
     const notes = [];
-    notes.push(report.llm_reviewed ? "Qaydalar və süni intellekt yoxlaması." : "Yalnız qaydalar (süni intellekt yoxlaması aparılmayıb).");
-    if (report.review_failed_batches) notes.push("Süni intellekt yoxlamasının " + report.review_failed_batches + " hissəsi alınmadı; həmin bəndlər yalnız qaydalarla yoxlanıb.");
+    notes.push(report.llm_reviewed ? "Qanun qaydaları və ətraflı oxu." : "Yalnız qanun qaydaları ilə yoxlanıb.");
+    if (report.review_failed_batches) notes.push("Ətraflı oxunun " + report.review_failed_batches + " hissəsi alınmadı; həmin bəndlər yalnız qaydalarla yoxlanıb.");
     if (report.ocr_pages.length) notes.push("Skan edilmiş səhifələr (OCR): " + report.ocr_pages.join(", ") + ".");
     if (report.unreadable_pages.length) notes.push("Oxunmayan səhifələr: " + report.unreadable_pages.join(", ") + ".");
-    notes.push("Tarix: " + report.as_of + ".");
+    notes.push(Mizan.formatDate(report.as_of) + " tarixində qüvvədə olan mətnə görə.");
     $("notes").textContent = notes.join(" ");
     $("disclaimer").textContent = report.disclaimer;
     draw();
@@ -146,15 +166,15 @@
   $("form").addEventListener("submit", async (event) => {
     event.preventDefault();
     const status = $("status");
+    if (!$("file").files[0]) { status.className = "error"; status.textContent = "Əvvəlcə müqavilə faylını seçin."; return; }
+    const date = when.read();
+    if (date.error) { status.className = "error"; status.textContent = date.error; return; }
     const body = new FormData();
     body.append("file", $("file").files[0]);
-    if ($("as_of").value) body.append("as_of", $("as_of").value);
+    if (date.iso) body.append("as_of", date.iso);
     body.append("llm", $("llm").checked ? "true" : "false");
-    const headers = {};
-    const token = $("token").value.trim();
-    if (token) headers["Authorization"] = "Bearer " + token;
-    try { sessionStorage.setItem("mizan-token", token); } catch (_) {}
-    status.className = ""; status.textContent = "Yoxlanılır… (süni intellektlə bir neçə dəqiqə çəkə bilər)";
+    const headers = Mizan.headers();
+    status.className = ""; status.textContent = $("llm").checked ? "Müqavilə oxunur, bu 1–2 dəqiqə çəkə bilər…" : "Müqavilə oxunur…";
     $("submit").disabled = true;
     try {
       const res = await fetch("/v1/contracts/analyze", { method: "POST", body, headers });

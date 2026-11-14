@@ -39,6 +39,8 @@ html {
     linear-gradient(180deg, var(--bg-top) 0%, #1a1260 30%, #110c3c 60%, var(--bg) 100%);
   background-attachment: fixed;
 }
+/* The drifting lights and the intro curtain reach past the edges: never a sideways scroll. */
+html, body { overflow-x: clip; }
 main { max-width: 920px; margin: 0 auto; padding: 0 16px 80px; }
 a { color: var(--gold); }
 
@@ -97,15 +99,13 @@ button.primary, form button[type=submit] {
   font: inherit; font-weight: 700; font-size: 14px; padding: 10px 22px; border: 0;
   border-radius: 999px; background: var(--gold); color: var(--on-accent); cursor: pointer;
   justify-self: start; }
-button.primary::after, form button[type=submit]::after { content: "  →"; }
 button.secondary { font: inherit; font-weight: 600; font-size: 14px; padding: 9px 20px;
   border-radius: 999px; border: 1px solid var(--gold); background: transparent; color: var(--gold);
   cursor: pointer; }
 button:disabled { opacity: .55; cursor: wait; }
-.chip { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 999px; cursor: pointer;
-        border: 1px solid var(--line); background: rgba(255, 255, 255, 0.06); color: var(--text); }
-.chip::before { content: "●"; color: var(--gold); font-size: 8px; vertical-align: 2px; margin-right: 6px; }
-.chip:hover { border-color: var(--gold); }
+.chip { font: inherit; font-size: 13px; padding: 4px 11px; border-radius: 8px; cursor: pointer;
+        border: 0; background: rgba(255, 255, 255, 0.07); color: var(--muted); text-align: left; }
+.chip:hover { color: var(--text); background: rgba(255, 255, 255, 0.12); }
 .examples { display: flex; gap: 8px; flex-wrap: wrap; }
 
 #status { color: var(--muted); min-height: 1.5em; font-size: 14px; }
@@ -188,3 +188,77 @@ nav .brand:hover .mark { transform: rotate(-12deg) scale(1.08); }
   .hero h1 { background: none; color: inherit; }
   * { animation: none !important; }
 }
+
+/* ------------------------------------------------------------------ form parts */
+.field-title { font-family: var(--serif); font-size: 22px; font-weight: 600; color: var(--text); margin: 0; }
+.field-hint { color: var(--muted); font-size: 13px; margin: -8px 0 0; }
+.suggest { display: flex; gap: 6px 8px; flex-wrap: wrap; align-items: center; font-size: 13px; }
+.suggest > span { color: var(--muted); margin-right: 2px; }
+.form-foot { display: flex; gap: 14px 24px; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
+             border-top: 1px solid var(--line); padding-top: 16px; }
+.when { display: grid; gap: 8px; }
+.when-label { font-size: 13px; color: var(--muted); }
+.when-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.seg { display: inline-flex; padding: 3px; border-radius: 10px; background: rgba(8, 6, 28, 0.55);
+       border: 1px solid var(--line); }
+.seg button { font: inherit; font-size: 13px; font-weight: 600; border: 0; border-radius: 7px; padding: 6px 14px;
+              background: transparent; color: var(--muted); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.12); color: var(--text); }
+.when input { width: 140px; font-variant-numeric: tabular-nums; letter-spacing: .03em; }
+.drop { display: grid; place-items: center; gap: 4px; text-align: center; padding: 28px 16px;
+        border: 1.5px dashed var(--line-strong); border-radius: 12px; cursor: pointer;
+        background: rgba(8, 6, 28, 0.35); color: var(--text); font-weight: 500; transition: border-color .2s, background-color .2s; }
+.drop:hover, .drop.over { border-color: var(--gold); background: var(--gold-soft); }
+.drop .pick { color: var(--gold); text-decoration: underline; text-underline-offset: 3px; }
+.drop .hint { color: var(--muted); font-size: 13px; font-weight: 400; }
+.drop .chosen { color: var(--gold); font-weight: 600; }
+.drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.switch { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--text); cursor: pointer; }
+.switch small { display: block; color: var(--muted); font-size: 12px; }
+.drop { position: relative; }
+#disclaimer.notice { margin: 16px 0 0; }
+
+/* ------------------------------------------------------------------ intro (once per session) */
+/* Purple screen -> the gold mark appears -> it grows to fill the screen -> the gold curtain
+   lifts away with a curved edge and the page arrives underneath. ?intro replays it. */
+.intro { display: none; }
+html.intro-on { --intro-delay: 1.95s; }
+html.intro-on .intro { display: block; position: fixed; inset: 0; z-index: 1000; pointer-events: none; overflow: hidden;
+                       animation: intro-done 0s 2.75s forwards; }
+html.intro-done .intro { display: none; }
+@keyframes intro-done { to { visibility: hidden; } }
+.intro::before { content: ""; position: absolute; inset: 0;
+  background: radial-gradient(900px 520px at 50% 40%, #5a3fe0 0%, transparent 65%), linear-gradient(180deg, #2b1d8f, #110b3a);
+  animation: intro-fade .15s 1.72s forwards; }
+@keyframes intro-fade { to { opacity: 0; } }
+.intro-stage { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 18px; }
+.intro-mark, .intro-fill { width: 72px; height: 72px; background: var(--gold);
+  clip-path: polygon(0 0, 74% 0, 100% 26%, 100% 100%, 0 100%); }
+.intro-mark { display: grid; place-items: center;
+  animation: intro-pop .65s .15s cubic-bezier(.3, 1.5, .5, 1) both, intro-wobble .5s .8s ease-in-out,
+             intro-fade 0s 1.16s forwards; }
+.intro-mark svg { width: 40px; height: 40px; animation: intro-fade .2s 1.05s forwards; }
+@keyframes intro-pop { from { opacity: 0; transform: scale(.3) rotate(-14deg); } to { opacity: 1; transform: none; } }
+@keyframes intro-wobble { 50% { transform: rotate(-6deg) scale(1.04); } }
+.intro-word { font-family: var(--serif); font-size: 30px; font-weight: 600; color: var(--gold); letter-spacing: .02em;
+  animation: intro-word 1.05s .3s ease-out both; }
+@keyframes intro-word { 0% { opacity: 0; transform: translateY(10px); } 35%, 75% { opacity: 1; transform: none; }
+                        100% { opacity: 0; transform: translateY(-6px); } }
+.intro-fill { position: absolute; left: 50%; top: 50%; margin: -63px 0 0 -36px; opacity: 0;
+  animation: intro-grow .62s 1.1s cubic-bezier(.7, 0, .84, 0) forwards, intro-fade 0s 1.74s forwards; }
+@keyframes intro-grow { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 1; transform: scale(48); } }
+.intro-curtain { position: absolute; left: -10vw; right: -10vw; top: 0; height: 122vh; background: var(--gold);
+  border-radius: 0 0 50% 50% / 0 0 22vh 22vh; opacity: 0;
+  animation: intro-show 0s 1.72s forwards, intro-lift .85s 1.9s cubic-bezier(.76, 0, .24, 1) forwards; }
+@keyframes intro-show { to { opacity: 1; } }
+@keyframes intro-lift { from { transform: translateY(0); } to { transform: translateY(-125%); } }
+
+/* The page's own entrance waits for the curtain. */
+.topline, nav { animation-delay: var(--intro-delay, 0s); }
+.hero .eyebrow { animation-delay: calc(var(--intro-delay, 0s) + .05s); }
+.hero .sub { animation-delay: calc(var(--intro-delay, 0s) + .28s); }
+.hero .stats { animation-delay: calc(var(--intro-delay, 0s) + .4s); }
+main > form, main > .notice { animation-delay: calc(var(--intro-delay, 0s) + .5s); }
+.hero h1 { animation-delay: calc(var(--intro-delay, 0s) + .12s), calc(var(--intro-delay, 0s) + 1.2s); }
+@media (prefers-reduced-motion: reduce) { html.intro-on .intro { display: none; } }
+@media print { .intro { display: none !important; } }
