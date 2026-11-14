@@ -94,6 +94,23 @@ def _render(data: bytes, index: int) -> bytes:
         pdf.close()
 
 
+def _pdfium_text(data: bytes, count: int) -> list[str] | None:
+    """Each page's text layer read by pdfium; None if pdfium cannot read the file."""
+    import pypdfium2 as pdfium
+
+    try:
+        pdf = pdfium.PdfDocument(data)
+    except pdfium.PdfiumError:
+        return None
+    try:
+        if len(pdf) != count:
+            return None
+        # _clean splits on both \r and \n, so pdfium's \r\n line ends need no handling here.
+        return [pdf[i].get_textpage().get_text_range() for i in range(count)]
+    finally:
+        pdf.close()
+
+
 async def _pdf(data: bytes, ocr: Ocr | None) -> list[Page]:
     from pypdf import PdfReader
     from pypdf.errors import PdfReadError
@@ -107,9 +124,12 @@ async def _pdf(data: bytes, ocr: Ocr | None) -> list[Page]:
         raise DocumentError("not a readable PDF file") from exc
     if len(pages) > MAX_PAGES:
         raise DocumentError(f"at most {MAX_PAGES} pages")
+    layer = _pdfium_text(data, len(pages))
     out: list[Page] = []
     for i, page in enumerate(pages):
-        text = _clean(page.extract_text() or "")
+        # pdfium keeps words whole where pypdf splits them at letters a web font draws as
+        # separate runs ("Az ə rbaycan", "qada ğ an"); pypdf stays the fallback.
+        text = _clean(layer[i] if layer is not None else (page.extract_text() or ""))
         if len(text) >= MIN_TEXT_CHARS:
             out.append(Page(i + 1, text, "pdf_text"))
         elif ocr is not None:
